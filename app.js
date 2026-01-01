@@ -29,7 +29,13 @@ let state = {
         const m = ('0' + (d.getMonth() + 1)).slice(-2);
         const day = ('0' + d.getDate()).slice(-2);
         return `${y}/${m}/${day}`;
-    })()
+    })(),
+    gasMasterData: {
+        categories: [],
+        contents: [],
+        enthusiasms: [],
+        comments: []
+    }
 };
 
 let charts = {
@@ -132,6 +138,11 @@ function init() {
     setupEventListeners();
     setupPeriodSwitchers();
     setCurrentTimeInputs();
+
+    // デフォルト値の設定
+    elements.enthusiasmInput.value = '集中して取り組む！';
+    elements.commentInput.value = '次も頑張ろう！';
+
     setupMasterData();
     updateGoalDisplay(); // Add this
 
@@ -172,10 +183,14 @@ function setCurrentTimeInputs() {
     elements.recordDateInput.value = `${yyyy}-${mm}-${dd}`;
 }
 
-// マスターデータのセットアップ (履歴からの候補抽出を強化)
+// マスターデータのセットアップ (履歴 + GASのbaseシートから候補抽出)
 function setupMasterData() {
     // 1. カテゴリー候補
     const catFreq = {};
+    // GASからのデータを優先的に追加
+    if (state.gasMasterData && state.gasMasterData.categories) {
+        state.gasMasterData.categories.forEach(c => catFreq[c] = (catFreq[c] || 0) + 10); // 重み付け
+    }
     Object.keys(state.masterData).forEach(c => catFreq[c] = (catFreq[c] || 0) + 1);
     state.records.forEach(r => catFreq[r.category] = (catFreq[r.category] || 0) + 1);
     const sortedCats = Object.keys(catFreq).sort((a, b) => catFreq[b] - catFreq[a]);
@@ -186,9 +201,9 @@ function setupMasterData() {
         elements.categoryList.appendChild(opt);
     });
 
-    // 全体の履歴から収集しておく
-    const allContents = new Set();
-    const allIntents = new Set();
+    // 全体の履歴 + GASデータから収集しておく
+    const allContents = new Set(state.gasMasterData?.contents || []);
+    const allIntents = new Set(state.gasMasterData?.enthusiasms || []);
     state.records.forEach(r => {
         if (r.content) allContents.add(r.content);
         if (r.intent) allIntents.add(r.intent);
@@ -201,6 +216,7 @@ function setupMasterData() {
         const contFreq = {};
         if (catVal) {
             (state.masterData[catVal] || []).forEach(c => contFreq[c] = (contFreq[c] || 0) + 1);
+            // GASからのデータ（そのカテゴリに合致するか不明だが、全体候補として出すか検討）
             state.records.filter(r => r.category === catVal).forEach(r => contFreq[r.content] = (contFreq[r.content] || 0) + 1);
             const sortedConts = Object.keys(contFreq).sort((a, b) => contFreq[b] - contFreq[a]);
             elements.contentList.innerHTML = '';
@@ -218,8 +234,12 @@ function setupMasterData() {
     // 3. 意気込みの候補更新
     const updateEnthusiasmList = () => {
         const intFreq = {};
+        // GASデータ
+        if (state.gasMasterData?.enthusiasms) {
+            state.gasMasterData.enthusiasms.forEach(i => intFreq[i] = (intFreq[i] || 0) + 5);
+        }
         ['集中して取り組む！', 'まずは15分頑張る', '復習をメインに'].forEach(i => intFreq[i] = (intFreq[i] || 0) + 1);
-        state.records.forEach(r => { if (r.intent) intFreq[r.intent] = (intFreq[r.intent] || 0) + 1; });
+        state.records.forEach(r => { if (r.enthusiasm) intFreq[r.enthusiasm] = (intFreq[r.enthusiasm] || 0) + 1; });
         const sortedIntents = Object.keys(intFreq).sort((a, b) => intFreq[b] - intFreq[a]);
         elements.enthusiasmList.innerHTML = '';
         sortedIntents.forEach(i => {
@@ -285,6 +305,10 @@ function setupMasterData() {
 function updateCommentSuggestions() {
     elements.commentList.innerHTML = '';
     const commFreq = {};
+    // GASデータ
+    if (state.gasMasterData?.comments) {
+        state.gasMasterData.comments.forEach(c => commFreq[c] = (commFreq[c] || 0) + 5);
+    }
     ['集中できた！', '復習が必要', '目標達成', '少し疲れた'].forEach(c => commFreq[c] = (commFreq[c] || 0) + 1);
     state.records.forEach(r => {
         if (r.comment) commFreq[r.comment] = (commFreq[r.comment] || 0) + 1;
@@ -642,9 +666,16 @@ async function loadRecordsFromGAS() {
         // GASからデータを取得 (userNameを渡す)
         const response = await fetch(`${GAS_URL}?userName=${encodeURIComponent(userName)}`);
         if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data)) {
-                state.records = data.map(record => {
+            const result = await response.json();
+            const recordsData = result.records || [];
+
+            // マスタデータの更新
+            if (result.masterData) {
+                state.gasMasterData = result.masterData;
+            }
+
+            if (Array.isArray(recordsData)) {
+                state.records = recordsData.map(record => {
                     // 日付フォーマットの正規化 (2025-12-30T15:00:00.000Z -> 2025/12/31)
                     // GASから返る日付はUTCのISO文字列になっている場合があるため、ローカルの日付に変換する
                     let dateStr = record.date;

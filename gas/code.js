@@ -3,18 +3,19 @@
  */
 
 const SPREADSHEET_ID = '1Zr2IDZiu4ixCh6NPExyVYLxXrSrabXm4L841MjbkAuM';
+const SHEET_NAME_BASE = 'base'; // マスタデータのシート名
 
 // ユーザー名に基づいてシートを取得（なければ作成）
 function getSheetForUser(ss, userName) {
   let name = userName ? userName.trim() : 'デフォルト';
-  // シート名の制限に対応
-  let sheetName = "記録_" + name;
+  // シート名を rec名前 に変更
+  let sheetName = "rec" + name;
   let sheet = ss.getSheetByName(sheetName);
 
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-    // A:日付, B:ユーザー名, C:開始時刻, D:終了時刻, E:学習時間, F:カテゴリ, G:内容, H:意気込み, I:コメント, J:FB, K:ID
-    const headers = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', 'FB', 'ID'];
+    // A:日付, B:ユーザー名, C:開始時刻, D:終了時刻, E:学習時間, F:カテゴリ, G:内容, H:意気込み, I:コメント, J:意欲, K:ID
+    const headers = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', '意欲', 'ID'];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(1, 100);
@@ -100,9 +101,7 @@ function doGet(e) {
   const sheet = getSheetForUser(ss, userName);
 
   const values = sheet.getDataRange().getValues();
-  if (values.length <= 1) return successResponse([]);
-
-  const records = values.slice(1).map(row => {
+  const records = values.length <= 1 ? [] : values.slice(1).map(row => {
     return {
       date: row[0],
       userName: row[1],
@@ -117,7 +116,39 @@ function doGet(e) {
       id: row[10]
     };
   });
-  return successResponse(records);
+
+  // baseシートからマスタデータを取得
+  const baseData = getBaseData(ss);
+
+  return successResponse({
+    records: records,
+    masterData: baseData
+  });
+}
+
+function getBaseData(ss) {
+  const sheet = ss.getSheetByName(SHEET_NAME_BASE);
+  if (!sheet) return { categories: [], contents: [], enthusiasms: [], comments: [] };
+
+  const data = sheet.getDataRange().getValues();
+  const categories = [];
+  const contents = [];
+  const enthusiasms = [];
+  const comments = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) categories.push(data[i][0]);
+    if (data[i][1]) contents.push(data[i][1]);
+    if (data[i][2]) enthusiasms.push(data[i][2]);
+    if (data[i][3]) comments.push(data[i][3]);
+  }
+
+  return {
+    categories: [...new Set(categories)],
+    contents: [...new Set(contents)],
+    enthusiasms: [...new Set(enthusiasms)],
+    comments: [...new Set(comments)]
+  };
 }
 
 function findRowIndexById(sheet, id) {
