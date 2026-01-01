@@ -446,8 +446,15 @@ select:focus {
 /* History Condensed List */
 .history-list.condensed {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 0.4rem;
+}
+
+@media (max-width: 500px) {
+    .history-list.condensed {
+        grid-template-columns: 1fr 1fr;
+        /* スマホで強制的に2列表示 */
+    }
 }
 
 .history-card {
@@ -464,13 +471,26 @@ select:focus {
 }
 
 .history-body h4 {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     margin-bottom: 0.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .history-body p {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--text-dim);
+}
+
+@media (min-width: 600px) {
+    .history-body h4 {
+        font-size: 0.9rem;
+    }
+
+    .history-body p {
+        font-size: 0.8rem;
+    }
 }
 
 .history-comment {
