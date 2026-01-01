@@ -112,6 +112,8 @@ h3,
 @media (max-width: 600px) {
     .container {
         padding: 0.25rem;
+        overflow-x: hidden;
+        /* 横方向を固定 */
     }
 }
 
@@ -333,7 +335,8 @@ header {
 
 @media (max-width: 600px) {
     .grid-2col {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
     }
 }
 
@@ -370,16 +373,26 @@ header {
     margin-bottom: 0.4rem;
 }
 
+.compact-form .form-group {
+    margin-bottom: 0.2rem;
+}
+
 .comment-group {
-    margin-top: 0.25rem;
+    margin-top: 0.1rem;
 }
 
 label {
     display: block;
     margin-bottom: 0.1rem;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--text-dim);
     font-weight: 600;
+}
+
+@media (min-width: 600px) {
+    label {
+        font-size: 0.75rem;
+    }
 }
 
 input,
@@ -388,10 +401,19 @@ select {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 6px;
-    padding: 0.4rem 0.6rem;
+    padding: 0.3rem 0.5rem;
     color: var(--text-main);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     transition: all 0.2s ease;
+}
+
+@media (min-width: 600px) {
+
+    input,
+    select {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.85rem;
+    }
 }
 
 input:focus,
