@@ -10,7 +10,10 @@
     --glass-border: rgba(255, 255, 255, 0.1);
     --font-outfit: 'Outfit', sans-serif;
     --font-inter: 'Inter', sans-serif;
+    --font-timer: 'Exo 2', sans-serif;
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@1,300;1,700&display=swap');
 
 /* --- テーマカラー定義 --- */
 [data-theme="orange"] {
@@ -977,24 +980,71 @@ h3 {
     text-align: center;
 }
 
-/* Study Mode Overlay (Restored/Compact) */
 .study-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--bg-color);
+    background: radial-gradient(circle at center, rgba(12, 14, 20, 0.98) 0%, var(--bg-color) 100%);
     z-index: 1000;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(20px);
+}
+
+.study-container {
+    text-align: center;
+    width: 90%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+.timer-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .timer-elapsed {
-    font-size: 4rem;
+    font-size: clamp(4rem, 15vw, 6rem);
     font-weight: 700;
+    font-family: var(--font-timer);
+    font-style: italic;
+    color: var(--primary-color);
+    text-shadow: 0 0 30px var(--primary-glow);
+    line-height: 1;
+}
+
+#current-time-display {
+    font-size: 1rem;
+    color: var(--text-dim);
+    font-family: var(--font-inter);
+}
+
+#current-time-display span {
+    font-family: var(--font-timer);
+    font-style: italic;
+    color: var(--text-main);
+    margin-left: 0.5rem;
+}
+
+.quote-display {
+    font-size: 1.1rem;
+    font-weight: 500;
     font-family: var(--font-outfit);
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1rem 1.5rem;
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    max-width: 400px;
 }
 
 /* Animations (Restored) */

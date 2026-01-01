@@ -4,6 +4,7 @@
 
 const STATE_KEY = 'study_recorder_state';
 const USER_KEY = 'study_recorder_user';
+const STATE_STUDY_KEY = 'study_recorder_active_session';
 
 let state = {
     isStudying: false,
@@ -144,10 +145,40 @@ function init() {
     elements.commentInput.value = '次も頑張ろう！';
 
     setupMasterData();
-    updateGoalDisplay(); // Add this
+    updateGoalDisplay();
+
+    // 以前のセッションがあれば復元
+    resumeStudySession();
 
     // 励ましのメッセージを1分ごとに更新
     setInterval(updateSupportMessage, 60000);
+}
+
+function resumeStudySession() {
+    const saved = localStorage.getItem(STATE_STUDY_KEY);
+    if (saved) {
+        const session = JSON.parse(saved);
+        if (session.isStudying && session.startTime) {
+            state.isStudying = true;
+            state.startTime = new Date(session.startTime);
+            const now = new Date();
+            state.elapsedSeconds = Math.floor((now - state.startTime) / 1000);
+
+            // UI表示
+            elements.studyMode.classList.remove('hidden');
+            updateTimerDisplay();
+            updateCurrentTimeDisplay();
+            updateSupportMessage();
+
+            state.timerInterval = setInterval(() => {
+                state.elapsedSeconds++;
+                updateTimerDisplay();
+                updateCurrentTimeDisplay();
+                // 1分ごとにセッション維持（万が一のクラッシュ対策）
+                if (state.elapsedSeconds % 60 === 0) saveStudyState();
+            }, 1000);
+        }
+    }
 }
 
 // ユーザー情報のロード
@@ -495,6 +526,7 @@ function startStudy() {
 
     elements.studyMode.classList.remove('hidden');
     updateSupportMessage();
+    saveStudyState(); // 状態を即時保存
 
     state.timerInterval = setInterval(() => {
         state.elapsedSeconds++;
@@ -503,10 +535,22 @@ function startStudy() {
     }, 1000);
 }
 
+function saveStudyState() {
+    if (state.isStudying) {
+        localStorage.setItem(STATE_STUDY_KEY, JSON.stringify({
+            isStudying: true,
+            startTime: state.startTime.toISOString()
+        }));
+    } else {
+        localStorage.removeItem(STATE_STUDY_KEY);
+    }
+}
+
 // 学習終了処理
 async function finishStudy() {
     clearInterval(state.timerInterval);
     state.isStudying = false;
+    saveStudyState(); // 状態をクリア
 
     const duration = Math.floor(state.elapsedSeconds / 60);
     const endTime = new Date();
@@ -1479,12 +1523,18 @@ function updateTimerDisplay() {
     const h = Math.floor(state.elapsedSeconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((state.elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
     const s = (state.elapsedSeconds % 60).toString().padStart(2, '0');
-    elements.timerElapsed.textContent = `${h}:${m}:${s} `;
+    elements.timerElapsed.textContent = `${h}:${m}:${s}`;
 }
 
 function updateCurrentTimeDisplay() {
     const now = new Date();
-    elements.currentTimeDisplay.textContent = `現在時刻: ${now.toTimeString().slice(0, 5)} `;
+    const timeStr = now.toTimeString().slice(0, 5);
+    const span = elements.currentTimeDisplay.querySelector('span');
+    if (span) {
+        span.textContent = timeStr;
+    } else {
+        elements.currentTimeDisplay.textContent = `現在時刻 ${timeStr}`;
+    }
 }
 
 function updateSupportMessage() {
