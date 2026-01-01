@@ -13,6 +13,8 @@ let state = {
     timerInterval: null,
     currentTab: 'record-tab',
     records: [],
+    isPaused: false,
+    pausedSeconds: 0,
     masterData: {
         "プログラミング": ["JavaScript", "Python", "React", "Node.js"],
         "言語学習": ["英語 - 単語", "英語 - リスニング", "中国語"],
@@ -160,25 +162,48 @@ function resumeStudySession() {
         const session = JSON.parse(saved);
         if (session.isStudying && session.startTime) {
             state.isStudying = true;
+            state.isPaused = session.isPaused || false;
             state.startTime = new Date(session.startTime);
+            state.pausedSeconds = session.pausedSeconds || 0;
+
             const now = new Date();
-            state.elapsedSeconds = Math.floor((now - state.startTime) / 1000);
+            // 経過時間の計算
+            if (state.isPaused) {
+                state.elapsedSeconds = state.pausedSeconds;
+            } else {
+                const totalDiff = Math.floor((now - state.startTime) / 1000);
+                state.elapsedSeconds = totalDiff - state.pausedSeconds;
+            }
 
             // UI表示
             elements.studyMode.classList.remove('hidden');
+            document.getElementById('study-current-category').textContent = session.category || '-';
+            document.getElementById('study-current-content').textContent = session.content || '-';
+
             updateTimerDisplay();
             updateCurrentTimeDisplay();
             updateSupportMessage();
 
-            state.timerInterval = setInterval(() => {
-                state.elapsedSeconds++;
-                updateTimerDisplay();
-                updateCurrentTimeDisplay();
-                // 1分ごとにセッション維持（万が一のクラッシュ対策）
-                if (state.elapsedSeconds % 60 === 0) saveStudyState();
-            }, 1000);
+            if (!state.isPaused) {
+                startTimerInterval();
+            } else {
+                const pauseBtn = document.getElementById('pause-study-btn');
+                if (pauseBtn) {
+                    pauseBtn.textContent = '再開する';
+                    pauseBtn.classList.add('pulse');
+                }
+            }
         }
     }
+}
+
+function startTimerInterval() {
+    state.timerInterval = setInterval(() => {
+        state.elapsedSeconds++;
+        updateTimerDisplay();
+        updateCurrentTimeDisplay();
+        if (state.elapsedSeconds % 60 === 0) saveStudyState();
+    }, 1000);
 }
 
 // ユーザー情報のロード
@@ -392,8 +417,20 @@ function setupEventListeners() {
     // 学習開始
     elements.startStudyBtn.addEventListener('click', startStudy);
 
+    // 一時中断・再開
+    const pauseBtn = document.getElementById('pause-study-btn');
+    if (pauseBtn) {
+        pauseBtn.addEventListener('click', togglePauseStudy);
+    }
+
     // 学習終了
     elements.finishStudyBtn.addEventListener('click', finishStudy);
+
+    // まとめ保存
+    const saveSummaryBtn = document.getElementById('save-summary-btn');
+    if (saveSummaryBtn) {
+        saveSummaryBtn.addEventListener('click', saveSummaryRecord);
+    }
 
     // 手動記録
     elements.manualRecordBtn.addEventListener('click', manualRecord);
@@ -523,59 +560,87 @@ function startStudy() {
     }
 
     state.elapsedSeconds = 0;
+    state.isPaused = false;
+    state.pausedSeconds = 0;
+
+    document.getElementById('study-current-category').textContent = category;
+    document.getElementById('study-current-content').textContent = content;
 
     elements.studyMode.classList.remove('hidden');
     updateSupportMessage();
     saveStudyState(); // 状態を即時保存
 
-    state.timerInterval = setInterval(() => {
-        state.elapsedSeconds++;
-        updateTimerDisplay();
-        updateCurrentTimeDisplay();
-    }, 1000);
+    startTimerInterval();
+}
+
+function togglePauseStudy() {
+    const pauseBtn = document.getElementById('pause-study-btn');
+    if (state.isPaused) {
+        // 再開
+        state.isPaused = false;
+        pauseBtn.textContent = '一時中断';
+        pauseBtn.classList.remove('pulse');
+        startTimerInterval();
+    } else {
+        // 中断
+        state.isPaused = true;
+        clearInterval(state.timerInterval);
+        pauseBtn.textContent = '再開する';
+        pauseBtn.classList.add('pulse');
+    }
+    saveStudyState();
 }
 
 function saveStudyState() {
     if (state.isStudying) {
         localStorage.setItem(STATE_STUDY_KEY, JSON.stringify({
             isStudying: true,
-            startTime: state.startTime.toISOString()
+            isPaused: state.isPaused,
+            startTime: state.startTime.toISOString(),
+            pausedSeconds: state.pausedSeconds,
+            category: elements.categoryInput.value.trim(),
+            content: elements.contentInput.value.trim()
         }));
     } else {
         localStorage.removeItem(STATE_STUDY_KEY);
     }
 }
 
-// 学習終了処理
+// 学習終了処理 (まとめ画面を表示)
 async function finishStudy() {
     clearInterval(state.timerInterval);
-    state.isStudying = false;
-    saveStudyState(); // 状態をクリア
 
     const duration = Math.floor(state.elapsedSeconds / 60);
-    const endTime = new Date();
+    document.getElementById('summary-duration-display').textContent = `学習時間: ${duration} 分`;
+
+    // 現在のコメントをプリセット
+    document.getElementById('summary-comment').value = elements.commentInput.value.trim() || '次も頑張ろう！';
 
     elements.studyMode.classList.add('hidden');
+    document.getElementById('summary-modal').classList.remove('hidden');
+}
 
-    // 終了後の入力（調子・コメント）
-    const condition = prompt('お疲れ様でした！今の調子を教えてください (◎ ◯ △ ×)', '◯') || '◯';
-    let comment = elements.commentInput.value.trim();
-    if (!comment) {
-        comment = prompt('コメントがあれば入力してください', '') || '';
-    }
+async function saveSummaryRecord() {
+    const duration = Math.floor(state.elapsedSeconds / 60);
+    const endTime = new Date();
+    const condition = document.getElementById('summary-condition').value;
+    const comment = document.getElementById('summary-comment').value.trim();
 
     const record = {
-        date: new Date().toLocaleDateString('ja-JP'),
+        date: state.viewDate, // 選択中の日付
         userName: localStorage.getItem(USER_KEY),
         startTime: state.startTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         endTime: endTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         duration: duration,
         category: elements.categoryInput.value.trim(),
         content: elements.contentInput.value.trim(),
-        enthusiasm: document.getElementById('enthusiasm-input').value,
+        enthusiasm: elements.enthusiasmInput.value,
         condition: condition,
         comment: comment
     };
+
+    state.isStudying = false;
+    saveStudyState(); // 状態をクリア
 
     state.records.push(record);
     saveLocalRecords();
@@ -583,9 +648,12 @@ async function finishStudy() {
     updateCharts();
     updateCommentSuggestions();
 
-    alert(`記録しました！今回の学習時間は ${duration} 分でした。`);
+    document.getElementById('summary-modal').classList.add('hidden');
 
-    sendRecord(record, elements.finishStudyBtn);
+    const btn = document.getElementById('save-summary-btn');
+    await sendRecord(record, btn);
+
+    alert(`記録しました！今回の学習時間は ${duration} 分でした。`);
 }
 
 // 手動記録処理

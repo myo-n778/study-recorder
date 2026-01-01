@@ -984,15 +984,35 @@ h3 {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at center, rgba(12, 14, 20, 0.98) 0%, var(--bg-color) 100%);
-    z-index: 1000;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at center, var(--primary-color) 0%, var(--bg-color) 150%);
+    z-index: 1050;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(25px);
+    overflow: hidden;
+    /* 移動・スクロール固定 */
+    touch-action: none;
+}
+
+.study-sub-info {
+    font-family: var(--font-outfit);
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: -1rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.study-actions {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
 }
 
 .study-container {
@@ -1013,13 +1033,17 @@ h3 {
 }
 
 .timer-elapsed {
-    font-size: clamp(4rem, 15vw, 6rem);
-    font-weight: 700;
+    font-size: clamp(4.5rem, 18vw, 7.5rem);
+    font-weight: 800;
     font-family: var(--font-timer);
     font-style: italic;
-    color: var(--primary-color);
-    text-shadow: 0 0 30px var(--primary-glow);
+    color: white;
+    text-shadow:
+        0 0 10px var(--primary-glow),
+        0 0 40px var(--primary-glow),
+        0 0 80px rgba(255, 255, 255, 0.3);
     line-height: 1;
+    letter-spacing: -2px;
 }
 
 #current-time-display {
