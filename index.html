@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyRecorder - プレミアム学習管理</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <!-- 起動時の励まし/ユーザー登録オーバーレイ -->
+        <div id="overlay" class="overlay">
+            <div class="glass-card welcome-card">
+                <h1 id="welcome-message">こんにちは！今日も一歩ずつ進みましょう。</h1>
+                <div id="user-setup" class="hidden">
+                    <p>まずはあなたのお名前を教えてください。</p>
+                    <input type="text" id="user-name-input" placeholder="お名前を入力">
+                    <button id="save-user-btn" class="primary-btn">スタート</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- メインコンテンツ -->
+        <main id="main-content" class="container">
+            <div id="gantt-tooltip" class="chart-tooltip hidden"></div>
+            <header>
+                <div class="logo">Study<span>Recorder</span></div>
+                <div class="header-controls">
+                    <div id="goal-display" class="goal-badges">
+                        <span class="badge min-hours" id="display-min-hours">--</span>
+                        <span class="badge target-hours" id="display-target-hours">--</span>
+                    </div>
+                    <button id="header-settings-btn" class="icon-btn">⚙️</button>
+                    <div id="user-display" class="user-info"></div>
+                </div>
+            </header>
+
+            <nav class="tab-nav compact-switch">
+                <button class="tab-item active" data-tab="record-tab">RECORD (記録)</button>
+                <button class="tab-item" data-tab="history-tab">VIEW (統計・閲覧)</button>
+            </nav>
+
+            <div id="record-tab" class="tab-content active">
+                <div class="glass-card record-form compact-form">
+                    <div class="grid-2col">
+                        <div class="form-group">
+                            <label>カテゴリー</label>
+                            <input type="text" id="category-input" list="category-list" placeholder="例：プログラミング">
+                            <datalist id="category-list"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>学習内容</label>
+                            <input type="text" id="content-input" list="content-list" placeholder="例：JavaScript基礎">
+                            <datalist id="content-list"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>今回の目標時間</label>
+                            <select id="target-time">
+                                <option value="30">30分</option>
+                                <option value="60" selected>60分</option>
+                                <option value="90">90分</option>
+                                <option value="120">120分</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>今の意気込み</label>
+                            <input type="text" id="enthusiasm-input" list="enthusiasm-list" placeholder="例：集中して取り組む！">
+                            <datalist id="enthusiasm-list">
+                                <option value="集中して取り組む！">
+                                <option value="まずは15分頑張る">
+                                <option value="復習をメインに">
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>開始時刻</label>
+                            <input type="time" id="start-time">
+                        </div>
+                        <div class="form-group">
+                            <label>終了時刻</label>
+                            <input type="time" id="end-time">
+                        </div>
+                        <div class="form-group">
+                            <label>ふりかえり(FB)</label>
+                            <select id="condition-input">
+                                <option value="◎">◎ (絶好調)</option>
+                                <option value="◯" selected>◯ (順調)</option>
+                                <option value="△">△ (ぼちぼち)</option>
+                                <option value="×">× (苦戦)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>実施日</label>
+                            <input type="date" id="record-date">
+                        </div>
+                    </div>
+
+                    <div class="form-group comment-group">
+                        <label>コメント</label>
+                        <input type="text" id="comment-input" list="comment-list" placeholder="例：集中できた、復習が必要">
+                        <datalist id="comment-list"></datalist>
+                    </div>
+
+                    <div class="button-group-row">
+                        <button id="start-study-btn" class="primary-btn pulse">学習を開始</button>
+                        <button id="manual-record-btn" class="secondary-btn">直接記録する</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="history-tab" class="tab-content">
+                <div id="view-date-nav" class="date-navigation">
+                    <button id="prev-date-btn" class="nav-btn">◀</button>
+                    <h2 id="current-view-date">2026/01/01(木)</h2>
+                    <button id="next-date-btn" class="nav-btn">▶</button>
+                    <button id="today-btn" class="today-shortcut">今日</button>
+                </div>
+
+
+                <div class="glass-card timeline-analysis compact-card">
+                    <div class="header-flex">
+                        <h3>学習タイムライン</h3>
+                        <div class="timeline-legend-full">
+                            <!-- JSで目盛り（4 5 6...）を生成 -->
+                        </div>
+                    </div>
+                    <!-- 当日（固定表示） -->
+                    <div id="timeline-today-row" class="timeline-today-container"></div>
+                    <!-- 過去6日間（スクロール可能） -->
+                    <div class="timeline-scroll-wrapper">
+                        <div id="timeline-past-days" class="timeline-visual">
+                            <!-- JSで動的に追加 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="view-grid">
+                    <div class="glass-card chart-container compact-card">
+                        <div class="header-flex">
+                            <h3>学習バランス (%)</h3>
+                            <div class="period-switcher mini-tabs" id="balance-period-tabs">
+                                <button class="period-btn active" data-period="day">日</button>
+                                <button class="period-btn" data-period="week">週</button>
+                                <button class="period-btn" data-period="month">月</button>
+                            </div>
+                        </div>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+
+                    <div class="glass-card timeline-summary-card compact-card">
+                        <div class="header-flex">
+                            <h3>学習量推移</h3>
+                            <div class="period-switcher mini-tabs" id="volume-period-tabs">
+                                <button class="period-btn active" data-period="day">日</button>
+                                <button class="period-btn" data-period="week">週</button>
+                                <button class="period-btn" data-period="month">月</button>
+                                <button class="period-btn" data-period="year">年</button>
+                            </div>
+                        </div>
+                        <div class="chart-with-sticky-axis">
+                            <div class="y-axis-container"><canvas id="timelineYAxis"></canvas></div>
+                            <div class="chart-scroll-wrapper">
+                                <div class="chart-resizable-content">
+                                    <canvas id="timelineChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="today-fixed-container">
+                                <canvas id="timelineTodayGraph"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="view-grid bottom-row">
+                    <!-- 左側: 選択日の記録リスト -->
+                    <div class="glass-card compact-card records-side-panel">
+                        <div class="header-flex">
+                            <h3 id="records-list-title">記録一覧</h3>
+                        </div>
+                        <div id="view-date-records-list" class="mini-history-list">
+                            <!-- JSで挿入 -->
+                        </div>
+                    </div>
+
+                    <!-- 右側: 期間別詳細分析 -->
+                    <div class="glass-card periods-analysis-card compact-card">
+                        <div class="header-flex">
+                            <h3>期間別詳細分析</h3>
+                            <div class="period-switcher mini-tabs" id="detail-period-tabs">
+                                <button class="period-btn active" data-period="day">日</button>
+                                <button class="period-btn" data-period="week">週</button>
+                                <button class="period-btn" data-period="month">月</button>
+                                <button class="period-btn" data-period="year">年</button>
+                            </div>
+                        </div>
+                        <div class="detail-analysis-container">
+                            <div class="mini-chart main-detail-chart"><canvas id="mainDetailChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h3>全記録 (最新順)</h3>
+                </div>
+                <div class="history-list condensed" id="history-list">
+                    <!-- JSで履歴カードを挿入 -->
+                </div>
+            </div>
+        </main>
+
+        <!-- 設定モーダル -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content glass-card">
+                <h3>目標設定</h3>
+                <div class="form-group">
+                    <label>1日最低学習時間 (h)</label>
+                    <input type="number" id="min-hours-input" value="2" step="0.5" min="0">
+                </div>
+                <div class="form-group">
+                    <label>1日目標学習時間 (h)</label>
+                    <input type="number" id="target-hours-input" value="5" step="0.5" min="0">
+                </div>
+                <div class="form-group">
+                    <label>テーマカラー</label>
+                    <div id="theme-picker" class="theme-color-picker">
+                        <span class="color-dot" data-theme="default" style="background: #6366f1;" title="デフォルト"></span>
+                        <span class="color-dot" data-theme="orange" style="background: #f97316;" title="オレンジ"></span>
+                        <span class="color-dot" data-theme="green" style="background: #22c55e;" title="緑"></span>
+                        <span class="color-dot" data-theme="cyan" style="background: #06b6d4;" title="水色"></span>
+                        <span class="color-dot" data-theme="yellow" style="background: #eab308;" title="黄色"></span>
+                        <span class="color-dot" data-theme="blue" style="background: #3b82f6;" title="スカイブルー"></span>
+                        <span class="color-dot" data-theme="red" style="background: #ef4444;" title="赤"></span>
+                        <span class="color-dot" data-theme="white"
+                            style="background: #f8fafc; border: 1px solid #94a3b8;" title="白"></span>
+                        <span class="color-dot" data-theme="purple" style="background: #a855f7;" title="紫"></span>
+                        <span class="color-dot" data-theme="pink" style="background: #ec4899;" title="ピンク"></span>
+                        <span class="color-dot" data-theme="emerald" style="background: #10b981;" title="エメラルド"></span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="close-settings-btn" class="primary-btn">保存して閉じる</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 学習中画面 -->
+        <div id="study-mode" class="study-overlay hidden">
+            <div class="study-container">
+                <div class="timer-display">
+                    <div id="timer-elapsed">00:00:00</div>
+                    <div id="current-time-display">現在時刻: --:--</div>
+                </div>
+                <div class="quote-display">
+                    <p id="support-message">頑張っていますね！その調子です。</p>
+                </div>
+                <div class="progress-ring-container">
+                    <!-- 目標時間に対する進捗バーなど -->
+                </div>
+                <button id="finish-study-btn" class="secondary-btn">学習を終了する</button>
+            </div>
+        </div>
+
+        <!-- 休憩・継続確認モーダル -->
+        <div id="confirm-modal" class="modal hidden">
+            <div class="modal-content glass-card">
+                <h3>休憩にしますか？</h3>
+                <p>画面を離れようとしています。今の状態を選んでください。</p>
+                <div class="modal-actions">
+                    <button id="keep-working-btn" class="primary-btn">作業を続ける</button>
+                    <button id="take-rest-btn" class="secondary-btn">休憩する</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
