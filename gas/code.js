@@ -1,5 +1,5 @@
 /**
- * 学習記録アプリ StudyRecorder 用 GAS (CRUD & マルチユーザー対応最終版)
+ * 学習記録アプリ StudyRecorder 用 GAS (CRUD & マルチユーザー & マスタデータ同期対応)
  */
 
 const SPREADSHEET_ID = '1Zr2IDZiu4ixCh6NPExyVYLxXrSrabXm4L841MjbkAuM';
@@ -8,13 +8,11 @@ const SHEET_NAME_BASE = 'base'; // マスタデータのシート名
 // ユーザー名に基づいてシートを取得（なければ作成）
 function getSheetForUser(ss, userName) {
   let name = userName ? userName.trim() : 'デフォルト';
-  // シート名を rec名前 に変更
   let sheetName = "rec" + name;
   let sheet = ss.getSheetByName(sheetName);
 
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-    // A:日付, B:ユーザー名, C:開始時刻, D:終了時刻, E:学習時間, F:カテゴリ, G:内容, H:意気込み, I:コメント, J:意欲, K:ID
     const headers = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', '意欲', 'ID'];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
@@ -23,7 +21,6 @@ function getSheetForUser(ss, userName) {
     sheet.setColumnWidth(11, 250);
   }
 
-  // Migration: ID列(K列)がない場合の補完
   if (sheet.getLastColumn() < 11) {
     sheet.getRange(1, 11).setValue('ID');
     const lastRow = sheet.getLastRow();
@@ -64,35 +61,86 @@ function doPost(e) {
     return errorResponse("Record not found");
   }
 
-  if (action === 'update') {
-    const rowIdx = findRowIndexById(sheet, data.id);
-    if (rowIdx !== -1) {
-      if (data.date) sheet.getRange(rowIdx, 1).setValue(data.date);
-      if (data.duration) sheet.getRange(rowIdx, 5).setValue(data.duration);
-      if (data.category) sheet.getRange(rowIdx, 6).setValue(data.category);
-      if (data.content) sheet.getRange(rowIdx, 7).setValue(data.content);
-      if (data.comment) sheet.getRange(rowIdx, 9).setValue(data.comment);
-      if (data.condition) sheet.getRange(rowIdx, 10).setValue(data.condition);
-      return successResponse({ status: 'updated' });
+  if (action === 'update' || action === 'create') {
+    // baseシートへの同期（マスタデータの自動蓄積）
+    syncToBaseSheet(ss, data);
+
+    if (action === 'update') {
+      const rowIdx = findRowIndexById(sheet, data.id);
+      if (rowIdx !== -1) {
+        if (data.date) sheet.getRange(rowIdx, 1).setValue(data.date);
+        if (data.duration) sheet.getRange(rowIdx, 5).setValue(data.duration);
+        if (data.category) sheet.getRange(rowIdx, 6).setValue(data.category);
+        if (data.content) sheet.getRange(rowIdx, 7).setValue(data.content);
+        if (data.enthusiasm) sheet.getRange(rowIdx, 8).setValue(data.enthusiasm);
+        if (data.comment) sheet.getRange(rowIdx, 9).setValue(data.comment);
+        if (data.condition) sheet.getRange(rowIdx, 10).setValue(data.condition);
+        return successResponse({ status: 'updated' });
+      }
+      return errorResponse("Record not found");
+    } else {
+      const newId = Utilities.getUuid();
+      sheet.appendRow([
+        data.date || '',
+        data.userName || '',
+        data.startTime || '',
+        data.endTime || '',
+        data.duration || '',
+        data.category || '',
+        data.content || '',
+        data.enthusiasm || '',
+        data.comment || '',
+        data.condition || '',
+        newId
+      ]);
+      return successResponse({ status: 'created', id: newId });
     }
-    return errorResponse("Record not found");
   }
 
-  const newId = Utilities.getUuid();
-  sheet.appendRow([
-    data.date || '',
-    data.userName || '',
-    data.startTime || '',
-    data.endTime || '',
-    data.duration || '',
-    data.category || '',
-    data.content || '',
-    data.enthusiasm || '',
-    data.comment || '',
-    data.condition || '',
-    newId
-  ]);
-  return successResponse({ status: 'created', id: newId });
+  return errorResponse('Invalid action');
+}
+
+/**
+ * baseシートに新しいマスタデータを同期する
+ */
+function syncToBaseSheet(ss, data) {
+  let baseSheet = ss.getSheetByName(SHEET_NAME_BASE);
+  if (!baseSheet) {
+    baseSheet = ss.insertSheet(SHEET_NAME_BASE);
+    baseSheet.appendRow(['カテゴリ', '内容', '意気込み', 'コメント']);
+  }
+
+  // 同期対象のフィールドと列番号のマッピング
+  const syncFields = [
+    { value: data.category, col: 1 },
+    { value: data.content, col: 2 },
+    { value: data.enthusiasm, col: 3 },
+    { value: data.comment, col: 4 }
+  ];
+
+  syncFields.forEach(field => {
+    if (field.value && field.value.trim() !== '') {
+      const val = field.value.trim();
+      const columnData = baseSheet.getRange(1, field.col, baseSheet.getLastRow(), 1).getValues().flat();
+
+      // まだ登録されていなければ追記
+      if (columnData.indexOf(val) === -1) {
+        const lastRowInCol = getFirstEmptyRowInColumn(baseSheet, field.col);
+        baseSheet.getRange(lastRowInCol, field.col).setValue(val);
+      }
+    }
+  });
+}
+
+/**
+ * 指定した列の最初の空行を取得
+ */
+function getFirstEmptyRowInColumn(sheet, column) {
+  const values = sheet.getRange(1, column, sheet.getLastRow(), 1).getValues();
+  for (let i = 0; i < values.length; i++) {
+    if (values[i][0] === "") return i + 1;
+  }
+  return values.length + 1;
 }
 
 function doGet(e) {
@@ -117,7 +165,6 @@ function doGet(e) {
     };
   });
 
-  // baseシートからマスタデータを取得
   const baseData = getBaseData(ss);
 
   return successResponse({
