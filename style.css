@@ -694,6 +694,46 @@ h3 {
     display: none;
 }
 
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    background: #1e293b;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.5rem 0;
+    z-index: 10000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    min-width: 150px;
+    backdrop-filter: blur(12px);
+}
+
+.context-menu.hidden {
+    display: none;
+}
+
+.context-menu-item {
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+
+.context-menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.context-menu-item.delete {
+    color: #ef4444;
+}
+
+.context-menu-item.delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
 .modal-content {
     width: 90%;
     max-width: 400px;
@@ -705,6 +745,7 @@ h3 {
     margin-top: 1.5rem;
     display: flex;
     justify-content: flex-end;
+    gap: 0.5rem;
 }
 
 /* Charts Width Control */

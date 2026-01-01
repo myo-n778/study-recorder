@@ -277,6 +277,61 @@
                 </div>
             </div>
         </div>
+
+        <!-- Edit Modal -->
+        <div id="edit-modal" class="modal hidden">
+            <div class="modal-content glass-card">
+                <h3>記録の編集</h3>
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label>カテゴリー</label>
+                    <input type="text" id="edit-category" list="category-list">
+                </div>
+                <div class="form-group">
+                    <label>内容</label>
+                    <input type="text" id="edit-content" list="content-list">
+                </div>
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>学習時間(分)</label>
+                        <input type="number" id="edit-duration">
+                    </div>
+                    <div class="form-group">
+                        <label>日付</label>
+                        <input type="text" id="edit-date" placeholder="YYYY/MM/DD">
+                    </div>
+                </div>
+                <!-- 簡易編集のため、時刻は省略し時間は直接編集させる -->
+                <div class="form-group">
+                    <label>FB</label>
+                    <select id="edit-condition">
+                        <option value="◎">◎ (絶好調)</option>
+                        <option value="◯">◯ (順調)</option>
+                        <option value="△">△ (ぼちぼち)</option>
+                        <option value="×">× (苦戦)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>コメント</label>
+                    <input type="text" id="edit-comment">
+                </div>
+
+                <div class="modal-actions">
+                    <button id="cancel-edit-btn" class="secondary-btn">キャンセル</button>
+                    <button id="save-edit-btn" class="primary-btn">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Context Menu -->
+        <div id="context-menu" class="context-menu hidden">
+            <div class="context-menu-item" id="ctx-edit">
+                <span>✏️</span> 編集
+            </div>
+            <div class="context-menu-item delete" id="ctx-delete">
+                <span>🗑️</span> 削除
+            </div>
+        </div>
     </div>
     <script src="app.js"></script>
 </body>

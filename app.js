@@ -308,6 +308,7 @@ function setupEventListeners() {
             localStorage.setItem(USER_KEY, name);
             elements.userDisplay.textContent = `User: ${name}`;
             hideOverlay();
+            loadRecordsFromGAS(); // 名前が変わったらデータを再読込
         }
     });
 
@@ -582,39 +583,49 @@ async function manualRecord() {
     await sendRecord(record, elements.manualRecordBtn);
 }
 
-// GAS送信共通処理
-async function sendRecord(record, button) {
-    console.log('Attempting to send record to GAS:', record);
+// レコード送信 (Create / Update / Delete)
+async function sendRecord(record, button = null, action = 'create') {
+    let originalText = '';
+    if (button) {
+        originalText = button.textContent;
+        button.textContent = '送信中...';
+        button.disabled = true;
+    }
 
-    // 送信中通知
-    const originalText = button.textContent;
-    button.textContent = '保存中...';
-    button.disabled = true;
+    // Update/Deleteの場合はIDが必須
+    const dataToSend = {
+        action: action, // 'create', 'update', 'delete'
+        ...record
+    };
+
+    // no-cors対策のためURLパラメータにも付与
+    const params = new URLSearchParams();
+    Object.keys(dataToSend).forEach(key => {
+        if (dataToSend[key] !== null && dataToSend[key] !== undefined) {
+            params.append(key, dataToSend[key]);
+        }
+    });
 
     try {
-        // no-cors の場合 fetch の結果を response.json() で読もうとするとエラーになるため
-        // 送信自体が成功したかどうかは log で確認し、ユーザーには完了を告げる
-        // URLパラメータを生成して確実に届くようにする
-        const params = new URLSearchParams(record).toString();
-        const finalUrl = `${GAS_URL}?${params}`;
-
-        await fetch(finalUrl, {
+        const response = await fetch(GAS_URL + '?' + params.toString(), {
             method: 'POST',
             mode: 'no-cors',
-            headers: {
-                'Content-Type': 'text/plain'
-            },
-            body: JSON.stringify(record)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataToSend)
         });
 
-        console.log('Record sent successfully (confirmed via no-cors mode)');
-        alert(`記録しました！学習時間: ${record.duration} 分`);
-    } catch (e) {
-        console.error('GAS Send Error:', e);
-        alert('スプレッドシートへの保存に失敗しました。URLが正しいか、またはGASが「全員」に公開されているかご確認ください。');
+        // no-corsなのでレスポンス読めないが成功とみなす
+        // リロードして反映
+        setTimeout(() => loadRecordsFromGAS(), 1000);
+
+    } catch (error) {
+        console.error('送信エラー:', error);
+        alert('送信に失敗しました。');
     } finally {
-        button.textContent = originalText;
-        button.disabled = false;
+        if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
     }
 }
 
@@ -624,9 +635,12 @@ function saveLocalRecords() {
 }
 
 async function loadRecordsFromGAS() {
+    const userName = localStorage.getItem(USER_KEY);
+    if (!userName) return;
+
     try {
-        // GASからデータを取得
-        const response = await fetch(GAS_URL);
+        // GASからデータを取得 (userNameを渡す)
+        const response = await fetch(`${GAS_URL}?userName=${encodeURIComponent(userName)}`);
         if (response.ok) {
             const data = await response.json();
             if (Array.isArray(data)) {
@@ -715,6 +729,11 @@ function updateHistoryUI() {
     sortedRecords.forEach(rec => {
         const card = document.createElement('div');
         card.className = 'glass-card history-card';
+        card.dataset.id = rec.id || ''; // IDを保持
+
+        // UIイベント設定 (右クリック & 長押し)
+        setupCardEvents(card, rec);
+
         card.innerHTML = `
             <div class="history-header">
                 <span class="history-date">${rec.date}</span>
@@ -1302,51 +1321,120 @@ function showGanttTooltip(e, rec) {
     if (!tooltip) return;
 
     tooltip.innerHTML = `
-        <strong>${rec.category}</strong>
-        <div>${rec.startTime} 〜 ${rec.endTime} (${rec.duration}分)</div>
-        <div style="color:var(--primary-color);font-weight:700;margin-top:2px;">${rec.content}</div>
-        <div style="font-size:0.65rem;color:#94a3b8;margin-top:3px;border-top:1px solid rgba(255,255,255,0.1);padding-top:2px;">
-            ${rec.enthusiasm ? '🔥 ' + rec.enthusiasm : ''}<br>
-            ${rec.comment ? '💬 ' + rec.comment : ''}
-        </div>
-    `;
 
-    tooltip.classList.remove('hidden');
+// --- Context Menu & Edit/Delete Logic ---
 
-    // 位置調整
-    const rect = e.target.getBoundingClientRect();
-    tooltip.style.left = `${rect.left + window.scrollX + rect.width / 2}px`;
-    tooltip.style.top = `${rect.top + window.scrollY - 10}px`;
-    tooltip.style.transform = 'translate(-50%, -100%)';
+let contextMenuTargetId = null;
+const contextMenu = document.getElementById('context-menu');
+const editModal = document.getElementById('edit-modal');
+
+function setupCardEvents(card, rec) {
+    if (!rec.id) return; // IDがない古いデータは編集不可(またはGAS側でID付与が必要)
+
+    // PC: 右クリック
+    card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showContextMenu(e.pageX, e.pageY, rec.id);
+    });
+
+    // Mobile: 長押し
+    let touchTimer;
+    card.addEventListener('touchstart', (e) => {
+        touchTimer = setTimeout(() => {
+            // 長押し検知
+            const touch = e.touches[0];
+            showContextMenu(touch.pageX, touch.pageY, rec.id);
+        }, 600);
+    });
+
+    card.addEventListener('touchend', () => {
+        clearTimeout(touchTimer);
+    });
+    
+    card.addEventListener('touchmove', () => {
+        clearTimeout(touchTimer); // スクロールしたらキャンセル
+    });
 }
 
-// 画面のどこかをタッチしたらツールチップを閉じる（スマホ用）
+function showContextMenu(x, y, id) {
+    contextMenuTargetId = id;
+    contextMenu.style.left = `${ x } px`;
+    contextMenu.style.top = `${ y } px`;
+    contextMenu.classList.remove('hidden');
+}
+
+// メニュー外クリックで閉じる
 document.addEventListener('click', (e) => {
-    // ツールチップ自体やタイムラインバーのクリックでなければ閉じる
-    if (!e.target.closest('.time-block') && !e.target.closest('#gantt-tooltip')) {
-        hideGanttTooltip();
+    if (!e.target.closest('#context-menu')) {
+        contextMenu.classList.add('hidden');
     }
 });
 
-function getMinutesFrom4AM(timeStr) {
-    const [h, m] = timeStr.split(':').map(Number);
-    let total = h * 60 + m;
-    // 0:00〜3:59は前日扱いとして+24h
-    if (h < 4) total += 24 * 60;
-    return total - (4 * 60);
+// 編集ボタン
+document.getElementById('ctx-edit').addEventListener('click', () => {
+    if (!contextMenuTargetId) return;
+    openEditModal(contextMenuTargetId);
+    contextMenu.classList.add('hidden');
+});
+
+// 削除ボタン
+document.getElementById('ctx-delete').addEventListener('click', async () => {
+    if (!contextMenuTargetId) return;
+    if (confirm('本当にこの記録を削除しますか？')) {
+        contextMenu.classList.add('hidden');
+        await sendRecord({ id: contextMenuTargetId }, null, 'delete');
+    }
+});
+
+// 編集モーダル関連
+function openEditModal(id) {
+    const rec = state.records.find(r => r.id === id);
+    if (!rec) return;
+
+    document.getElementById('edit-id').value = rec.id;
+    document.getElementById('edit-category').value = rec.category;
+    document.getElementById('edit-content').value = rec.content;
+    document.getElementById('edit-duration').value = rec.duration;
+    document.getElementById('edit-date').value = rec.date; // YYYY/MM/DD
+    document.getElementById('edit-condition').value = rec.condition || '◯';
+    document.getElementById('edit-comment').value = rec.comment || '';
+
+    editModal.classList.remove('hidden');
 }
+
+document.getElementById('cancel-edit-btn').addEventListener('click', () => {
+    editModal.classList.add('hidden');
+});
+
+document.getElementById('save-edit-btn').addEventListener('click', async () => {
+    const id = document.getElementById('edit-id').value;
+    const updatedRecord = {
+        id: id,
+        category: document.getElementById('edit-category').value,
+        content: document.getElementById('edit-content').value,
+        duration: document.getElementById('edit-duration').value,
+        date: document.getElementById('edit-date').value,
+        condition: document.getElementById('edit-condition').value,
+        comment: document.getElementById('edit-comment').value
+    };
+    
+    // 保存処理
+    const btn = document.getElementById('save-edit-btn');
+    await sendRecord(updatedRecord, btn, 'update');
+    editModal.classList.add('hidden');
+});
 
 // タイマー表示更新
 function updateTimerDisplay() {
     const h = Math.floor(state.elapsedSeconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((state.elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
     const s = (state.elapsedSeconds % 60).toString().padStart(2, '0');
-    elements.timerElapsed.textContent = `${h}:${m}:${s}`;
+    elements.timerElapsed.textContent = `${ h }:${ m }:${ s } `;
 }
 
 function updateCurrentTimeDisplay() {
     const now = new Date();
-    elements.currentTimeDisplay.textContent = `現在時刻: ${now.toTimeString().slice(0, 5)}`;
+    elements.currentTimeDisplay.textContent = `現在時刻: ${ now.toTimeString().slice(0, 5) } `;
 }
 
 function updateSupportMessage() {
