@@ -1262,6 +1262,11 @@ function updateTimelineAnalysis() {
 
             block.addEventListener('mouseenter', (e) => showGanttTooltip(e, rec));
             block.addEventListener('mouseleave', hideGanttTooltip);
+            // スマホ対応: タップで表示/非表示を切り替え
+            block.addEventListener('click', (e) => {
+                e.stopPropagation(); // 他のクリックイベントを阻止
+                showGanttTooltip(e, rec);
+            });
 
             const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6'];
             const colorIdx = Math.abs(rec.category.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
@@ -1314,6 +1319,14 @@ function showGanttTooltip(e, rec) {
     tooltip.style.top = `${rect.top + window.scrollY - 10}px`;
     tooltip.style.transform = 'translate(-50%, -100%)';
 }
+
+// 画面のどこかをタッチしたらツールチップを閉じる（スマホ用）
+document.addEventListener('click', (e) => {
+    // ツールチップ自体やタイムラインバーのクリックでなければ閉じる
+    if (!e.target.closest('.time-block') && !e.target.closest('#gantt-tooltip')) {
+        hideGanttTooltip();
+    }
+});
 
 function getMinutesFrom4AM(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
