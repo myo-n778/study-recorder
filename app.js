@@ -37,7 +37,7 @@ let charts = {
     timeline: null
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzVy5Y_qud-QcwRQKa1lTNCopszZdT80FsUd27DGNL8-FqM2bJwRKoP24lL-gm0L_Fu9w/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbydEigJ9Tabep0DBK50EyGELx7sfNwyQVYx6IGT9gTsBGOiL02NFbQVHYUT3BwVN58BYw/exec';
 
 // DOM Elements
 const elements = {
