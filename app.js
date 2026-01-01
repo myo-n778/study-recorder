@@ -1316,17 +1316,36 @@ function hideGanttTooltip() {
     if (tooltip) tooltip.classList.add('hidden');
 }
 
+// 時間文字列(HH:mm)を4:00 AMからの経過分に変換
+function getMinutesFrom4AM(timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    let totalMinutes = h * 60 + m;
+    let startMinutes = 4 * 60; // 4:00 AM
+    let diff = totalMinutes - startMinutes;
+    if (diff < 0) diff += 24 * 60; // 深夜帯(0時〜4時)の対応
+    return diff;
+}
+
 function showGanttTooltip(e, rec) {
     const tooltip = document.getElementById('gantt-tooltip');
     if (!tooltip) return;
 
     tooltip.innerHTML = `
+        <div class="tooltip-title" style="font-weight: bold; margin-bottom: 4px;">${rec.category} - ${rec.content}</div>
+        <div class="tooltip-time" style="font-size: 0.8em; opacity: 0.8;">${rec.startTime} 〜 ${rec.endTime} (${rec.duration}分)</div>
+        ${rec.comment ? `<div class="tooltip-comment" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 2px;">${rec.comment}</div>` : ''}
+    `;
+
+    tooltip.style.left = `${e.pageX + 10}px`;
+    tooltip.style.top = `${e.pageY + 10}px`;
+    tooltip.classList.remove('hidden');
+}
 
 // --- Context Menu & Edit/Delete Logic ---
-
 let contextMenuTargetId = null;
 const contextMenu = document.getElementById('context-menu');
 const editModal = document.getElementById('edit-modal');
+
 
 function setupCardEvents(card, rec) {
     if (!rec.id) return; // IDがない古いデータは編集不可(またはGAS側でID付与が必要)
@@ -1350,7 +1369,7 @@ function setupCardEvents(card, rec) {
     card.addEventListener('touchend', () => {
         clearTimeout(touchTimer);
     });
-    
+
     card.addEventListener('touchmove', () => {
         clearTimeout(touchTimer); // スクロールしたらキャンセル
     });
@@ -1358,8 +1377,8 @@ function setupCardEvents(card, rec) {
 
 function showContextMenu(x, y, id) {
     contextMenuTargetId = id;
-    contextMenu.style.left = `${ x } px`;
-    contextMenu.style.top = `${ y } px`;
+    contextMenu.style.left = `${x} px`;
+    contextMenu.style.top = `${y} px`;
     contextMenu.classList.remove('hidden');
 }
 
@@ -1417,7 +1436,7 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
         condition: document.getElementById('edit-condition').value,
         comment: document.getElementById('edit-comment').value
     };
-    
+
     // 保存処理
     const btn = document.getElementById('save-edit-btn');
     await sendRecord(updatedRecord, btn, 'update');
@@ -1429,12 +1448,12 @@ function updateTimerDisplay() {
     const h = Math.floor(state.elapsedSeconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((state.elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
     const s = (state.elapsedSeconds % 60).toString().padStart(2, '0');
-    elements.timerElapsed.textContent = `${ h }:${ m }:${ s } `;
+    elements.timerElapsed.textContent = `${h}:${m}:${s} `;
 }
 
 function updateCurrentTimeDisplay() {
     const now = new Date();
-    elements.currentTimeDisplay.textContent = `現在時刻: ${ now.toTimeString().slice(0, 5) } `;
+    elements.currentTimeDisplay.textContent = `現在時刻: ${now.toTimeString().slice(0, 5)} `;
 }
 
 function updateSupportMessage() {
