@@ -706,32 +706,64 @@ async function finishStudy() {
     // 現在のコメントをプリセット
     document.getElementById('summary-comment').value = elements.commentInput.value.trim() || '次も頑張ろう！';
 
-    // ① 長時間対応の段階分け（30/60/90/120分）
+    // ① 2軸評価用データの準備 (A: 今回, B: 本日合計)
+    const durationA = duration;
+    const todayStr = new Date().toLocaleDateString('ja-JP');
+    const todayTotalMinutes = state.records
+        .filter(r => r.date === todayStr)
+        .reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0);
+    const durationB = todayTotalMinutes + durationA;
+
+    // ② メッセージの取得とフィルタリング
     const rawMsgs = (state.gasMasterData && state.gasMasterData.finishMessages && state.gasMasterData.finishMessages.length > 0)
         ? state.gasMasterData.finishMessages.filter(m => m && m.trim())
         : ["お疲れ様でした！", "今日も一歩前進ですね。"];
 
-    let stage = 0;
-    if (duration >= 120) stage = 120;
-    else if (duration >= 90) stage = 90;
-    else if (duration >= 60) stage = 60;
-    else if (duration >= 30) stage = 30;
+    const candidates = rawMsgs.map(m => {
+        let thresholdA = 0;
+        let thresholdB = 0;
+        let content = m;
 
-    // タグ解析とフィルタリング
-    const filteredMsgs = rawMsgs.filter(m => {
-        const match = m.match(/^\[(\d+)\]/);
-        if (match) {
-            return parseInt(match[1]) === stage;
-        } else {
-            // タグがない既存メッセージは、60分段階として扱う（互換性）
-            return stage === 60;
+        // [Axx], [Bxx], [xx] タグの抽出
+        const matchA = m.match(/\[A(\d+)\]/);
+        const matchB = m.match(/\[B(\d+)\]/);
+        const matchOld = m.match(/^\[(\d+)\]/); // 旧仕様 [60] 等
+
+        if (matchA) thresholdA = parseInt(matchA[1]);
+        if (matchB) thresholdB = parseInt(matchB[1]);
+        if (matchOld && !matchA && !matchB) thresholdA = parseInt(matchOld[1]);
+
+        // 旧仕様かつタグなし互換性 (タグなしは A=60 とみなしていたが、新仕様では「条件なし」として扱うのが安全)
+        // ただしユーザー指示に「タグなし既存は stage=60（A=60）として扱う」とあるため維持
+        const hasAnyTag = matchA || matchB || matchOld;
+        if (!hasAnyTag) {
+            thresholdA = 60;
         }
+
+        return { content, thresholdA, thresholdB, hasAnyTag };
     });
 
-    // 該当なしなら全体からタグなしを優先
-    const finalCandidates = filteredMsgs.length > 0 ? filteredMsgs : rawMsgs.filter(m => !m.match(/^\[\d+\]/));
-    const randomMsg = finalCandidates[Math.floor(Math.random() * finalCandidates.length)] || "お疲れ様でした！";
-    document.querySelector('#summary-modal h3').textContent = randomMsg.replace(/^\[\d+\]\s*/, '');
+    // 条件合致チェック
+    let filtered = candidates.filter(item => {
+        return durationA >= item.thresholdA && durationB >= item.thresholdB;
+    });
+
+    // 合致がなければ、タグなし等のデフォルトから選ぶ
+    if (filtered.length === 0) {
+        filtered = candidates.filter(item => !item.hasAnyTag);
+    }
+
+    // 優先順位: 閾値の合計 (A + B) が高いものを優先
+    filtered.sort((a, b) => (b.thresholdA + b.thresholdB) - (a.thresholdA + a.thresholdB));
+
+    // 同一スコア内でのランダム性
+    const topScore = filtered.length > 0 ? (filtered[0].thresholdA + filtered[0].thresholdB) : -1;
+    const bestCandidates = filtered.filter(item => (item.thresholdA + item.thresholdB) === topScore);
+
+    const selectedItem = bestCandidates[Math.floor(Math.random() * bestCandidates.length)] || { content: "お疲れ様でした！" };
+    const finalMsg = selectedItem.content.replace(/\[[AB]?\d+\]/g, '').trim();
+
+    document.querySelector('#summary-modal h3').textContent = finalMsg;
 
     elements.studyMode.classList.add('hidden');
     if (state.supportMessageInterval) clearInterval(state.supportMessageInterval);
@@ -751,7 +783,7 @@ async function saveSummaryRecord() {
     const comment = document.getElementById('summary-comment').value.trim();
 
     const record = {
-        date: state.viewDate,
+        date: new Date().toLocaleDateString('ja-JP'),
         userName: localStorage.getItem(USER_KEY),
         startTime: state.startTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         endTime: endTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
