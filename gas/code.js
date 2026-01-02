@@ -68,13 +68,15 @@ function doPost(e) {
     if (action === 'update') {
       const rowIdx = findRowIndexById(sheet, data.id);
       if (rowIdx !== -1) {
-        if (data.date) sheet.getRange(rowIdx, 1).setValue(data.date);
-        if (data.duration) sheet.getRange(rowIdx, 5).setValue(data.duration);
-        if (data.category) sheet.getRange(rowIdx, 6).setValue(data.category);
-        if (data.content) sheet.getRange(rowIdx, 7).setValue(data.content);
-        if (data.enthusiasm) sheet.getRange(rowIdx, 8).setValue(data.enthusiasm);
-        if (data.comment) sheet.getRange(rowIdx, 9).setValue(data.comment);
-        if (data.condition) sheet.getRange(rowIdx, 10).setValue(data.condition);
+        if (data.date !== undefined) sheet.getRange(rowIdx, 1).setValue(data.date);
+        if (data.startTime !== undefined) sheet.getRange(rowIdx, 3).setValue(data.startTime);
+        if (data.endTime !== undefined) sheet.getRange(rowIdx, 4).setValue(data.endTime);
+        if (data.duration !== undefined) sheet.getRange(rowIdx, 5).setValue(Number(data.duration));
+        if (data.category !== undefined) sheet.getRange(rowIdx, 6).setValue(data.category);
+        if (data.content !== undefined) sheet.getRange(rowIdx, 7).setValue(data.content);
+        if (data.enthusiasm !== undefined) sheet.getRange(rowIdx, 8).setValue(data.enthusiasm);
+        if (data.comment !== undefined) sheet.getRange(rowIdx, 9).setValue(data.comment);
+        if (data.condition !== undefined) sheet.getRange(rowIdx, 10).setValue(data.condition);
         return successResponse({ status: 'updated' });
       }
       return errorResponse("Record not found");
@@ -107,7 +109,23 @@ function syncToBaseSheet(ss, data) {
   let baseSheet = ss.getSheetByName(SHEET_NAME_BASE);
   if (!baseSheet) {
     baseSheet = ss.insertSheet(SHEET_NAME_BASE);
-    baseSheet.appendRow(['カテゴリ', '内容', '意気込み', 'コメント']);
+    baseSheet.appendRow(['カテゴリ', '内容', '意気込み', 'コメント', '応援メッセージ', '終了メッセージ']);
+    // 初期の応援メッセージを登録
+    const defaultSupport = [
+      "素晴らしい集中力です！",
+      "一歩ずつ、着実に進んでいますね。",
+      "休憩も大切ですよ。無理せず頑張りましょう。",
+      "その調子です！未来の自分が感謝します。",
+      "今はきつくても、必ず力になります。"
+    ];
+    const defaultFinish = [
+      "お疲れ様でした！",
+      "今日も一歩前進ですね。",
+      "しっかり頑張りましたね！(長時間)",
+      "素晴らしい継続力です！(長時間)"
+    ];
+    defaultSupport.forEach((m, i) => baseSheet.getRange(i + 2, 5).setValue(m));
+    defaultFinish.forEach((m, i) => baseSheet.getRange(i + 2, 6).setValue(m));
   }
 
   // 同期対象のフィールドと列番号のマッピング
@@ -175,26 +193,32 @@ function doGet(e) {
 
 function getBaseData(ss) {
   const sheet = ss.getSheetByName(SHEET_NAME_BASE);
-  if (!sheet) return { categories: [], contents: [], enthusiasms: [], comments: [] };
+  if (!sheet) return { categories: [], contents: [], enthusiasms: [], comments: [], supportMessages: [], finishMessages: [] };
 
   const data = sheet.getDataRange().getValues();
   const categories = [];
   const contents = [];
   const enthusiasms = [];
   const comments = [];
+  const supportMessages = [];
+  const finishMessages = [];
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0]) categories.push(data[i][0]);
     if (data[i][1]) contents.push(data[i][1]);
     if (data[i][2]) enthusiasms.push(data[i][2]);
     if (data[i][3]) comments.push(data[i][3]);
+    if (data[i][4]) supportMessages.push(data[i][4]);
+    if (data[i][5]) finishMessages.push(data[i][5]);
   }
 
   return {
     categories: [...new Set(categories)],
     contents: [...new Set(contents)],
     enthusiasms: [...new Set(enthusiasms)],
-    comments: [...new Set(comments)]
+    comments: [...new Set(comments)],
+    supportMessages: [...new Set(supportMessages)],
+    finishMessages: [...new Set(finishMessages)]
   };
 }
 

@@ -152,8 +152,13 @@ function init() {
     // 以前のセッションがあれば復元
     resumeStudySession();
 
-    // 励ましのメッセージを1分ごとに更新
-    setInterval(updateSupportMessage, 60000);
+    // 応援メッセージの初期インターバル設定
+    const savedInterval = localStorage.getItem('study_recorder_message_interval');
+    if (savedInterval) {
+        state.messageInterval = Number(savedInterval) * 1000;
+        const input = document.getElementById('message-interval-input');
+        if (input) input.value = savedInterval;
+    }
 }
 
 function resumeStudySession() {
@@ -164,19 +169,13 @@ function resumeStudySession() {
             state.isStudying = true;
             state.isPaused = session.isPaused || false;
             state.startTime = new Date(session.startTime);
-            state.pausedSeconds = session.pausedSeconds || 0;
+            state.accumulatedPausedMs = session.accumulatedPausedMs || 0;
+            state.lastPauseTime = session.lastPauseTime ? new Date(session.lastPauseTime) : null;
 
-            const now = new Date();
-            // 経過時間の計算
-            if (state.isPaused) {
-                state.elapsedSeconds = state.pausedSeconds;
-            } else {
-                const totalDiff = Math.floor((now - state.startTime) / 1000);
-                state.elapsedSeconds = totalDiff - state.pausedSeconds;
-            }
+            // ⑤ 記録モードの「カテゴリ」「学習内容」の復元（入力欄へのセット）
+            elements.categoryInput.value = session.category || '';
+            elements.contentInput.value = session.content || '';
 
-            // UI表示
-            elements.studyMode.classList.remove('hidden');
             document.getElementById('study-current-category').textContent = session.category || '-';
             document.getElementById('study-current-content').textContent = session.content || '-';
 
@@ -198,12 +197,32 @@ function resumeStudySession() {
 }
 
 function startTimerInterval() {
+    if (state.timerInterval) clearInterval(state.timerInterval);
     state.timerInterval = setInterval(() => {
-        state.elapsedSeconds++;
+        const now = Date.now();
+        let totalElapsedMs = now - state.startTime.getTime() - state.accumulatedPausedMs;
+        state.elapsedSeconds = Math.max(0, Math.floor(totalElapsedMs / 1000));
+
         updateTimerDisplay();
         updateCurrentTimeDisplay();
         if (state.elapsedSeconds % 60 === 0) saveStudyState();
     }, 1000);
+}
+
+function updateSupportMessage() {
+    const messages = (state.gasMasterData && state.gasMasterData.supportMessages && state.gasMasterData.supportMessages.length > 0)
+        ? state.gasMasterData.supportMessages
+        : supportMessages;
+
+    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+    const msgEl = document.getElementById('support-message');
+    if (msgEl) {
+        msgEl.style.opacity = '0';
+        setTimeout(() => {
+            msgEl.textContent = randomMsg;
+            msgEl.style.opacity = '1';
+        }, 500);
+    }
 }
 
 // ユーザー情報のロード
@@ -473,6 +492,15 @@ function setupEventListeners() {
         updateGoalDisplay();
     });
 
+    const msgIntervalInput = document.getElementById('message-interval-input');
+    if (msgIntervalInput) {
+        msgIntervalInput.addEventListener('change', (e) => {
+            state.messageInterval = Number(e.target.value) * 1000;
+            localStorage.setItem('study_recorder_message_interval', e.target.value);
+            if (state.isStudying) startSupportMessageInterval();
+        });
+    }
+
     // テーマカラーピッカー（カラードット）
     const themePicker = document.getElementById('theme-picker');
     if (themePicker) {
@@ -504,6 +532,26 @@ function setupEventListeners() {
         updateViewDateUI();
     });
 }
+
+// Assuming 'state' object is defined globally or in an outer scope.
+// This is an example of how the state object might be structured,
+// based on the provided instruction snippet.
+// The actual definition of 'state' is not in the provided 'content'.
+// This section is added to reflect the instruction's intent for 'state' object modification.
+/*
+const state = {
+    // ... other state properties
+    viewDate: new Date().toLocaleDateString('ja-JP'),
+    categoryFreq: {},
+    masterData: {}, // カテゴリ -> 内容のリスト
+    gasMasterData: null,
+    accumulatedPausedMs: 0, // 合計中断ミリ秒数 (ミリ秒精度で保持)
+    lastPauseTime: null,    // 最後の中断開始時刻
+    messageInterval: 30000,  // デフォルト30秒
+    supportMessageInterval: null
+    // ... other state properties
+};
+*/
 
 function updateGoalDisplay() {
     if (!elements.displayMinHours || !elements.displayTargetHours) return;
@@ -568,7 +616,8 @@ function startStudy() {
 
     state.elapsedSeconds = 0;
     state.isPaused = false;
-    state.pausedSeconds = 0;
+    state.accumulatedPausedMs = 0;
+    state.lastPauseTime = null;
 
     document.getElementById('study-current-category').textContent = category;
     document.getElementById('study-current-content').textContent = content;
@@ -578,19 +627,31 @@ function startStudy() {
     saveStudyState(); // 状態を即時保存
 
     startTimerInterval();
+    startSupportMessageInterval();
+}
+
+function startSupportMessageInterval() {
+    if (state.supportMessageInterval) clearInterval(state.supportMessageInterval);
+    state.supportMessageInterval = setInterval(updateSupportMessage, state.messageInterval);
 }
 
 function togglePauseStudy() {
     const pauseBtn = document.getElementById('pause-study-btn');
+    const now = Date.now();
     if (state.isPaused) {
         // 再開
+        if (state.lastPauseTime) {
+            state.accumulatedPausedMs += (now - state.lastPauseTime.getTime());
+        }
         state.isPaused = false;
+        state.lastPauseTime = null;
         pauseBtn.textContent = '一時中断';
         pauseBtn.classList.remove('pulse');
         startTimerInterval();
     } else {
         // 中断
         state.isPaused = true;
+        state.lastPauseTime = new Date(now);
         clearInterval(state.timerInterval);
         pauseBtn.textContent = '再開する';
         pauseBtn.classList.add('pulse');
@@ -604,7 +665,8 @@ function saveStudyState() {
             isStudying: true,
             isPaused: state.isPaused,
             startTime: state.startTime.toISOString(),
-            pausedSeconds: state.pausedSeconds,
+            accumulatedPausedMs: state.accumulatedPausedMs,
+            lastPauseTime: state.lastPauseTime ? state.lastPauseTime.toISOString() : null,
             category: elements.categoryInput.value.trim(),
             content: elements.contentInput.value.trim()
         }));
@@ -618,8 +680,12 @@ async function finishStudy() {
 
     // ⑦ 正確な分数の算出
     const endTime = new Date();
-    const diffMs = endTime - state.startTime;
-    const duration = Math.round(diffMs / 60000) - Math.floor(state.pausedSeconds / 60);
+    let currentAccumulatedPausedMs = state.accumulatedPausedMs;
+    if (state.isPaused && state.lastPauseTime) {
+        currentAccumulatedPausedMs += (endTime - state.lastPauseTime);
+    }
+    const diffMs = endTime - state.startTime - currentAccumulatedPausedMs;
+    const duration = Math.max(0, Math.round(diffMs / 60000));
 
     // ③ 開始・終了時刻の取得と表示
     const formatTime = (d) => d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
@@ -640,14 +706,35 @@ async function finishStudy() {
     // 現在のコメントをプリセット
     document.getElementById('summary-comment').value = elements.commentInput.value.trim() || '次も頑張ろう！';
 
+    // ④ お疲れ様メッセージのバリエーション
+    const finishMsgs = (state.gasMasterData && state.gasMasterData.finishMessages && state.gasMasterData.finishMessages.length > 0)
+        ? state.gasMasterData.finishMessages
+        : ["お疲れ様でした！", "今日も一歩前進ですね。"];
+
+    // 長時間（60分以上）の場合は、後半のメッセージが出やすいようにする等の簡易的な出し分け
+    let msg = "";
+    if (duration >= 60 && finishMsgs.length > 2) {
+        // 後半のメッセージを選択 (長時間向け)
+        const longMsgs = finishMsgs.slice(Math.floor(finishMsgs.length / 2));
+        msg = longMsgs[Math.floor(Math.random() * longMsgs.length)];
+    } else {
+        msg = finishMsgs[Math.floor(Math.random() * Math.min(finishMsgs.length, 2))];
+    }
+    document.querySelector('#summary-modal h3').textContent = msg;
+
     elements.studyMode.classList.add('hidden');
+    if (state.supportMessageInterval) clearInterval(state.supportMessageInterval);
     document.getElementById('summary-modal').classList.remove('hidden');
 }
 
 async function saveSummaryRecord() {
     const endTime = new Date();
-    const diffMs = endTime - state.startTime;
-    const duration = Math.max(0, Math.round(diffMs / 60000) - Math.floor(state.pausedSeconds / 60));
+    let currentAccumulatedPausedMs = state.accumulatedPausedMs;
+    if (state.isPaused && state.lastPauseTime) {
+        currentAccumulatedPausedMs += (endTime - state.lastPauseTime);
+    }
+    const diffMs = endTime - state.startTime - currentAccumulatedPausedMs;
+    const duration = Math.max(0, Math.round(diffMs / 60000));
 
     const condition = document.getElementById('summary-condition').value;
     const comment = document.getElementById('summary-comment').value.trim();
