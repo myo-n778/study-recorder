@@ -589,7 +589,7 @@ function setupEventListeners() {
     elements.prevDateBtn.addEventListener('click', () => changeViewDate(-1));
     elements.nextDateBtn.addEventListener('click', () => changeViewDate(1));
     elements.todayBtn.addEventListener('click', () => {
-        state.viewDate = new Date().toLocaleDateString('ja-JP');
+        state.viewDate = getLogicalDate();
         updateViewDateUI();
     });
 }
@@ -602,7 +602,7 @@ function setupEventListeners() {
 /*
 const state = {
     // ... other state properties
-    viewDate: new Date().toLocaleDateString('ja-JP'),
+    viewDate: getLogicalDate(),
     categoryFreq: {},
     masterData: {}, // カテゴリ -> 内容のリスト
     gasMasterData: null,
@@ -629,13 +629,13 @@ function changeViewDate(days) {
     const d = new Date(state.viewDate);
     d.setDate(d.getDate() + days);
 
-    // 今日より未来へは行けないように制限（任意）
-    const now = new Date();
-    // 日付比較のため時刻を00:00:00に正規化
+    // 論理的な「今日」より未来へは行けないように制限
+    const logicalToday = getLogicalDate();
+    const [yT, mT, dT] = logicalToday.split('/').map(Number);
+    const logicalTodayZero = new Date(yT, mT - 1, dT);
     const dZero = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const nowZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    if (dZero > nowZero) return;
+    if (dZero > logicalTodayZero) return;
 
     // 手動フォーマット
     const y = d.getFullYear();
@@ -759,9 +759,9 @@ async function finishStudy() {
 
     // ① 2軸評価用データの準備 (A: 今回, B: 本日合計)
     const durationA = duration;
-    const todayStr = new Date().toLocaleDateString('ja-JP');
+    const logicalTodayStr = getLogicalDate(endTime);
     const todayTotalMinutes = state.records
-        .filter(r => r.date === todayStr)
+        .filter(r => r.date === logicalTodayStr)
         .reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0);
     const durationB = todayTotalMinutes + durationA;
 
@@ -1613,13 +1613,15 @@ function updateTimelineAnalysis() {
         legend.appendChild(span);
     }
 
-    // 2. 直近30日間の日付リストを作成
+    // 2. 直近30日間の日付リストを作成 (論理的な「今日」から遡る)
     const dates = [];
-    const now = new Date();
+    const logicalToday = getLogicalDate();
+    const [yT, mT, dT] = logicalToday.split('/').map(Number);
+    const baseDate = new Date(yT, mT - 1, dT);
+
     for (let i = 0; i < 30; i++) {
-        const d = new Date();
-        d.setDate(now.getDate() - i);
-        // 環境依存を防ぐため手動フォーマット (YYYY/MM/DD)
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() - i);
         const y = d.getFullYear();
         const m = ('0' + (d.getMonth() + 1)).slice(-2);
         const day = ('0' + d.getDate()).slice(-2);
