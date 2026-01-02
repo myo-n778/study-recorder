@@ -989,8 +989,8 @@ h3 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--bg-color);
-    /* 落ち着いた背景色に変更 */
+    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    /* 修正: 真っ黒を避け、深みのあるグラデーションで黒つぶれを防止 */
     z-index: 1050;
     display: flex;
     flex-direction: column;
@@ -1050,8 +1050,10 @@ h3 {
     font-style: italic;
     color: var(--text-main);
     /* 色を白からメインテキスト色へ（少し落ち着かせる） */
-    text-shadow: 0 0 10px var(--primary-glow);
-    /* グローを控えめに（1層のみ） */
+    /* 修正: 視認性を保ちつつ眩しすぎない適切なグロウ */
+    text-shadow:
+        0 0 15px var(--primary-glow),
+        0 0 30px rgba(99, 102, 241, 0.2);
     line-height: 1;
     letter-spacing: -2px;
 }

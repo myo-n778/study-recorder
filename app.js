@@ -6,6 +6,19 @@ const STATE_KEY = 'study_recorder_state';
 const USER_KEY = 'study_recorder_user';
 const STATE_STUDY_KEY = 'study_recorder_active_session';
 
+// 日付境界ヘルパー (午前4時基準)
+function getLogicalDate(date = new Date()) {
+    const d = new Date(date);
+    // 午前4時前なら前日扱い
+    if (d.getHours() < 4) {
+        d.setDate(d.getDate() - 1);
+    }
+    const y = d.getFullYear();
+    const m = ('0' + (d.getMonth() + 1)).slice(-2);
+    const day = ('0' + d.getDate()).slice(-2);
+    return `${y}/${m}/${day}`;
+}
+
 let state = {
     isStudying: false,
     startTime: null,
@@ -26,19 +39,17 @@ let state = {
         displayUnit: 'h', // 'h' or 'm'
         theme: 'default'
     },
-    viewDate: (() => {
-        const d = new Date();
-        const y = d.getFullYear();
-        const m = ('0' + (d.getMonth() + 1)).slice(-2);
-        const day = ('0' + d.getDate()).slice(-2);
-        return `${y}/${m}/${day}`;
-    })(),
+    viewDate: getLogicalDate(), // 修正: 4時境界を適用
     gasMasterData: {
         categories: [],
         contents: [],
         enthusiasms: [],
         comments: []
-    }
+    },
+    accumulatedPausedMs: 0,
+    lastPauseTime: null,
+    messageInterval: 20000, // デフォルト20秒に修正
+    supportMessageInterval: null
 };
 
 let charts = {
@@ -158,6 +169,11 @@ function init() {
         state.messageInterval = Number(savedInterval) * 1000;
         const input = document.getElementById('message-interval-input');
         if (input) input.value = savedInterval;
+    } else {
+        // 設定がない場合はデフォルト20秒を適用
+        state.messageInterval = 20000;
+        const input = document.getElementById('message-interval-input');
+        if (input) input.value = "20";
     }
 }
 
@@ -602,17 +618,7 @@ function startStudy() {
     }
 
     state.isStudying = true;
-
-    // 入力された時刻を使用（空なら現在時刻）
-    const inputStartTime = elements.startTimeInput.value;
-    if (inputStartTime) {
-        const [h, m] = inputStartTime.split(':');
-        const start = new Date();
-        start.setHours(h, m, 0);
-        state.startTime = start;
-    } else {
-        state.startTime = new Date();
-    }
+    state.startTime = new Date(); // ① 基準修正: 必ず現在（開始タップ時）をstartTimeとする
 
     state.elapsedSeconds = 0;
     state.isPaused = false;
@@ -783,7 +789,7 @@ async function saveSummaryRecord() {
     const comment = document.getElementById('summary-comment').value.trim();
 
     const record = {
-        date: new Date().toLocaleDateString('ja-JP'),
+        date: getLogicalDate(endTime), // ③ 修正: 4時境界を保存時にも適用
         userName: localStorage.getItem(USER_KEY),
         startTime: state.startTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         endTime: endTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
