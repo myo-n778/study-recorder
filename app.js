@@ -621,7 +621,21 @@ async function finishStudy() {
     const diffMs = endTime - state.startTime;
     const duration = Math.round(diffMs / 60000) - Math.floor(state.pausedSeconds / 60);
 
-    document.getElementById('summary-duration-display').textContent = `学習時間: ${duration} 分`;
+    // ③ 開始・終了時刻の取得と表示
+    const formatTime = (d) => d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    const startTimeStr = formatTime(state.startTime);
+    const endTimeStr = formatTime(endTime);
+
+    document.getElementById('summary-duration-display').textContent =
+        `学習時間: ${duration} 分 (${startTimeStr} 〜 ${endTimeStr})`;
+
+    // ④ コメント欄の操作性改善（全文選択リスナーの追加）
+    const summaryComment = document.getElementById('summary-comment');
+    if (summaryComment && !summaryComment.dataset.selectListener) {
+        summaryComment.addEventListener('focus', (e) => e.target.select());
+        summaryComment.addEventListener('click', (e) => e.target.select());
+        summaryComment.dataset.selectListener = "true";
+    }
 
     // 現在のコメントをプリセット
     document.getElementById('summary-comment').value = elements.commentInput.value.trim() || '次も頑張ろう！';
@@ -1553,8 +1567,8 @@ function setupCardEvents(card, rec) {
 
 function showContextMenu(x, y, id) {
     contextMenuTargetId = id;
-    contextMenu.style.left = `${x} px`;
-    contextMenu.style.top = `${y} px`;
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
     contextMenu.classList.remove('hidden');
 }
 

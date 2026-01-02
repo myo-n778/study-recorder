@@ -987,20 +987,21 @@ h3 {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: radial-gradient(circle at center, var(--primary-color) 0%, var(--bg-color) 150%);
+    width: 100%;
+    height: 100%;
+    background: var(--bg-color);
+    /* 落ち着いた背景色に変更 */
     z-index: 1050;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(25px);
+    backdrop-filter: blur(10px);
     overflow: hidden;
-    padding: 1rem;
-    /* 見切れ防止のパディング */
+    padding: 1.5rem;
     box-sizing: border-box;
-    /* 移動・スクロール固定 */
+    /* 1画面内に収めるための制約 */
+    max-height: 100vh;
     touch-action: none;
 }
 
@@ -1028,8 +1029,10 @@ h3 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
-    /* モバイル向けに隙間を調整 */
+    gap: 1rem;
+    /* 隙間をさらに縮小 */
+    height: 100%;
+    justify-content: center;
 }
 
 .timer-display {
@@ -1040,15 +1043,15 @@ h3 {
 }
 
 .timer-elapsed {
-    font-size: clamp(4.5rem, 18vw, 7.5rem);
+    font-size: clamp(4rem, 15vw, 6rem);
+    /* サイズを少し抑える */
     font-weight: 800;
     font-family: var(--font-timer);
     font-style: italic;
-    color: white;
-    text-shadow:
-        0 0 10px var(--primary-glow),
-        0 0 40px var(--primary-glow),
-        0 0 80px rgba(255, 255, 255, 0.3);
+    color: var(--text-main);
+    /* 色を白からメインテキスト色へ（少し落ち着かせる） */
+    text-shadow: 0 0 20px var(--primary-glow);
+    /* グローを控えめに */
     line-height: 1;
     letter-spacing: -2px;
 }
