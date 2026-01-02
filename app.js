@@ -1042,21 +1042,11 @@ async function manualRecord() {
         comment = prompt('コメントがあれば入力してください', '') || '';
     }
 
-    let recordDateVal = elements.recordDateInput.value;
-    if (!recordDateVal) {
-        // 現在時刻に基づき論理日付を決定
-        recordDateVal = getLogicalDate(new Date(), startTimeStr);
-    } else {
-        // 入力日付がある場合も、0:00-3:59 なら前日に割り当て
-        recordDateVal = getLogicalDate(recordDateVal, startTimeStr);
-    }
-    let formattedDate = recordDateVal;
-    if (!formattedDate) {
-        formattedDate = getLogicalDate(); // ③ 未来化修正: 4時境界を適用
-    }
+    // 日付と開始時刻に基づき、論理的な日付（4時境界）を一度だけ決定する
+    const logicalDate = getLogicalDate(elements.recordDateInput.value || new Date(), startTimeStr);
 
     const record = {
-        date: getLogicalDate(recordDateVal || new Date(), startTimeStr), // 入力時刻に基づき論理日付を決定
+        date: logicalDate,
         userName: localStorage.getItem(USER_KEY),
         startTime: startTimeStr,
         endTime: endTimeStr,
@@ -1149,18 +1139,18 @@ async function loadRecordsFromGAS() {
 
             if (Array.isArray(recordsData)) {
                 state.records = recordsData.map(record => {
-                    let dateStr = record.date;
-                    // GASからISO文字列(Tを含む)で返る場合でも、日付部分だけを安全に抽出
-                    if (dateStr && typeof dateStr === 'string' && dateStr.includes('T')) {
-                        dateStr = dateStr.split('T')[0].replace(/-/g, '/');
-                    } else if (dateStr) {
-                        dateStr = dateStr.toString().replace(/-/g, '/');
+                    let datePart = record.date;
+                    if (datePart && typeof datePart === 'string') {
+                        datePart = datePart.split(/[ T]/)[0].replace(/-/g, '/');
+                    } else if (datePart) {
+                        datePart = datePart.toString().split(/[ T]/)[0].replace(/-/g, '/');
                     }
 
                     const formatTime = (timeStr) => {
                         if (!timeStr) return '';
                         if (typeof timeStr === 'string' && timeStr.includes('T')) {
                             const d = new Date(timeStr);
+                            if (isNaN(d.getTime())) return timeStr;
                             const h = ('0' + d.getHours()).slice(-2);
                             const m = ('0' + d.getMinutes()).slice(-2);
                             return `${h}:${m}`;
@@ -1168,11 +1158,17 @@ async function loadRecordsFromGAS() {
                         return timeStr;
                     };
 
+                    const startTime = formatTime(record.startTime);
+                    const endTime = formatTime(record.endTime);
+
+                    // 重要: 全記録・VIEW表示の整合性のため、取得時にも4時境界を再適用
+                    const logicalDate = getLogicalDate(datePart || new Date(), startTime);
+
                     return {
                         ...record,
-                        date: dateStr,
-                        startTime: formatTime(record.startTime),
-                        endTime: formatTime(record.endTime)
+                        date: logicalDate,
+                        startTime: startTime,
+                        endTime: endTime
                     };
                 });
                 console.log('GASから学習記録を正常に読み込みました。');

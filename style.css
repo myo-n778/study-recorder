@@ -1199,7 +1199,8 @@ h3 {
     position: relative;
     background: #0c0e14 !important;
     color: white !important;
-    overflow: hidden;
+    overflow: visible !important;
+    /* ポップアップを外に出すために変更 */
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
