@@ -350,6 +350,13 @@ function setupMasterData() {
         });
 
         elements.categoryInput.dataset.listeners = "true";
+
+        // 意気込み・コメントの便利機能（クリックで全選択）
+        const selectAll = (e) => e.target.select();
+        elements.enthusiasmInput.addEventListener('focus', selectAll);
+        elements.commentInput.addEventListener('focus', selectAll);
+        elements.enthusiasmInput.addEventListener('click', selectAll);
+        elements.commentInput.addEventListener('click', selectAll);
     }
 
     // 初期実行
@@ -606,11 +613,14 @@ function saveStudyState() {
     }
 }
 
-// 学習終了処理 (まとめ画面を表示)
 async function finishStudy() {
     clearInterval(state.timerInterval);
 
-    const duration = Math.floor(state.elapsedSeconds / 60);
+    // ⑦ 正確な分数の算出
+    const endTime = new Date();
+    const diffMs = endTime - state.startTime;
+    const duration = Math.round(diffMs / 60000) - Math.floor(state.pausedSeconds / 60);
+
     document.getElementById('summary-duration-display').textContent = `学習時間: ${duration} 分`;
 
     // 現在のコメントをプリセット
@@ -621,8 +631,10 @@ async function finishStudy() {
 }
 
 async function saveSummaryRecord() {
-    const duration = Math.floor(state.elapsedSeconds / 60);
     const endTime = new Date();
+    const diffMs = endTime - state.startTime;
+    const duration = Math.max(0, Math.round(diffMs / 60000) - Math.floor(state.pausedSeconds / 60));
+
     const condition = document.getElementById('summary-condition').value;
     const comment = document.getElementById('summary-comment').value.trim();
 
@@ -825,12 +837,29 @@ async function loadRecordsFromGAS() {
         }
     } catch (error) {
         console.error('GASからの記録読み込みに失敗しました:', error);
-    } finally {
         // UIとチャートを更新
         updateHistoryUI();
         updateGoalDisplay();
         updateCharts();
         setupMasterData(); // 読み込んだデータから候補リストを再作成
+
+        // ② カテゴリ・学習内容の初期値（直近の記録からセット）
+        if (state.records.length > 0) {
+            const lastRec = [...state.records].sort((a, b) => {
+                const getTime = (r) => {
+                    if (!r.date || !r.startTime) return 0;
+                    const [y, m, d] = r.date.split('/').map(Number);
+                    const [h, min] = r.startTime.split(':').map(Number);
+                    return new Date(y, m - 1, d, h, min).getTime();
+                };
+                return getTime(b) - getTime(a);
+            })[0];
+
+            if (lastRec) {
+                elements.categoryInput.value = lastRec.category || '';
+                elements.contentInput.value = lastRec.content || '';
+            }
+        }
     }
 }
 
@@ -930,6 +959,10 @@ function updateViewDateRecords() {
     records.forEach(r => {
         const card = document.createElement('div');
         card.className = 'mini-record-card';
+
+        // ① 編集機能の紐付け
+        setupCardEvents(card, r);
+
         card.innerHTML = `
             <div class="time">${r.startTime} 〜 ${r.endTime} (${r.duration}min)</div>
             <div class="title">${r.category} - ${r.content}</div>
@@ -1181,7 +1214,7 @@ function updateStickyTimelineChart(period = 'day') {
                 }
             },
             scales: {
-                x: { ...baseOptions.scales.x, ticks: { ...baseOptions.scales.x.ticks, color: '#94a3b8', font: { weight: 'normal' } } },
+                x: { ...baseOptions.scales.x, ticks: { ...baseOptions.scales.x.ticks, color: '#94a3b8' } },
                 y: baseOptions.scales.y
             }
         }
