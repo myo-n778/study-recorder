@@ -706,21 +706,32 @@ async function finishStudy() {
     // 現在のコメントをプリセット
     document.getElementById('summary-comment').value = elements.commentInput.value.trim() || '次も頑張ろう！';
 
-    // ④ お疲れ様メッセージのバリエーション
-    const finishMsgs = (state.gasMasterData && state.gasMasterData.finishMessages && state.gasMasterData.finishMessages.length > 0)
-        ? state.gasMasterData.finishMessages
+    // ① 長時間対応の段階分け（30/60/90/120分）
+    const rawMsgs = (state.gasMasterData && state.gasMasterData.finishMessages && state.gasMasterData.finishMessages.length > 0)
+        ? state.gasMasterData.finishMessages.filter(m => m && m.trim())
         : ["お疲れ様でした！", "今日も一歩前進ですね。"];
 
-    // 長時間（60分以上）の場合は、後半のメッセージが出やすいようにする等の簡易的な出し分け
-    let msg = "";
-    if (duration >= 60 && finishMsgs.length > 2) {
-        // 後半のメッセージを選択 (長時間向け)
-        const longMsgs = finishMsgs.slice(Math.floor(finishMsgs.length / 2));
-        msg = longMsgs[Math.floor(Math.random() * longMsgs.length)];
-    } else {
-        msg = finishMsgs[Math.floor(Math.random() * Math.min(finishMsgs.length, 2))];
-    }
-    document.querySelector('#summary-modal h3').textContent = msg;
+    let stage = 0;
+    if (duration >= 120) stage = 120;
+    else if (duration >= 90) stage = 90;
+    else if (duration >= 60) stage = 60;
+    else if (duration >= 30) stage = 30;
+
+    // タグ解析とフィルタリング
+    const filteredMsgs = rawMsgs.filter(m => {
+        const match = m.match(/^\[(\d+)\]/);
+        if (match) {
+            return parseInt(match[1]) === stage;
+        } else {
+            // タグがない既存メッセージは、60分段階として扱う（互換性）
+            return stage === 60;
+        }
+    });
+
+    // 該当なしなら全体からタグなしを優先
+    const finalCandidates = filteredMsgs.length > 0 ? filteredMsgs : rawMsgs.filter(m => !m.match(/^\[\d+\]/));
+    const randomMsg = finalCandidates[Math.floor(Math.random() * finalCandidates.length)] || "お疲れ様でした！";
+    document.querySelector('#summary-modal h3').textContent = randomMsg.replace(/^\[\d+\]\s*/, '');
 
     elements.studyMode.classList.add('hidden');
     if (state.supportMessageInterval) clearInterval(state.supportMessageInterval);
@@ -740,7 +751,7 @@ async function saveSummaryRecord() {
     const comment = document.getElementById('summary-comment').value.trim();
 
     const record = {
-        date: state.viewDate, // 選択中の日付
+        date: state.viewDate,
         userName: localStorage.getItem(USER_KEY),
         startTime: state.startTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         endTime: endTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),

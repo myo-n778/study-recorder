@@ -121,8 +121,11 @@ function syncToBaseSheet(ss, data) {
     const defaultFinish = [
       "お疲れ様でした！",
       "今日も一歩前進ですね。",
-      "しっかり頑張りましたね！(長時間)",
-      "素晴らしい継続力です！(長時間)"
+      "[30] 30分達成！ナイススタートです。",
+      "[60] 1時間継続！集中できていますね。",
+      "[90] 90分突破！素晴らしい成果です。",
+      "[120] 2時間達成！圧倒的な努力です！",
+      "[120] 極限の集中力！最高の結果が出せましたね。"
     ];
     defaultSupport.forEach((m, i) => baseSheet.getRange(i + 2, 5).setValue(m));
     defaultFinish.forEach((m, i) => baseSheet.getRange(i + 2, 6).setValue(m));
