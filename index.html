@@ -79,27 +79,27 @@
                                 <option value="復習をメインに">
                             </datalist>
                         </div>
-                        <div class="form-group">
-                            <label>学習場所</label>
-                            <input type="text" id="location-input" list="location-list" placeholder="例：自宅、カフェ、図書館">
-                            <datalist id="location-list"></datalist>
-                        </div>
-                        <div class="form-group">
-                            <label>開始時刻</label>
-                            <input type="time" id="start-time">
-                        </div>
-                        <div class="form-group">
-                            <label>終了時刻</label>
-                            <input type="time" id="end-time">
-                        </div>
-                        <div class="form-group">
-                            <label>ふりかえり(FB)</label>
-                            <select id="condition-input">
-                                <option value="◎">◎ (絶好調)</option>
-                                <option value="◯" selected>◯ (順調)</option>
-                                <option value="△">△ (ぼちぼち)</option>
-                                <option value="×">× (苦戦)</option>
-                            </select>
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label>ふりかえり(FB)</label>
+                                <select id="condition-input">
+                                    <option value="◎">◎ (絶好調)</option>
+                                    <option value="◯" selected>◯ (順調)</option>
+                                    <option value="△">△ (ぼちぼち)</option>
+                                    <option value="×">× (苦戦)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>場所</label>
+                                <div class="input-with-action">
+                                    <input type="text" id="location-input" list="location-list" placeholder="場所">
+                                    <button id="show-location-candidates-btn" class="icon-btn" title="候補・履歴">
+                                        <span class="material-icons-outlined">history</span>
+                                    </button>
+                                    <div id="location-candidates-popup" class="history-popup hidden"></div>
+                                </div>
+                                <datalist id="location-list"></datalist>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>実施日</label>
@@ -290,25 +290,33 @@
                 <h3>お疲れ様でした！</h3>
                 <p id="summary-duration-display">学習時間: --分</p>
 
-                <div class="form-group">
-                    <label>ふりかえり(FB)</label>
-                    <select id="summary-condition">
-                        <option value="◎">◎ (絶好調)</option>
-                        <option value="◯" selected>◯ (順調)</option>
-                        <option value="△">△ (ぼちぼち)</option>
-                        <option value="×">× (苦戦)</option>
-                    </select>
-                </div>
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>ふりかえり(FB)</label>
+                        <select id="summary-condition">
+                            <option value="◎">◎ (絶好調)</option>
+                            <option value="◯" selected>◯ (順調)</option>
+                            <option value="△">△ (ぼちぼち)</option>
+                            <option value="×">× (苦戦)</option>
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label>学習場所</label>
-                    <input type="text" id="summary-location" list="location-list" placeholder="どこで学習しましたか？">
+                    <div class="form-group">
+                        <label>場所</label>
+                        <div class="input-with-action">
+                            <input type="text" id="summary-location" list="location-list" placeholder="場所">
+                            <button id="show-summary-location-history-btn" class="icon-btn" title="履歴から選ぶ">
+                                <span class="material-icons-outlined">history</span>
+                            </button>
+                            <div id="summary-location-history-popup" class="history-popup hidden"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label>コメント</label>
                     <div class="input-with-action">
-                        <input type="text" id="summary-comment" list="comment-list" placeholder="一言どうぞ！">
+                        <input type="text" id="summary-comment" list="comment-list" placeholder="コメント">
                         <button id="show-comment-history-btn" class="icon-btn" title="履歴から選ぶ">
                             <span class="material-icons-outlined">history</span>
                         </button>

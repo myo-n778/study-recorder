@@ -9,24 +9,26 @@ const STATE_STUDY_KEY = 'study_recorder_active_session';
 // 日付境界ヘルパー (午前4時基準)
 function getLogicalDate(dateOrStr = new Date(), timeStr = null) {
     let d;
-    if (typeof dateOrStr === 'string') {
+    if (typeof dateOrStr === 'string' && dateOrStr.length > 0) {
+        // "YYYY/MM/DD" または "YYYY-MM-DD" を正規化
         const normalized = dateOrStr.replace(/-/g, '/');
-        // 日付文字列のみの場合、12:00として扱うことで
-        // 0時判定による不慮の1日戻り(二重補正)を防ぐ
+        // 日付文字列のみの場合、昼の12:00として扱うことで
+        // ブラウザによるUTC変換や0時判定のズレを防ぐ
         d = new Date(normalized + ' 12:00:00');
-    } else {
+    } else if (dateOrStr instanceof Date) {
         d = new Date(dateOrStr);
+    } else {
+        d = new Date();
     }
 
     let h;
-    if (timeStr) {
+    if (timeStr && typeof timeStr === 'string') {
         h = parseInt(timeStr.split(':')[0]);
-    } else if (typeof dateOrStr === 'string') {
-        h = 12; // 明示的な時間がない日付文字列は当日扱い
     } else {
         h = d.getHours();
     }
 
+    // 4時より前なら前日の所属とする
     if (h < 4) {
         d.setDate(d.getDate() - 1);
     }
@@ -128,7 +130,14 @@ const elements = {
     prevDateBtn: document.getElementById('prev-date-btn'),
     nextDateBtn: document.getElementById('next-date-btn'),
     todayBtn: document.getElementById('today-btn'),
-    currentViewDateDisplay: document.getElementById('current-view-date')
+    currentViewDateDisplay: document.getElementById('current-view-date'),
+    // Summary Location Elements
+    summaryLocation: document.getElementById('summary-location'),
+    summaryLocationHistoryBtn: document.getElementById('show-summary-location-history-btn'),
+    summaryLocationHistoryPopup: document.getElementById('summary-location-history-popup'),
+    // Manual Record Location Elements
+    locationCandidatesBtn: document.getElementById('show-location-candidates-btn'),
+    locationCandidatesPopup: document.getElementById('location-candidates-popup')
 };
 
 // 期間切り替えイベントの初期化
@@ -172,18 +181,20 @@ const supportMessages = [
 
 // 初期化
 function init() {
+    state.viewDate = getLogicalDate(); // 最優先で論理日付をセット
     loadUser();
     setupEventListeners();
     setupPeriodSwitchers();
     setCurrentTimeInputs();
+    updateViewDateUI(); // UIを即座に更新して1/1表示を上書き
 
     // デフォルト値の設定
     elements.enthusiasmInput.value = '集中して取り組む！';
     elements.commentInput.value = '次も頑張ろう！';
 
     setupMasterData();
-    state.viewDate = getLogicalDate(); // ② 起動直後に論理日付をセット
-    updateViewDateUI(); // 1/1のハードコード表示を即座に上書き
+    state.viewDate = getLogicalDate(); // 起動直後に論理日付をセット
+    updateViewDateUI();
     updateGoalDisplay();
 
     // 以前のセッションがあれば復元
@@ -468,8 +479,48 @@ function setupMasterData() {
                 historyPopup.classList.remove('hidden');
             });
 
-            document.addEventListener('click', () => {
-                historyPopup.classList.add('hidden');
+            document.addEventListener('click', (e) => {
+                if (!historyBtn.contains(e.target) && !historyPopup.contains(e.target)) {
+                    historyPopup.classList.add('hidden');
+                }
+            });
+        }
+
+        // 場所の履歴/候補ボタン (サマリーモーダル)
+        const summaryLocBtn = document.getElementById('show-summary-location-history-btn');
+        const summaryLocPopup = document.getElementById('summary-location-history-popup');
+        if (summaryLocBtn && summaryLocPopup) {
+            summaryLocBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!summaryLocPopup.classList.contains('hidden')) {
+                    summaryLocPopup.classList.add('hidden');
+                    return;
+                }
+                showLocationTypePopup(summaryLocPopup, document.getElementById('summary-location'));
+            });
+            document.addEventListener('click', (e) => {
+                if (!summaryLocBtn.contains(e.target) && !summaryLocPopup.contains(e.target)) {
+                    summaryLocPopup.classList.add('hidden');
+                }
+            });
+        }
+
+        // 場所の履歴/候補ボタン (手動記録フォーム)
+        const manualLocBtn = document.getElementById('show-location-candidates-btn');
+        const manualLocPopup = document.getElementById('location-candidates-popup');
+        if (manualLocBtn && manualLocPopup) {
+            manualLocBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!manualLocPopup.classList.contains('hidden')) {
+                    manualLocPopup.classList.add('hidden');
+                    return;
+                }
+                showLocationTypePopup(manualLocPopup, document.getElementById('location-input'));
+            });
+            document.addEventListener('click', (e) => {
+                if (!manualLocBtn.contains(e.target) && !manualLocPopup.contains(e.target)) {
+                    manualLocPopup.classList.add('hidden');
+                }
             });
         }
     }
@@ -502,6 +553,37 @@ function updateCommentSuggestions() {
 }
 
 // イベントリスナー
+function showLocationTypePopup(popup, input) {
+    const locFreq = {};
+    // マスタデータ(スプレッドシートE列)を優先
+    if (state.gasMasterData?.locations) {
+        state.gasMasterData.locations.forEach(l => locFreq[l] = (locFreq[l] || 0) + 10);
+    }
+    // 過去の記録から集計
+    state.records.forEach(r => {
+        if (r.location) locFreq[r.location] = (locFreq[r.location] || 0) + 1;
+    });
+    // デフォルト候補
+    ['自宅', 'カフェ', '図書館', '学校', '塾'].forEach(l => locFreq[l] = (locFreq[l] || 0) + 1);
+
+    const sortedLocs = Object.keys(locFreq).sort((a, b) => locFreq[b] - locFreq[a]);
+    if (sortedLocs.length === 0) return;
+
+    popup.innerHTML = '';
+    sortedLocs.forEach(text => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.textContent = text;
+        item.addEventListener('click', () => {
+            input.value = text;
+            popup.classList.add('hidden');
+            input.focus();
+        });
+        popup.appendChild(item);
+    });
+    popup.classList.remove('hidden');
+}
+
 function setupEventListeners() {
     // ユーザー保存
     elements.saveUserBtn.addEventListener('click', () => {
@@ -1061,24 +1143,17 @@ async function loadRecordsFromGAS() {
 
             if (Array.isArray(recordsData)) {
                 state.records = recordsData.map(record => {
-                    // 日付フォーマットの正規化 (2025-12-30T15:00:00.000Z -> 2025/12/31)
                     let dateStr = record.date;
-                    if (dateStr && dateStr.toString().includes('T')) {
-                        // GASからISO文字列で返る場合の処理。Asia/Tokyo時間として扱う。
-                        const d = new Date(dateStr);
-                        // UTCではなくローカル（実行環境）の日付を取得
-                        const y = d.getFullYear();
-                        const m = ('0' + (d.getMonth() + 1)).slice(-2);
-                        const day = ('0' + d.getDate()).slice(-2);
-                        dateStr = `${y}/${m}/${day}`;
+                    // GASからISO文字列(Tを含む)で返る場合でも、日付部分だけを安全に抽出
+                    if (dateStr && typeof dateStr === 'string' && dateStr.includes('T')) {
+                        dateStr = dateStr.split('T')[0].replace(/-/g, '/');
                     } else if (dateStr) {
                         dateStr = dateStr.toString().replace(/-/g, '/');
                     }
 
-                    // 開始・終了時刻の正規化 (1899-12-30T13:32:00.000Z -> 13:32)
                     const formatTime = (timeStr) => {
                         if (!timeStr) return '';
-                        if (timeStr.includes('T')) {
+                        if (typeof timeStr === 'string' && timeStr.includes('T')) {
                             const d = new Date(timeStr);
                             const h = ('0' + d.getHours()).slice(-2);
                             const m = ('0' + d.getMinutes()).slice(-2);
@@ -1099,13 +1174,14 @@ async function loadRecordsFromGAS() {
         }
     } catch (error) {
         console.error('GASからの記録読み込みに失敗しました:', error);
+    } finally {
+        // UIとチャートを更新 (正常・異常に関わらず最新状態を反映して「消失」を防ぐ)
+        updateHistoryUI();
+        updateGoalDisplay();
+        updateCharts();
+        setupMasterData();
+        updateLocationSuggestions();
     }
-
-    // UIとチャートを更新 (正常・異常に関わらず実行、または現状のデータを反映)
-    updateHistoryUI();
-    updateGoalDisplay();
-    updateCharts();
-    setupMasterData(); // 読み込んだデータから候補リストを再作成
 
     // ② カテゴリ・学習内容の初期値（直近の記録からセット）
     if (state.records.length > 0) {
@@ -1574,7 +1650,7 @@ function updateMainDetailChart(period = 'day') {
                         color: '#94a3b8',
                         font: { size: 10 },
                         stepSize: 60,
-                        callback: (v) => v + 'min'
+                        callback: (v) => (v / 60).toFixed(1) + 'h'
                     }
                 }
             }
