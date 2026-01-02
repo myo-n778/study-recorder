@@ -7,16 +7,33 @@ const USER_KEY = 'study_recorder_user';
 const STATE_STUDY_KEY = 'study_recorder_active_session';
 
 // 日付境界ヘルパー (午前4時基準)
-function getLogicalDate(date = new Date()) {
-    // タイムゾーンのズレを考慮し、必ずローカル時間で計算
-    const d = new Date(date);
-    if (d.getHours() < 4) {
+function getLogicalDate(dateOrStr = new Date(), timeStr = null) {
+    let d;
+    if (typeof dateOrStr === 'string') {
+        const normalized = dateOrStr.replace(/-/g, '/');
+        // 日付文字列のみの場合、12:00として扱うことで
+        // 0時判定による不慮の1日戻り(二重補正)を防ぐ
+        d = new Date(normalized + ' 12:00:00');
+    } else {
+        d = new Date(dateOrStr);
+    }
+
+    let h;
+    if (timeStr) {
+        h = parseInt(timeStr.split(':')[0]);
+    } else if (typeof dateOrStr === 'string') {
+        h = 12; // 明示的な時間がない日付文字列は当日扱い
+    } else {
+        h = d.getHours();
+    }
+
+    if (h < 4) {
         d.setDate(d.getDate() - 1);
     }
+
     const y = d.getFullYear();
     const m = ('0' + (d.getMonth() + 1)).slice(-2);
     const day = ('0' + d.getDate()).slice(-2);
-    // スラッシュ区切りに統一（ハイフン区切りはブラウザによってUTC扱いになるため避ける）
     return `${y}/${m}/${day}`;
 }
 
@@ -165,9 +182,9 @@ function init() {
     elements.commentInput.value = '次も頑張ろう！';
 
     setupMasterData();
-    state.viewDate = getLogicalDate(); // ② 明示的に初期表示日付（4時境界）をセット
+    state.viewDate = getLogicalDate(); // ② 起動直後に論理日付をセット
+    updateViewDateUI(); // 1/1のハードコード表示を即座に上書き
     updateGoalDisplay();
-    updateViewDateUI(); // 初期化時にUIを即座に更新 (1/1の上書きを保証)
 
     // 以前のセッションがあれば復元
     resumeStudySession();
@@ -858,7 +875,7 @@ async function saveSummaryRecord() {
     const location = document.getElementById('summary-location').value.trim();
 
     const record = {
-        date: getLogicalDate(endTime), // ③ 修正: 4時境界を保存時にも適用
+        date: getLogicalDate(endTime), // 終了時刻に基づき論理日付を決定
         userName: localStorage.getItem(USER_KEY),
         startTime: state.startTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         endTime: endTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
@@ -949,7 +966,7 @@ async function manualRecord() {
     }
 
     const record = {
-        date: formattedDate,
+        date: getLogicalDate(recordDateVal || new Date(), startTimeStr), // 入力時刻に基づき論理日付を決定
         userName: localStorage.getItem(USER_KEY),
         startTime: startTimeStr,
         endTime: endTimeStr,
