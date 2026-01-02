@@ -165,6 +165,7 @@ function init() {
     elements.commentInput.value = '次も頑張ろう！';
 
     setupMasterData();
+    state.viewDate = getLogicalDate(); // ② 明示的に初期表示日付をセット
     updateGoalDisplay();
 
     // 以前のセッションがあれば復元
@@ -941,15 +942,9 @@ async function manualRecord() {
         // 入力された日付も論理日付形式(スラッシュ区切り)に正規化
         recordDateVal = recordDateVal.replace(/-/g, '/');
     }
-    let formattedDate;
-    if (!recordDateVal) {
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = ('0' + (now.getMonth() + 1)).slice(-2);
-        const d = ('0' + now.getDate()).slice(-2);
-        formattedDate = `${y}/${m}/${d}`;
-    } else {
-        formattedDate = recordDateVal.replace(/-/g, '/');
+    let formattedDate = recordDateVal;
+    if (!formattedDate) {
+        formattedDate = getLogicalDate(); // ③ 未来化修正: 4時境界を適用
     }
 
     const record = {
@@ -1030,6 +1025,11 @@ async function loadRecordsFromGAS() {
     const userName = localStorage.getItem(USER_KEY);
     if (!userName) return;
 
+    // 初期化されていない場合は今日をセット
+    if (!state.viewDate) {
+        state.viewDate = getLogicalDate();
+    }
+
     try {
         // GASからデータを取得 (userNameを渡す)
         const response = await fetch(`${GAS_URL}?userName=${encodeURIComponent(userName)}`);
@@ -1046,14 +1046,16 @@ async function loadRecordsFromGAS() {
                 state.records = recordsData.map(record => {
                     // 日付フォーマットの正規化 (2025-12-30T15:00:00.000Z -> 2025/12/31)
                     let dateStr = record.date;
-                    if (dateStr && dateStr.includes('T')) {
+                    if (dateStr && dateStr.toString().includes('T')) {
+                        // GASからISO文字列で返る場合の処理。Asia/Tokyo時間として扱う。
                         const d = new Date(dateStr);
+                        // UTCではなくローカル（実行環境）の日付を取得
                         const y = d.getFullYear();
                         const m = ('0' + (d.getMonth() + 1)).slice(-2);
                         const day = ('0' + d.getDate()).slice(-2);
                         dateStr = `${y}/${m}/${day}`;
                     } else if (dateStr) {
-                        dateStr = dateStr.replace(/-/g, '/');
+                        dateStr = dateStr.toString().replace(/-/g, '/');
                     }
 
                     // 開始・終了時刻の正規化 (1899-12-30T13:32:00.000Z -> 13:32)
@@ -1080,28 +1082,29 @@ async function loadRecordsFromGAS() {
         }
     } catch (error) {
         console.error('GASからの記録読み込みに失敗しました:', error);
-        // UIとチャートを更新
-        updateHistoryUI();
-        updateGoalDisplay();
-        updateCharts();
-        setupMasterData(); // 読み込んだデータから候補リストを再作成
+    }
 
-        // ② カテゴリ・学習内容の初期値（直近の記録からセット）
-        if (state.records.length > 0) {
-            const lastRec = [...state.records].sort((a, b) => {
-                const getTime = (r) => {
-                    if (!r.date || !r.startTime) return 0;
-                    const [y, m, d] = r.date.split('/').map(Number);
-                    const [h, min] = r.startTime.split(':').map(Number);
-                    return new Date(y, m - 1, d, h, min).getTime();
-                };
-                return getTime(b) - getTime(a);
-            })[0];
+    // UIとチャートを更新 (正常・異常に関わらず実行、または現状のデータを反映)
+    updateHistoryUI();
+    updateGoalDisplay();
+    updateCharts();
+    setupMasterData(); // 読み込んだデータから候補リストを再作成
 
-            if (lastRec) {
-                elements.categoryInput.value = lastRec.category || '';
-                elements.contentInput.value = lastRec.content || '';
-            }
+    // ② カテゴリ・学習内容の初期値（直近の記録からセット）
+    if (state.records.length > 0) {
+        const sorted = [...state.records].sort((a, b) => {
+            const parseTime = (r) => {
+                if (!r.date || !r.startTime) return 0;
+                const [y, m, d] = r.date.split('/').map(Number);
+                const [h, min] = r.startTime.split(':').map(Number);
+                return new Date(y, m - 1, d, h, min).getTime();
+            };
+            return parseTime(b) - parseTime(a);
+        });
+        const lastRec = sorted[0];
+        if (lastRec) {
+            elements.categoryInput.value = lastRec.category || '';
+            elements.contentInput.value = lastRec.content || '';
         }
     }
 }
@@ -1138,17 +1141,31 @@ function updateHistoryUI() {
     // 最新順にソート（日付と時刻から判断）
     const sortedRecords = [...state.records].sort((a, b) => {
         const getTime = (r) => {
-            if (!r.date || !r.startTime) return 0;
-            const parts = r.date.split('/');
-            const timeParts = r.startTime.split(':');
-            if (parts.length !== 3 || timeParts.length < 2) return 0;
-            // 日本時間(Asia/Tokyo)として解釈されるよう、数値でDateを生成
-            return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), Number(timeParts[0]), Number(timeParts[1])).getTime();
+            try {
+                if (!r.date || !r.startTime) return 0;
+                // 'YYYY/MM/DD' と 'HH:mm' をパース
+                const dParts = r.date.split('/');
+                const tParts = r.startTime.split(':');
+                if (dParts.length < 3 || tParts.length < 2) return 0;
+
+                // 日本時間として数値をセット (Dateの引数は Y, M-1, D, H, M, S)
+                const dObj = new Date(
+                    parseInt(dParts[0]),
+                    parseInt(dParts[1]) - 1,
+                    parseInt(dParts[2]),
+                    parseInt(tParts[0]),
+                    parseInt(tParts[1])
+                );
+                return dObj.getTime();
+            } catch (e) {
+                console.error('Time parse error:', e, r);
+                return 0;
+            }
         };
-        const valB = getTime(b);
-        const valA = getTime(a);
-        return valB - valA;
+        return getTime(b) - getTime(a);
     });
+
+    console.log('Rendering records count:', sortedRecords.length);
 
     sortedRecords.forEach(rec => {
         const card = document.createElement('div');
@@ -1903,14 +1920,7 @@ function updateSupportMessage() {
     elements.supportMessage.textContent = supportMessages[idx];
 }
 
-// 実行
+// 実行: 初期化シーケンスを集約
 init();
-loadLocalRecords();
 loadRecordsFromGAS(); // GASから記録を非同期で読み込む
-updateTimelineAnalysis();
-
-// 初期表示を「週」に設定
-setTimeout(() => {
-    document.querySelector('#balance-period-tabs [data-period="week"]')?.click();
-    document.querySelector('#detail-period-tabs [data-period="week"]')?.click();
-}, 200);
+// updateHistoryUI や updateCharts は loadRecordsFromGAS 内で呼ばれる
