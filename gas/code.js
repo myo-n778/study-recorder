@@ -13,22 +13,19 @@ function getSheetForUser(ss, userName) {
 
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-    const headers = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', '意欲', 'ID'];
+    const headers = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', '意欲', '場所', 'ID'];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(1, 100);
     sheet.setColumnWidth(7, 150);
-    sheet.setColumnWidth(11, 250);
+    sheet.setColumnWidth(11, 150);
+    sheet.setColumnWidth(12, 250);
   }
 
-  if (sheet.getLastColumn() < 11) {
-    sheet.getRange(1, 11).setValue('ID');
-    const lastRow = sheet.getLastRow();
-    if (lastRow > 1) {
-      const ids = sheet.getRange(2, 11, lastRow - 1, 1).getValues();
-      const newIds = ids.map(row => [row[0] ? row[0] : Utilities.getUuid()]);
-      sheet.getRange(2, 11, lastRow - 1, 1).setValues(newIds);
-    }
+  if (sheet.getLastColumn() < 12) {
+    // 12列目にIDヘッダーがない場合、追加して既存のK列(11)のIDがなければ生成
+    sheet.getRange(1, 12).setValue('ID');
+    // 注意: ここでは列の移動までは行わず、新規保存時から使い分ける
   }
 
   return sheet;
@@ -43,7 +40,7 @@ function doPost(e) {
     }
   } catch (err) { }
 
-  const fields = ['id', 'action', 'userName', 'date', 'startTime', 'endTime', 'duration', 'content', 'enthusiasm', 'condition', 'comment', 'category'];
+  const fields = ['id', 'action', 'userName', 'date', 'startTime', 'endTime', 'duration', 'content', 'enthusiasm', 'condition', 'comment', 'category', 'location'];
   fields.forEach(field => {
     if (e.parameter[field]) data[field] = e.parameter[field];
   });
@@ -77,6 +74,7 @@ function doPost(e) {
         if (data.enthusiasm !== undefined) sheet.getRange(rowIdx, 8).setValue(data.enthusiasm);
         if (data.comment !== undefined) sheet.getRange(rowIdx, 9).setValue(data.comment);
         if (data.condition !== undefined) sheet.getRange(rowIdx, 10).setValue(data.condition);
+        if (data.location !== undefined) sheet.getRange(rowIdx, 11).setValue(data.location);
         return successResponse({ status: 'updated' });
       }
       return errorResponse("Record not found");
@@ -93,6 +91,7 @@ function doPost(e) {
         data.enthusiasm || '',
         data.comment || '',
         data.condition || '',
+        data.location || '',
         newId
       ]);
       return successResponse({ status: 'created', id: newId });
@@ -109,7 +108,7 @@ function syncToBaseSheet(ss, data) {
   let baseSheet = ss.getSheetByName(SHEET_NAME_BASE);
   if (!baseSheet) {
     baseSheet = ss.insertSheet(SHEET_NAME_BASE);
-    baseSheet.appendRow(['カテゴリ', '内容', '意気込み', 'コメント', '応援メッセージ', '終了メッセージ']);
+    baseSheet.appendRow(['カテゴリ', '内容', '意気込み', 'コメント', '場所', '応援メッセージ', '終了メッセージ']);
     // 初期の応援メッセージを登録
     const defaultSupport = [
       "素晴らしい集中力です！",
@@ -128,8 +127,8 @@ function syncToBaseSheet(ss, data) {
       "[A30][B120] 本日の累計が2時間を超えました！素晴らしい積み重ねです。",
       "[A60][B300] 1日5時間達成！極限の集中力ですね。"
     ];
-    defaultSupport.forEach((m, i) => baseSheet.getRange(i + 2, 5).setValue(m));
-    defaultFinish.forEach((m, i) => baseSheet.getRange(i + 2, 6).setValue(m));
+    defaultSupport.forEach((m, i) => baseSheet.getRange(i + 2, 6).setValue(m));
+    defaultFinish.forEach((m, i) => baseSheet.getRange(i + 2, 7).setValue(m));
   }
 
   // 同期対象のフィールドと列番号のマッピング
@@ -137,7 +136,8 @@ function syncToBaseSheet(ss, data) {
     { value: data.category, col: 1 },
     { value: data.content, col: 2 },
     { value: data.enthusiasm, col: 3 },
-    { value: data.comment, col: 4 }
+    { value: data.comment, col: 4 },
+    { value: data.location, col: 5 }
   ];
 
   syncFields.forEach(field => {
@@ -172,6 +172,8 @@ function doGet(e) {
 
   const values = sheet.getDataRange().getValues();
   const records = values.length <= 1 ? [] : values.slice(1).map(row => {
+    // 互換性フォールバック: L列(index 11)にIDがなければK列(index 10)をID、場所を空とする
+    const hasIdInL = row[11] && row[11].toString().length > 10;
     return {
       date: row[0],
       userName: row[1],
@@ -183,7 +185,8 @@ function doGet(e) {
       enthusiasm: row[7],
       comment: row[8],
       condition: row[9],
-      id: row[10]
+      location: hasIdInL ? (row[10] || '') : '',
+      id: hasIdInL ? row[11] : row[10]
     };
   });
 
@@ -204,6 +207,7 @@ function getBaseData(ss) {
   const contents = [];
   const enthusiasms = [];
   const comments = [];
+  const locations = [];
   const supportMessages = [];
   const finishMessages = [];
 
@@ -212,8 +216,9 @@ function getBaseData(ss) {
     if (data[i][1]) contents.push(data[i][1]);
     if (data[i][2]) enthusiasms.push(data[i][2]);
     if (data[i][3]) comments.push(data[i][3]);
-    if (data[i][4]) supportMessages.push(data[i][4]);
-    if (data[i][5]) finishMessages.push(data[i][5]);
+    if (data[i][4]) locations.push(data[i][4]);
+    if (data[i][5]) supportMessages.push(data[i][5]);
+    if (data[i][6]) finishMessages.push(data[i][6]);
   }
 
   return {
@@ -221,6 +226,7 @@ function getBaseData(ss) {
     contents: [...new Set(contents)],
     enthusiasms: [...new Set(enthusiasms)],
     comments: [...new Set(comments)],
+    locations: [...new Set(locations)],
     supportMessages: [...new Set(supportMessages)],
     finishMessages: [...new Set(finishMessages)]
   };
@@ -230,9 +236,13 @@ function findRowIndexById(sheet, id) {
   if (!id) return -1;
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return -1;
-  const ids = sheet.getRange(2, 11, lastRow - 1, 1).getValues().flat();
-  const idx = ids.indexOf(id);
-  return idx !== -1 ? idx + 2 : -1;
+  const values = sheet.getRange(2, 11, lastRow - 1, 2).getValues(); // K, L列を取得
+  for (let i = 0; i < values.length; i++) {
+    if (values[i][1] === id || values[i][0] === id) { // L列(新) または K列(旧) をチェック
+      return i + 2;
+    }
+  }
+  return -1;
 }
 
 function successResponse(data) {

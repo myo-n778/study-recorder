@@ -80,6 +80,11 @@
                             </datalist>
                         </div>
                         <div class="form-group">
+                            <label>学習場所</label>
+                            <input type="text" id="location-input" list="location-list" placeholder="例：自宅、カフェ、図書館">
+                            <datalist id="location-list"></datalist>
+                        </div>
+                        <div class="form-group">
                             <label>開始時刻</label>
                             <input type="time" id="start-time">
                         </div>
@@ -296,6 +301,11 @@
                 </div>
 
                 <div class="form-group">
+                    <label>学習場所</label>
+                    <input type="text" id="summary-location" list="location-list" placeholder="どこで学習しましたか？">
+                </div>
+
+                <div class="form-group">
                     <label>コメント</label>
                     <div class="input-with-action">
                         <input type="text" id="summary-comment" list="comment-list" placeholder="一言どうぞ！">
@@ -358,6 +368,10 @@
                         <option value="△">△ (ぼちぼち)</option>
                         <option value="×">× (苦戦)</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>場所</label>
+                    <input type="text" id="edit-location" list="location-list">
                 </div>
                 <div class="form-group">
                     <label>コメント</label>

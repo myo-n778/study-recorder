@@ -45,7 +45,8 @@ let state = {
         categories: [],
         contents: [],
         enthusiasms: [],
-        comments: []
+        comments: [],
+        locations: []
     },
     accumulatedPausedMs: 0,
     lastPauseTime: null,
@@ -61,7 +62,7 @@ let charts = {
     timeline: null
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzKZBKq5Sdl_I7zBxV9b7km732EGeh4sWoG8OvI_0KPFR8DLbQQ8fvG9UFqEZD0_30Fgg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyZxaCwGCAIsWHutoWG3w0asMU6lOfPykktn36YzlnkC0x13EYUxA2l29JOflqapzRUEg/exec';
 
 // DOM Elements
 const elements = {
@@ -93,6 +94,8 @@ const elements = {
     enthusiasmInput: document.getElementById('enthusiasm-input'),
     enthusiasmList: document.getElementById('enthusiasm-list'),
     manualRecordBtn: document.getElementById('manual-record-btn'),
+    locationInput: document.getElementById('location-input'),
+    locationList: document.getElementById('location-list'),
     conditionInput: document.getElementById('condition-input'),
     commentInput: document.getElementById('comment-input'),
     commentList: document.getElementById('comment-list'),
@@ -195,6 +198,7 @@ function resumeStudySession() {
             // ⑤ 記録モードの「カテゴリ」「学習内容」の復元（入力欄へのセット）
             elements.categoryInput.value = session.category || '';
             elements.contentInput.value = session.content || '';
+            if (elements.locationInput) elements.locationInput.value = session.location || '';
 
             document.getElementById('study-current-category').textContent = session.category || '-';
             document.getElementById('study-current-content').textContent = session.content || '-';
@@ -205,12 +209,18 @@ function resumeStudySession() {
 
             if (!state.isPaused) {
                 startTimerInterval();
+                startSupportMessageInterval();
             } else {
                 const pauseBtn = document.getElementById('pause-study-btn');
                 if (pauseBtn) {
                     pauseBtn.textContent = '再開する';
                     pauseBtn.classList.add('pulse');
                 }
+            }
+
+            // 修正: 学習中なら画面を自動表示する
+            if (elements.studyMode) {
+                elements.studyMode.classList.remove('hidden');
             }
         }
     }
@@ -380,7 +390,9 @@ function setupMasterData() {
                 elements.commentInput.dataset.oldValue = elements.commentInput.value;
                 elements.commentInput.value = '';
             }
-            updateCommentSuggestions();
+            updateConditionSuggestions();
+            updateLocationSuggestions();
+            // 初期状態の表示を更新
         });
         elements.commentInput.addEventListener('blur', () => {
             if (!elements.commentInput.value && elements.commentInput.dataset.oldValue) {
@@ -723,7 +735,8 @@ function saveStudyState() {
             accumulatedPausedMs: state.accumulatedPausedMs,
             lastPauseTime: state.lastPauseTime ? state.lastPauseTime.toISOString() : null,
             category: elements.categoryInput.value.trim(),
-            content: elements.contentInput.value.trim()
+            content: elements.contentInput.value.trim(),
+            location: elements.locationInput.value.trim()
         }));
     } else {
         localStorage.removeItem(STATE_STUDY_KEY);
@@ -758,8 +771,12 @@ async function finishStudy() {
         summaryComment.dataset.selectListener = "true";
     }
 
-    // 現在のコメントをプリセット
+    // 現在のコメント・場所をプリセット
     document.getElementById('summary-comment').value = elements.commentInput.value.trim() || '次も頑張ろう！';
+
+    // 前回選択した場所を自動入力 (最新の記録から取得)
+    const lastLocation = state.records.length > 0 ? (state.records[0].location || '') : '';
+    document.getElementById('summary-location').value = lastLocation;
 
     // ① 2軸評価用データの準備 (A: 今回, B: 本日合計)
     const durationA = duration;
@@ -836,6 +853,7 @@ async function saveSummaryRecord() {
 
     const condition = document.getElementById('summary-condition').value;
     const comment = document.getElementById('summary-comment').value.trim();
+    const location = document.getElementById('summary-location').value.trim();
 
     const record = {
         date: getLogicalDate(endTime), // ③ 修正: 4時境界を保存時にも適用
@@ -847,7 +865,8 @@ async function saveSummaryRecord() {
         content: elements.contentInput.value.trim(),
         enthusiasm: elements.enthusiasmInput.value,
         condition: condition,
-        comment: comment
+        comment: comment,
+        location: location
     };
 
     state.isStudying = false;
@@ -865,6 +884,24 @@ async function saveSummaryRecord() {
     await sendRecord(record, btn);
 
     alert(`記録しました！今回の学習時間は ${duration} 分でした。`);
+}
+
+function updateLocationSuggestions() {
+    elements.locationList.innerHTML = '';
+    const locFreq = {};
+    if (state.gasMasterData?.locations) {
+        state.gasMasterData.locations.forEach(l => locFreq[l] = (locFreq[l] || 0) + 5);
+    }
+    state.records.forEach(r => {
+        if (r.location) locFreq[r.location] = (locFreq[r.location] || 0) + 1;
+    });
+
+    const sortedLocs = Object.keys(locFreq).sort((a, b) => locFreq[b] - locFreq[a]);
+    sortedLocs.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l;
+        elements.locationList.appendChild(opt);
+    });
 }
 
 // 手動記録処理
@@ -891,6 +928,7 @@ async function manualRecord() {
     if (duration < 0) duration += 24 * 60; // 日を跨ぐ場合
 
     const condition = elements.conditionInput.value;
+    const location = elements.locationInput.value.trim();
     let comment = elements.commentInput.value.trim();
     if (!comment) {
         comment = prompt('コメントがあれば入力してください', '') || '';
@@ -924,6 +962,7 @@ async function manualRecord() {
         content: content,
         enthusiasm: document.getElementById('enthusiasm-input').value,
         condition: condition,
+        location: location,
         comment: comment
     };
 
@@ -1081,6 +1120,11 @@ function loadLocalRecords() {
             if (activeDot) activeDot.classList.add('active');
         }
     }
+    // 初期状態の表示を更新: 最新の場所を入力欄へ
+    updateLocationSuggestions();
+    if (state.records.length > 0 && elements.locationInput && !elements.locationInput.value) {
+        elements.locationInput.value = state.records[0].location || '';
+    }
     // 初期状態の表示を更新
     updateGoalDisplay();
 }
@@ -1116,7 +1160,10 @@ function updateHistoryUI() {
 
         card.innerHTML = `
             <div class="history-header">
-                <span class="history-date">${rec.date}</span>
+                <div class="history-date-box">
+                    <span class="history-date">${rec.date}</span>
+                    ${rec.location ? `<span class="history-location-badge">${rec.location}</span>` : ''}
+                </div>
                 <span class="history-condition">${rec.condition}</span>
             </div>
             <div class="history-body">
@@ -1173,7 +1220,7 @@ function updateViewDateRecords() {
         setupCardEvents(card, r);
 
         card.innerHTML = `
-            <div class="time">${r.startTime} 〜 ${r.endTime} (${r.duration}min)</div>
+            <div class="time">${r.startTime} 〜 ${r.endTime} (${r.duration}min) ${r.location ? `<span style="font-size:0.7rem; color:var(--primary-color); background:rgba(255,255,255,0.05); padding:1px 4px; border-radius:4px; margin-left:4px;">${r.location}</span>` : ''}</div>
             <div class="title">${r.category} - ${r.content}</div>
             <div class="intent-comment">
                 ${r.enthusiasm ? '🔥' + r.enthusiasm : ''} ${r.comment ? '💬' + r.comment : ''}
@@ -1803,6 +1850,7 @@ function openEditModal(id) {
     document.getElementById('edit-duration').value = rec.duration;
     document.getElementById('edit-date').value = rec.date; // YYYY/MM/DD
     document.getElementById('edit-condition').value = rec.condition || '◯';
+    document.getElementById('edit-location').value = rec.location || '';
     document.getElementById('edit-comment').value = rec.comment || '';
 
     editModal.classList.remove('hidden');
@@ -1821,6 +1869,7 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
         duration: document.getElementById('edit-duration').value,
         date: document.getElementById('edit-date').value,
         condition: document.getElementById('edit-condition').value,
+        location: document.getElementById('edit-location').value,
         comment: document.getElementById('edit-comment').value
     };
 
