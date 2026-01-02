@@ -70,7 +70,8 @@ let state = {
     accumulatedPausedMs: 0,
     lastPauseTime: null,
     messageInterval: 20000,
-    supportMessageInterval: null
+    supportMessageInterval: null,
+    isInitializing: false // 起動中フラグ
 };
 
 // 初期化時に論理的な「今日」を設定
@@ -180,22 +181,26 @@ const supportMessages = [
 ];
 
 // 初期化
-function init() {
-    state.viewDate = getLogicalDate(); // 最優先で論理日付をセット
+async function init() {
+    state.isInitializing = true; // 重複読み込み防止フラグ
+    state.viewDate = getLogicalDate(); // まずは論理日付をセット
     loadUser();
     setupEventListeners();
     setupPeriodSwitchers();
     setCurrentTimeInputs();
-    updateViewDateUI(); // UIを即座に更新して1/1表示を上書き
+    updateViewDateUI();
 
     // デフォルト値の設定
     elements.enthusiasmInput.value = '集中して取り組む！';
     elements.commentInput.value = '次も頑張ろう！';
 
     setupMasterData();
-    state.viewDate = getLogicalDate(); // 起動直後に論理日付をセット
-    updateViewDateUI();
     updateGoalDisplay();
+
+    // GASからデータを読み込む (完了を待つ)
+    await loadRecordsFromGAS();
+
+    state.isInitializing = false;
 
     // 以前のセッションがあれば復元
     resumeStudySession();
@@ -708,6 +713,7 @@ function setupEventListeners() {
     elements.todayBtn.addEventListener('click', () => {
         state.viewDate = getLogicalDate();
         updateViewDateUI();
+        updateViewDateRecords(); // 表示を即座にリロード
     });
 }
 
@@ -743,24 +749,25 @@ function updateGoalDisplay() {
 }
 
 function changeViewDate(days) {
-    const d = new Date(state.viewDate);
-    d.setDate(d.getDate() + days);
+    if (days === 0) {
+        state.viewDate = getLogicalDate();
+    } else {
+        const d = new Date(state.viewDate.replace(/\//g, '-'));
+        d.setDate(d.getDate() + days);
+        const y = d.getFullYear();
+        const m = ('0' + (d.getMonth() + 1)).slice(-2);
+        const day = ('0' + d.getDate()).slice(-2);
+        state.viewDate = `${y}/${m}/${day}`;
+    }
 
-    // 論理的な「今日」より未来へは行けないように制限
-    const logicalToday = getLogicalDate();
-    const [yT, mT, dT] = logicalToday.split('/').map(Number);
-    const logicalTodayZero = new Date(yT, mT - 1, dT);
-    const dZero = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-    if (dZero > logicalTodayZero) return;
-
-    // 手動フォーマット
-    const y = d.getFullYear();
-    const m = ('0' + (d.getMonth() + 1)).slice(-2);
-    const day = ('0' + d.getDate()).slice(-2);
-    state.viewDate = `${y}/${m}/${day}`;
+    // 未来の日付制限
+    const today = getLogicalDate();
+    if (state.viewDate > today) {
+        state.viewDate = today;
+    }
 
     updateViewDateUI();
+    updateViewDateRecords(); // 表示の反映を確実に行う
 }
 
 function updateViewDateUI() {
@@ -1037,10 +1044,11 @@ async function manualRecord() {
 
     let recordDateVal = elements.recordDateInput.value;
     if (!recordDateVal) {
-        recordDateVal = getLogicalDate(); // 修正: デフォルトも4時境界
+        // 現在時刻に基づき論理日付を決定
+        recordDateVal = getLogicalDate(new Date(), startTimeStr);
     } else {
-        // 入力された日付も論理日付形式(スラッシュ区切り)に正規化
-        recordDateVal = recordDateVal.replace(/-/g, '/');
+        // 入力日付がある場合も、0:00-3:59 なら前日に割り当て
+        recordDateVal = getLogicalDate(recordDateVal, startTimeStr);
     }
     let formattedDate = recordDateVal;
     if (!formattedDate) {
@@ -1125,12 +1133,10 @@ async function loadRecordsFromGAS() {
     const userName = localStorage.getItem(USER_KEY);
     if (!userName) return;
 
-    // 初期化されていない、または日付が整合していない場合は「今日（4時境界）」を強制
-    state.viewDate = getLogicalDate();
-    updateViewDateUI();
+    // NOTE: ここで state.viewDate を getLogicalDate() で上書きしないこと
+    // (Navでの日付切り替えや今日ボタンの動作を破壊するため)
 
     try {
-        // GASからデータを取得 (userNameを渡す)
         const response = await fetch(`${GAS_URL}?userName=${encodeURIComponent(userName)}`);
         if (response.ok) {
             const result = await response.json();

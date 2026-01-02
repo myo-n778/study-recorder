@@ -1092,6 +1092,7 @@ h3 {
     text-align: center;
 }
 
+/* タイマーモード（オーバーレイ） */
 .study-overlay {
     position: fixed;
     top: 0;
@@ -1099,7 +1100,7 @@ h3 {
     width: 100%;
     height: 100%;
     background: #0c0e14;
-    /* ベースの背景色 */
+    /* 深い紺色 */
     z-index: 1050;
     display: flex;
     flex-direction: column;
@@ -1113,7 +1114,24 @@ h3 {
     touch-action: none;
 }
 
-/* 星空演出（白い点と黄色い点）: z-indexを1に設定 */
+/* 常に表示されるオレンジグロー（最背面） */
+.study-overlay::after {
+    content: '';
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    width: 160%;
+    height: 160%;
+    background: radial-gradient(circle at center, rgba(249, 115, 22, 0.25) 0%, transparent 65%);
+    transform: translate(-50%, -50%);
+    opacity: 1;
+    pointer-events: none;
+    z-index: 0;
+    /* 背景(紺)の上、コンテンツ(10)の下 */
+    animation: study-glow-pulsate 10s ease-in-out infinite alternate;
+}
+
+/* 星空演出（グローの上） */
 .study-overlay::before {
     content: '';
     position: absolute;
@@ -1122,88 +1140,49 @@ h3 {
     width: 100%;
     height: 100%;
     background-image:
-        radial-gradient(1px 1px at 10% 20%, #ffffff 100%, transparent),
-        radial-gradient(1.2px 1.2px at 25% 45%, #ffffff 100%, transparent),
-        radial-gradient(1.5px 1.5px at 50% 15%, #fffa65 80%, transparent),
-        /* 黄色い星 */
-        radial-gradient(1px 1px at 70% 35%, #ffffff 100%, transparent),
-        radial-gradient(1.2px 1.2px at 85% 65%, #ffffff 100%, transparent),
-        radial-gradient(1.5px 1.5px at 15% 85%, #fffa65 80%, transparent),
-        /* 黄色い星 */
-        radial-gradient(1px 1px at 45% 75%, #ffffff 100%, transparent),
-        radial-gradient(1.5px 1.5px at 75% 90%, #ffffff 80%, transparent);
-    background-size: 250px 250px;
+        radial-gradient(1.2px 1.2px at 15% 25%, #ffffff 100%, transparent),
+        radial-gradient(1.5px 1.5px at 45% 45%, #ffffff 80%, transparent),
+        radial-gradient(1.2px 1.2px at 75% 15%, #fffa65 90%, transparent),
+        radial-gradient(1px 1px at 30% 70%, #ffffff 100%, transparent),
+        radial-gradient(1.5px 1.5px at 85% 60%, #ffffff 80%, transparent),
+        radial-gradient(1.2px 1.2px at 10% 85%, #fffa65 90%, transparent),
+        radial-gradient(1px 1px at 55% 85%, #ffffff 100%, transparent),
+        radial-gradient(1.5px 1.5px at 90% 90%, #ffffff 80%, transparent);
+    background-size: 300px 300px;
     background-repeat: repeat;
-    opacity: 0.4;
+    opacity: 0.5;
     pointer-events: none;
     z-index: 1;
-    /* 背景(0)より上 */
-    animation: stars-flickery 5s linear infinite alternate;
-}
-
-/* テーマカラー（オレンジ基調）のグロー: z-indexを2に設定 */
-.study-overlay::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 140%;
-    height: 140%;
-    /* 明示的にオレンジ系のグローを指定 */
-    background: radial-gradient(circle at center, rgba(249, 115, 22, 0.18) 0%, transparent 60%);
-    transform: translate(-50%, -50%);
-    opacity: 0.8;
-    pointer-events: none;
-    z-index: 2;
-    /* 星(1)より上 */
-    animation: study-glow-pulsate 12s ease-in-out infinite alternate;
+    animation: stars-flickery 6s linear infinite alternate;
 }
 
 @keyframes stars-flickery {
     0% {
-        opacity: 0.2;
+        opacity: 0.3;
         transform: scale(1);
     }
 
     100% {
-        opacity: 0.5;
-        transform: scale(1.02);
+        opacity: 0.6;
+        transform: scale(1.03);
     }
 }
 
 @keyframes study-glow-pulsate {
     0% {
-        transform: translate(-50%, -50%) scale(0.95);
-        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(0.9);
+        opacity: 0.7;
     }
 
     100% {
-        transform: translate(-50%, -50%) scale(1.05);
-        opacity: 0.9;
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 1.0;
     }
-}
-
-.study-sub-info {
-    font-family: var(--font-outfit);
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: -1rem;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.study-actions {
-    display: flex;
-    gap: 1rem;
-    width: 100%;
 }
 
 .study-container {
     position: relative;
     z-index: 10;
-    /* 背景レイヤー(1,2)より確実に前面へ */
     text-align: center;
     width: 100%;
     max-width: 500px;
@@ -1211,9 +1190,51 @@ h3 {
     flex-direction: column;
     align-items: center;
     gap: 1rem;
-    /* 隙間をさらに縮小 */
     height: 100%;
     justify-content: center;
+}
+
+/* サマリーモーダルの特別スタイル */
+.summary-content-styled {
+    position: relative;
+    background: #0c0e14 !important;
+    color: white !important;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.summary-visual-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.summary-visual-bg::before {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
+    background: radial-gradient(circle at center, rgba(249, 115, 22, 0.15) 0%, transparent 60%);
+    z-index: -1;
+}
+
+/* サマリー内の2列グリッドの調整（幅のバランス確保） */
+.summary-content-styled .grid-2col {
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    /* 意欲を少し狭く、場所を少し広く */
+    gap: 0.8rem;
+    z-index: 1;
+    position: relative;
+}
+
+justify-content: center;
 }
 
 .timer-display {
