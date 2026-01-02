@@ -1047,8 +1047,8 @@ h3 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(8px);
+    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1072,8 +1072,8 @@ h3 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: #0f172a;
-    /* 深みのある紺色 */
+    background: radial-gradient(circle at center, #1e293b 0%, #0c0e14 100%);
+    /* 修正: 真っ黒を避け、深みのあるグラデーションで黒つぶれを防止 */
     z-index: 1050;
     display: flex;
     flex-direction: column;
@@ -1095,9 +1095,10 @@ h3 {
     left: 50%;
     width: 150%;
     height: 150%;
-    background: radial-gradient(circle at center, var(--primary-glow) 0%, transparent 70%);
+    background: radial-gradient(circle at center, var(--primary-glow) 0%, transparent 60%);
     transform: translate(-50%, -50%);
-    opacity: 0.2;
+    opacity: 0.15;
+    /* 視認性を損なわない程度に弱める */
     pointer-events: none;
     z-index: -1;
     animation: study-glow-pulse 10s ease-in-out infinite alternate;

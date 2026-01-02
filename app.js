@@ -8,14 +8,15 @@ const STATE_STUDY_KEY = 'study_recorder_active_session';
 
 // 日付境界ヘルパー (午前4時基準)
 function getLogicalDate(date = new Date()) {
+    // タイムゾーンのズレを考慮し、必ずローカル時間で計算
     const d = new Date(date);
-    // 午前4時前なら前日扱い
     if (d.getHours() < 4) {
         d.setDate(d.getDate() - 1);
     }
     const y = d.getFullYear();
     const m = ('0' + (d.getMonth() + 1)).slice(-2);
     const day = ('0' + d.getDate()).slice(-2);
+    // スラッシュ区切りに統一（ハイフン区切りはブラウザによってUTC扱いになるため避ける）
     return `${y}/${m}/${day}`;
 }
 
@@ -36,10 +37,10 @@ let state = {
     goals: {
         minHours: 2,
         targetHours: 5,
-        displayUnit: 'h', // 'h' or 'm'
-        theme: 'default'
+        displayUnit: 'h',
+        theme: 'orange' // デフォルトをオレンジに設定
     },
-    viewDate: getLogicalDate(), // 修正: 4時境界を適用
+    viewDate: null, // 初期化時にセット
     gasMasterData: {
         categories: [],
         contents: [],
@@ -48,9 +49,12 @@ let state = {
     },
     accumulatedPausedMs: 0,
     lastPauseTime: null,
-    messageInterval: 20000, // デフォルト20秒に修正
+    messageInterval: 20000,
     supportMessageInterval: null
 };
+
+// 初期化時に論理的な「今日」を設定
+state.viewDate = getLogicalDate();
 
 let charts = {
     category: null,
@@ -893,6 +897,12 @@ async function manualRecord() {
     }
 
     let recordDateVal = elements.recordDateInput.value;
+    if (!recordDateVal) {
+        recordDateVal = getLogicalDate(); // 修正: デフォルトも4時境界
+    } else {
+        // 入力された日付も論理日付形式(スラッシュ区切り)に正規化
+        recordDateVal = recordDateVal.replace(/-/g, '/');
+    }
     let formattedDate;
     if (!recordDateVal) {
         const now = new Date();
@@ -996,7 +1006,6 @@ async function loadRecordsFromGAS() {
             if (Array.isArray(recordsData)) {
                 state.records = recordsData.map(record => {
                     // 日付フォーマットの正規化 (2025-12-30T15:00:00.000Z -> 2025/12/31)
-                    // GASから返る日付はUTCのISO文字列になっている場合があるため、ローカルの日付に変換する
                     let dateStr = record.date;
                     if (dateStr && dateStr.includes('T')) {
                         const d = new Date(dateStr);
@@ -1086,11 +1095,15 @@ function updateHistoryUI() {
     const sortedRecords = [...state.records].sort((a, b) => {
         const getTime = (r) => {
             if (!r.date || !r.startTime) return 0;
-            const [y, m, d] = r.date.split('/').map(Number);
-            const [h, min] = r.startTime.split(':').map(Number);
-            return new Date(y, m - 1, d, h, min).getTime();
+            const parts = r.date.split('/');
+            const timeParts = r.startTime.split(':');
+            if (parts.length !== 3 || timeParts.length < 2) return 0;
+            // 日本時間(Asia/Tokyo)として解釈されるよう、数値でDateを生成
+            return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), Number(timeParts[0]), Number(timeParts[1])).getTime();
         };
-        return getTime(b) - getTime(a);
+        const valB = getTime(b);
+        const valA = getTime(a);
+        return valB - valA;
     });
 
     sortedRecords.forEach(rec => {
@@ -1142,6 +1155,7 @@ function updateViewDateRecords() {
         .sort((a, b) => {
             const timeA = a.startTime.split(':').map(Number);
             const timeB = b.startTime.split(':').map(Number);
+            // 24時間表記の単純比較（降順）
             return (timeB[0] * 60 + timeB[1]) - (timeA[0] * 60 + timeA[1]);
         });
 
