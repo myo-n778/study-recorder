@@ -392,6 +392,51 @@ function setupMasterData() {
         elements.commentInput.addEventListener('focus', selectAll);
         elements.enthusiasmInput.addEventListener('click', selectAll);
         elements.commentInput.addEventListener('click', selectAll);
+        elements.commentInput.dataset.listeners = "true";
+
+        // サマリーモーダルの履歴ボタン
+        const historyBtn = document.getElementById('show-comment-history-btn');
+        const historyPopup = document.getElementById('comment-history-popup');
+        if (historyBtn && historyPopup) {
+            historyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!historyPopup.classList.contains('hidden')) {
+                    historyPopup.classList.add('hidden');
+                    return;
+                }
+
+                const commentInput = document.getElementById('summary-comment');
+                const commFreq = {};
+                if (state.gasMasterData?.comments) {
+                    state.gasMasterData.comments.forEach(c => commFreq[c] = (commFreq[c] || 0) + 5);
+                }
+                state.records.forEach(r => {
+                    if (r.comment) commFreq[r.comment] = (commFreq[r.comment] || 0) + 1;
+                });
+                ['集中できた！', '復習が必要', '目標達成', '少し疲れた'].forEach(c => commFreq[c] = (commFreq[c] || 0) + 1);
+
+                const sortedComms = Object.keys(commFreq).sort((a, b) => commFreq[b] - commFreq[a]);
+                if (sortedComms.length === 0) return;
+
+                historyPopup.innerHTML = '';
+                sortedComms.forEach(text => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.textContent = text;
+                    item.addEventListener('click', () => {
+                        commentInput.value = text;
+                        historyPopup.classList.add('hidden');
+                        commentInput.focus();
+                    });
+                    historyPopup.appendChild(item);
+                });
+                historyPopup.classList.remove('hidden');
+            });
+
+            document.addEventListener('click', () => {
+                historyPopup.classList.add('hidden');
+            });
+        }
     }
 
     // 初期実行

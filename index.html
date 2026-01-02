@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;700&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 </head>
 
 <body>
@@ -296,7 +297,13 @@
 
                 <div class="form-group">
                     <label>コメント</label>
-                    <input type="text" id="summary-comment" list="comment-list" placeholder="一言どうぞ！">
+                    <div class="input-with-action">
+                        <input type="text" id="summary-comment" list="comment-list" placeholder="一言どうぞ！">
+                        <button id="show-comment-history-btn" class="icon-btn" title="履歴から選ぶ">
+                            <span class="material-icons-outlined">history</span>
+                        </button>
+                        <div id="comment-history-popup" class="history-popup hidden"></div>
+                    </div>
                 </div>
 
                 <div class="modal-actions">
