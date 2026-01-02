@@ -1098,7 +1098,7 @@ h3 {
     left: 0;
     width: 100%;
     height: 100%;
-    /* 修正: 真っ黒を避け、深みのあるグラデーションで黒つぶれを防止 */
+    /* 修正: 背景を半透明にして疑似要素を見えるようにする */
     background: radial-gradient(circle at center, #1e293b 0%, #0c0e14 100%);
     z-index: 1050;
     display: flex;
@@ -1113,8 +1113,8 @@ h3 {
     touch-action: none;
 }
 
-/* ④ タイマー背景：星空演出の追加 */
-.study-overlay::after {
+/* 修正: 星空演出（白い点と黄色い点）の確実な反映 */
+.study-overlay::before {
     content: '';
     position: absolute;
     top: 0;
@@ -1123,58 +1123,43 @@ h3 {
     height: 100%;
     background-image:
         radial-gradient(1px 1px at 10% 20%, #ffffff 100%, transparent),
-        radial-gradient(1px 1px at 25% 45%, #ffffff 100%, transparent),
-        radial-gradient(1.5px 1.5px at 50% 15%, #ffffff 80%, transparent),
+        radial-gradient(1.2px 1.2px at 25% 45%, #ffffff 100%, transparent),
+        radial-gradient(1.5px 1.5px at 50% 15%, #fffa65 80%, transparent),
+        /* 黄色い星 */
         radial-gradient(1px 1px at 70% 35%, #ffffff 100%, transparent),
-        radial-gradient(1px 1px at 85% 65%, #ffffff 100%, transparent),
-        radial-gradient(1.5px 1.5px at 15% 85%, #ffffff 80%, transparent),
+        radial-gradient(1.2px 1.2px at 85% 65%, #ffffff 100%, transparent),
+        radial-gradient(1.5px 1.5px at 15% 85%, #fffa65 80%, transparent),
+        /* 黄色い星 */
         radial-gradient(1px 1px at 45% 75%, #ffffff 100%, transparent),
         radial-gradient(1.5px 1.5px at 75% 90%, #ffffff 80%, transparent);
-    background-size: 300px 300px;
+    background-size: 250px 250px;
     background-repeat: repeat;
-    opacity: 0.15;
+    opacity: 0.3;
     pointer-events: none;
     z-index: -2;
-    animation: stars-flicker 5s ease-in-out infinite alternate;
+    animation: stars-flickery 4s linear infinite alternate;
 }
 
-@keyframes stars-flicker {
-    0% {
-        opacity: 0.1;
-    }
-
-    100% {
-        opacity: 0.2;
-    }
-}
-
-/* 修正: 適切なグロウ状態（眩しすぎず、黒つぶれしない）の復旧 */
-.study-overlay::before {
+/* 修正: テーマカラー（オレンジ基調）のうっすらグロー */
+.study-overlay::after {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 150%;
-    height: 150%;
-    background: radial-gradient(circle at center, var(--primary-glow) 0%, transparent 70%);
+    width: 120%;
+    height: 120%;
+    /* 明示的にオレンジ系のグローを指定 */
+    background: radial-gradient(circle at center, rgba(249, 115, 22, 0.15) 0%, transparent 60%);
     transform: translate(-50%, -50%);
-    opacity: 0.12;
-    /* 指示に従い「うっすら」に変更 */
+    opacity: 0.6;
     pointer-events: none;
     z-index: -1;
-    animation: study-glow-pulse 12s ease-in-out infinite alternate;
 }
 
-@keyframes study-glow-pulse {
-    0% {
-        transform: translate(-50%, -50%) scale(0.9);
-        opacity: 0.15;
-    }
-
-    100% {
-        transform: translate(-50%, -50%) scale(1.1);
-        opacity: 0.25;
-    }
+100% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.25;
+}
 }
 
 .study-sub-info {

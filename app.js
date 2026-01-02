@@ -165,8 +165,9 @@ function init() {
     elements.commentInput.value = '次も頑張ろう！';
 
     setupMasterData();
-    state.viewDate = getLogicalDate(); // ② 明示的に初期表示日付をセット
+    state.viewDate = getLogicalDate(); // ② 明示的に初期表示日付（4時境界）をセット
     updateGoalDisplay();
+    updateViewDateUI(); // 初期化時にUIを即座に更新 (1/1の上書きを保証)
 
     // 以前のセッションがあれば復元
     resumeStudySession();
@@ -1025,10 +1026,9 @@ async function loadRecordsFromGAS() {
     const userName = localStorage.getItem(USER_KEY);
     if (!userName) return;
 
-    // 初期化されていない場合は今日をセット
-    if (!state.viewDate) {
-        state.viewDate = getLogicalDate();
-    }
+    // 初期化されていない、または日付が整合していない場合は「今日（4時境界）」を強制
+    state.viewDate = getLogicalDate();
+    updateViewDateUI();
 
     try {
         // GASからデータを取得 (userNameを渡す)
@@ -1693,7 +1693,7 @@ function updateTimelineAnalysis() {
 
     // 2. 直近30日間の日付リストを作成 (論理的な「今日」から遡る)
     const dates = [];
-    const logicalToday = getLogicalDate();
+    const logicalToday = getLogicalDate(); // ③ 未来化防止: 厳密に4時境界の「今日」を取得
     const [yT, mT, dT] = logicalToday.split('/').map(Number);
     const baseDate = new Date(yT, mT - 1, dT);
 
