@@ -39,6 +39,31 @@ function getLogicalDate(dateOrStr = new Date(), timeStr = null) {
     return `${y}/${m}/${day}`;
 }
 
+// 所属日付を取得（表示日付は変えず、どの日に載せるかの判定用）
+// 0:00〜3:59の記録のみ前日所属、それ以外は当日所属
+function getBelongingDate(dateStr, timeStr) {
+    if (!dateStr) return '';
+    const normalized = String(dateStr).replace(/-/g, '/').split(/[ T]/)[0];
+    const d = new Date(normalized + ' 12:00:00');
+    if (isNaN(d.getTime())) return normalized;
+
+    let h = 12; // デフォルト（時刻不明時は当日扱い）
+    if (timeStr && typeof timeStr === 'string') {
+        const parsed = parseInt(timeStr.split(':')[0]);
+        if (!isNaN(parsed)) h = parsed;
+    }
+
+    // 0:00〜3:59の場合のみ前日所属
+    if (h >= 0 && h < 4) {
+        d.setDate(d.getDate() - 1);
+    }
+
+    const y = d.getFullYear();
+    const m = ('0' + (d.getMonth() + 1)).slice(-2);
+    const day = ('0' + d.getDate()).slice(-2);
+    return `${y}/${m}/${day}`;
+}
+
 let state = {
     isStudying: false,
     startTime: null,
@@ -1161,12 +1186,11 @@ async function loadRecordsFromGAS() {
                     const startTime = formatTime(record.startTime);
                     const endTime = formatTime(record.endTime);
 
-                    // 重要: 全記録・VIEW表示の整合性のため、取得時にも4時境界を再適用
-                    const logicalDate = getLogicalDate(datePart || new Date(), startTime);
-
+                    // 修正: 表示日付はスプレッドシートの実データをそのまま使用
+                    // 所属判定（どの日に載せるか）はgetBelongingDateで別途行う
                     return {
                         ...record,
-                        date: logicalDate,
+                        date: datePart || '',
                         startTime: startTime,
                         endTime: endTime
                     };
@@ -1310,7 +1334,7 @@ function updateViewDateRecords() {
     if (!container) return;
 
     const records = state.records
-        .filter(r => r.date === state.viewDate)
+        .filter(r => getBelongingDate(r.date, r.startTime) === state.viewDate)
         .sort((a, b) => {
             const timeA = a.startTime.split(':').map(Number);
             const timeB = b.startTime.split(':').map(Number);
@@ -1389,8 +1413,10 @@ function updateCategoryChart(period = 'day') {
 function filterRecordsByPeriod(records, period) {
     const viewDate = new Date(state.viewDate);
     return records.filter(r => {
-        const d = new Date(r.date);
-        if (period === 'day') return r.date === state.viewDate;
+        // 所属日付で判定（0:00〜3:59は前日所属）
+        const belongingDateStr = getBelongingDate(r.date, r.startTime);
+        const d = new Date(belongingDateStr);
+        if (period === 'day') return belongingDateStr === state.viewDate;
         if (period === 'week') {
             const weekStart = new Date(viewDate);
             weekStart.setDate(viewDate.getDate() - viewDate.getDay()); // 日曜開始
@@ -1708,7 +1734,9 @@ function aggregateByPeriod(records, period) {
     }
 
     records.forEach(r => {
-        const date = new Date(r.date);
+        // 所属日付で集計（0:00〜3:59は前日所属）
+        const belongingDateStr = getBelongingDate(r.date, r.startTime);
+        const date = new Date(belongingDateStr);
         let label = '';
         if (period === 'day') {
             const yy = date.getFullYear().toString().slice(-2);
