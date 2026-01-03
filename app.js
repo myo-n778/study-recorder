@@ -913,9 +913,10 @@ async function finishStudy() {
 
     // ① 2軸評価用データの準備 (A: 今回, B: 本日合計)
     const durationA = duration;
+    // 修正: 所属判定で本日合計を計算（0:00〜3:59は前日所属）
     const logicalTodayStr = getLogicalDate(endTime);
     const todayTotalMinutes = state.records
-        .filter(r => r.date === logicalTodayStr)
+        .filter(r => getBelongingDate(r.date, r.startTime) === logicalTodayStr)
         .reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0);
     const durationB = todayTotalMinutes + durationA;
 
@@ -989,7 +990,8 @@ async function saveSummaryRecord() {
     const location = document.getElementById('summary-location').value.trim();
 
     const record = {
-        date: getLogicalDate(endTime), // 終了時刻に基づき論理日付を決定
+        // 修正: 実日付をそのまま保存（所属判定は表示時にgetBelongingDateで行う）
+        date: endTime.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/-/g, '/'),
         userName: localStorage.getItem(USER_KEY),
         startTime: state.startTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         endTime: endTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
@@ -1067,11 +1069,12 @@ async function manualRecord() {
         comment = prompt('コメントがあれば入力してください', '') || '';
     }
 
-    // 日付と開始時刻に基づき、論理的な日付（4時境界）を一度だけ決定する
-    const logicalDate = getLogicalDate(elements.recordDateInput.value || new Date(), startTimeStr);
+    // 修正: 入力された日付をそのまま保存（所属判定は表示時にgetBelongingDateで行う）
+    const inputDateStr = elements.recordDateInput.value || new Date().toISOString().slice(0, 10);
+    const formattedDate = inputDateStr.replace(/-/g, '/');
 
     const record = {
-        date: logicalDate,
+        date: formattedDate,
         userName: localStorage.getItem(USER_KEY),
         startTime: startTimeStr,
         endTime: endTimeStr,
@@ -1831,7 +1834,8 @@ function updateTimelineAnalysis() {
 
     // ヘルパー: 日付行を生成
     const createDayRow = (dateStr, isToday) => {
-        const recordsOnDate = state.records.filter(r => r.date === dateStr);
+        // 修正: 所属判定で記録を取得（0:00〜3:59は前日所属）
+        const recordsOnDate = state.records.filter(r => getBelongingDate(r.date, r.startTime) === dateStr);
         const dayRow = document.createElement('div');
         dayRow.className = 'timeline-day-row' + (isToday ? ' today-row' : '');
 
