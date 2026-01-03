@@ -1168,7 +1168,22 @@ async function loadRecordsFromGAS() {
             if (Array.isArray(recordsData)) {
                 state.records = recordsData.map(record => {
                     let datePart = record.date;
-                    if (datePart && typeof datePart === 'string') {
+
+                    // 修正: ISOString（UTC）をローカル日付に正しく変換
+                    // GASはDate型をISOString（UTC）として返すため、ローカル時間に変換が必要
+                    if (datePart && typeof datePart === 'string' && datePart.includes('T')) {
+                        // ISOString形式の場合はDateオブジェクトを経由してローカル日付を取得
+                        const d = new Date(datePart);
+                        if (!isNaN(d.getTime())) {
+                            const y = d.getFullYear();
+                            const m = ('0' + (d.getMonth() + 1)).slice(-2);
+                            const day = ('0' + d.getDate()).slice(-2);
+                            datePart = `${y}/${m}/${day}`;
+                        } else {
+                            datePart = datePart.split(/[ T]/)[0].replace(/-/g, '/');
+                        }
+                    } else if (datePart && typeof datePart === 'string') {
+                        // 既に日付文字列の場合はそのまま正規化
                         datePart = datePart.split(/[ T]/)[0].replace(/-/g, '/');
                     } else if (datePart) {
                         datePart = datePart.toString().split(/[ T]/)[0].replace(/-/g, '/');
