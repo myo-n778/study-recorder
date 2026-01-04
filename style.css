@@ -1263,6 +1263,32 @@ h3 {
     stroke-width: 4;
 }
 
+/* 前周リング（塗り残し用：満タン固定） */
+.ring-prev {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transform-origin: center;
+    transform: rotate(-90deg);
+    opacity: 0;
+    /* 1周目完了後に表示 */
+}
+
+.ring-seconds-prev {
+    stroke: #ff6b35;
+    filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.4));
+}
+
+.ring-minutes-prev {
+    stroke: #ffd700;
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.4));
+}
+
+.ring-hours-prev {
+    stroke: #22c55e;
+    filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.4));
+}
+
 /* 進捗リング共通 */
 .ring-progress {
     fill: none;
@@ -1270,7 +1296,6 @@ h3 {
     stroke-linecap: round;
     transform-origin: center;
     transform: rotate(-90deg);
-    /* transition削除: requestAnimationFrameで滑らかに更新 */
 }
 
 /* 秒リング（内側・オレンジ系） */
@@ -1293,18 +1318,23 @@ h3 {
 
 .timer-elapsed {
     font-size: clamp(4rem, 15vw, 6rem);
-    /* サイズを少し抑える */
     font-weight: 800;
     font-family: var(--font-timer);
     font-style: italic;
-    color: var(--text-main);
-    /* 色を白からメインテキスト色へ（少し落ち着かせる） */
-    /* 修正: 視認性を保ちつつ眩しすぎない適切なグロウ */
+    /* テーマ色（オレンジ系）のグロー表示 */
+    color: #ff8c42;
     text-shadow:
-        0 0 15px var(--primary-glow),
-        0 0 30px rgba(99, 102, 241, 0.2);
+        0 0 20px rgba(255, 140, 66, 0.8),
+        0 0 40px rgba(255, 107, 53, 0.5),
+        0 0 60px rgba(249, 115, 22, 0.3);
     line-height: 1;
     letter-spacing: -2px;
+    /* レイアウトシフト防止：等幅数字 */
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    /* 固定幅で中央揃え */
+    min-width: 8ch;
+    text-align: center;
 }
 
 #current-time-display {
