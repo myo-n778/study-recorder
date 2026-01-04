@@ -1245,16 +1245,16 @@ h3 {
     z-index: 5;
 }
 
-/* 3重タイマーリング（干渉回避のためサイズ調整） */
+/* 3重タイマーリング（外側にオフセットし、中央UIとの干渉を回避） */
 .timer-rings {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: min(75vw, 75vh);
-    height: min(75vw, 75vh);
-    max-width: 480px;
-    max-height: 480px;
+    width: min(92vw, 92vh);
+    height: min(92vw, 92vh);
+    max-width: 650px;
+    max-height: 650px;
     pointer-events: none;
     /* コンテンツの背後に */
     z-index: 1;

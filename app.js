@@ -2113,10 +2113,10 @@ const minuteColors = ['#ffeb3b', '#ffc107', '#ff8f00', '#c0ca33', '#f57c00'];
 // 24hリング：緑系（黄緑→エメラルド→青緑→ライム→ティール）
 const hourColors = ['#8bc34a', '#00bfa5', '#26a69a', '#cddc39', '#009688'];
 
-// 新しい半径（HTML対応）
-const RADIUS_SECONDS = 160;
-const RADIUS_MINUTES = 178;
-const RADIUS_HOURS = 196;
+// 新しい半径（HTML対応：中央UIを避けて外側にオフセット）
+const RADIUS_SECONDS = 240;
+const RADIUS_MINUTES = 265;
+const RADIUS_HOURS = 290;
 
 // リングの円周を計算して初期化
 function initTimerRings() {
