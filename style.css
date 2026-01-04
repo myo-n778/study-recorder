@@ -1243,14 +1243,16 @@ h3 {
     position: relative;
 }
 
-/* 3重タイマーリング */
+/* 3重タイマーリング（画面いっぱい、見切れない） */
 .timer-rings {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 320px;
-    height: 320px;
+    width: min(90vw, 90vh);
+    height: min(90vw, 90vh);
+    max-width: 600px;
+    max-height: 600px;
     pointer-events: none;
 }
 
@@ -1268,7 +1270,7 @@ h3 {
     stroke-linecap: round;
     transform-origin: center;
     transform: rotate(-90deg);
-    transition: stroke-dashoffset 0.1s linear;
+    /* transition削除: requestAnimationFrameで滑らかに更新 */
 }
 
 /* 秒リング（内側・オレンジ） */

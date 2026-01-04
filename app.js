@@ -342,6 +342,9 @@ function startTimerInterval() {
         updateCurrentTimeDisplay();
         if (state.elapsedSeconds % 60 === 0) saveStudyState();
     }, 1000);
+
+    // リングアニメーションも開始
+    startRingAnimation();
 }
 
 function updateSupportMessage() {
@@ -2091,13 +2094,11 @@ function updateTimerDisplay() {
     const m = Math.floor((state.elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
     const s = (state.elapsedSeconds % 60).toString().padStart(2, '0');
     elements.timerElapsed.textContent = `${h}:${m}:${s}`;
-
-    // 3重リングの更新
-    updateTimerRings();
 }
 
 // 3重タイマーリングの初期化フラグ
 let timerRingsInitialized = false;
+let ringAnimationId = null;
 
 // リングの円周を計算して初期化
 function initTimerRings() {
@@ -2107,10 +2108,10 @@ function initTimerRings() {
 
     if (!ringSeconds || !ringMinutes || !ringHours || timerRingsInitialized) return;
 
-    // 各リングの半径から円周を計算
-    const circumferenceSeconds = 2 * Math.PI * 90;  // r=90
-    const circumferenceMinutes = 2 * Math.PI * 105; // r=105
-    const circumferenceHours = 2 * Math.PI * 120;   // r=120
+    // 各リングの半径から円周を計算（HTMLの半径に合わせる）
+    const circumferenceSeconds = 2 * Math.PI * 140;  // r=140
+    const circumferenceMinutes = 2 * Math.PI * 162; // r=162
+    const circumferenceHours = 2 * Math.PI * 184;   // r=184
 
     // stroke-dasharrayを設定（円周全体）
     ringSeconds.style.strokeDasharray = circumferenceSeconds;
@@ -2125,8 +2126,8 @@ function initTimerRings() {
     timerRingsInitialized = true;
 }
 
-// 3重リングの更新（学習開始からの経過時間に同期）
-function updateTimerRings() {
+// 3重リングの滑らかな更新（requestAnimationFrameベース）
+function updateTimerRingsSmoothly() {
     const ringSeconds = document.getElementById('ring-seconds');
     const ringMinutes = document.getElementById('ring-minutes');
     const ringHours = document.getElementById('ring-hours');
@@ -2136,29 +2137,60 @@ function updateTimerRings() {
     // 初期化されていなければ初期化
     if (!timerRingsInitialized) initTimerRings();
 
-    // 経過時間から各単位の進捗を計算
-    const totalSeconds = state.elapsedSeconds;
-    const totalMinutes = totalSeconds / 60;
-    const totalHours = totalSeconds / 3600;
+    // ミリ秒精度で経過時間を計算（カクつき防止）
+    const now = Date.now();
+    let elapsedMs = 0;
+    if (state.isStudying && state.startTime) {
+        elapsedMs = now - state.startTime.getTime() - state.accumulatedPausedMs;
+        if (state.isPaused && state.lastPauseTime) {
+            elapsedMs -= (now - state.lastPauseTime.getTime());
+        }
+    }
+    elapsedMs = Math.max(0, elapsedMs);
 
-    // 秒リング: 60秒で1周（0-59秒 → 0-100%）
-    const secondProgress = (totalSeconds % 60) / 60;
+    // ミリ秒から各単位の進捗を連続的に計算
+    const msPerSecond = 1000;
+    const msPerMinute = 60 * msPerSecond;
+    const msPerHour = 60 * msPerMinute;
+    const msPerDay = 24 * msPerHour;
 
-    // 分リング: 60分で1周（0-59分 → 0-100%）
-    const minuteProgress = (totalMinutes % 60) / 60;
+    // 秒リング: 60秒(60000ms)で1周
+    const secondProgress = (elapsedMs % (60 * msPerSecond)) / (60 * msPerSecond);
 
-    // 時間リング: 24時間で1周（0-23時間 → 0-100%）
-    const hourProgress = (totalHours % 24) / 24;
+    // 分リング: 60分(3600000ms)で1周
+    const minuteProgress = (elapsedMs % msPerHour) / msPerHour;
 
-    // 各リングの円周
-    const circumferenceSeconds = 2 * Math.PI * 90;
-    const circumferenceMinutes = 2 * Math.PI * 105;
-    const circumferenceHours = 2 * Math.PI * 120;
+    // 時間リング: 24時間(86400000ms)で1周
+    const hourProgress = (elapsedMs % msPerDay) / msPerDay;
+
+    // 各リングの円周（HTMLの半径に合わせる）
+    const circumferenceSeconds = 2 * Math.PI * 140;
+    const circumferenceMinutes = 2 * Math.PI * 162;
+    const circumferenceHours = 2 * Math.PI * 184;
 
     // stroke-dashoffsetを更新（進捗に応じてオフセットを減らす）
     ringSeconds.style.strokeDashoffset = circumferenceSeconds * (1 - secondProgress);
     ringMinutes.style.strokeDashoffset = circumferenceMinutes * (1 - minuteProgress);
     ringHours.style.strokeDashoffset = circumferenceHours * (1 - hourProgress);
+
+    // 学習中であれば次フレームも更新
+    if (state.isStudying && !state.isPaused) {
+        ringAnimationId = requestAnimationFrame(updateTimerRingsSmoothly);
+    }
+}
+
+// リングアニメーションの開始
+function startRingAnimation() {
+    if (ringAnimationId) cancelAnimationFrame(ringAnimationId);
+    ringAnimationId = requestAnimationFrame(updateTimerRingsSmoothly);
+}
+
+// リングアニメーションの停止
+function stopRingAnimation() {
+    if (ringAnimationId) {
+        cancelAnimationFrame(ringAnimationId);
+        ringAnimationId = null;
+    }
 }
 
 function updateCurrentTimeDisplay() {
