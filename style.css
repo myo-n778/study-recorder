@@ -1243,36 +1243,47 @@ h3 {
     position: relative;
 }
 
-/* 円形プログレスリング */
-.timer-ring {
+/* 3重タイマーリング */
+.timer-rings {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 280px;
-    height: 280px;
+    width: 320px;
+    height: 320px;
     pointer-events: none;
 }
 
-.timer-ring-bg circle {
-    fill: rgba(255, 255, 255, 0.08);
+/* 背景リング（薄いガイド線） */
+.ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 4;
 }
 
-.timer-ring-progress circle {
-    fill: var(--primary-color);
-    filter: drop-shadow(0 0 4px var(--primary-glow));
-    transition: opacity 0.1s ease;
+/* 進捗リング共通 */
+.ring-progress {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transform-origin: center;
+    transform: rotate(-90deg);
+    transition: stroke-dashoffset 0.1s linear;
 }
 
-.timer-ring-head {
-    fill: white;
-    filter: drop-shadow(0 0 8px var(--primary-color)) drop-shadow(0 0 16px var(--primary-glow));
-    opacity: 0;
-    transition: opacity 0.3s ease;
+/* 秒リング（内側・オレンジ） */
+.ring-seconds {
+    filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.5));
 }
 
-.timer-ring-head.active {
-    opacity: 1;
+/* 分リング（中間・黄色） */
+.ring-minutes {
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+}
+
+/* 時間リング（外側・緑） */
+.ring-hours {
+    filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.5));
 }
 
 .timer-elapsed {

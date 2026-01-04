@@ -277,14 +277,42 @@
                     <span id="study-current-category">カテゴリー</span> / <span id="study-current-content">内容</span>
                 </div>
                 <div class="timer-display">
-                    <!-- 円形プログレスリング -->
-                    <svg class="timer-ring" viewBox="0 0 200 200">
-                        <!-- 背景の薄いドット（60個、1分で一周） -->
-                        <g class="timer-ring-bg" id="timer-ring-bg"></g>
-                        <!-- 進捗のドット（点灯部分） -->
-                        <g class="timer-ring-progress" id="timer-ring-progress"></g>
-                        <!-- 現在位置の強調ドット -->
-                        <circle class="timer-ring-head" id="timer-ring-head" cx="100" cy="10" r="4" />
+                    <!-- 3重タイマーリング -->
+                    <svg class="timer-rings" viewBox="0 0 300 300">
+                        <defs>
+                            <!-- 秒リング用グラデーション（オレンジ系） -->
+                            <linearGradient id="grad-seconds" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff6b35;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#f7931e;stop-opacity:0.6" />
+                            </linearGradient>
+                            <!-- 分リング用グラデーション（黄色系） -->
+                            <linearGradient id="grad-minutes" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ffec8b;stop-opacity:0.6" />
+                            </linearGradient>
+                            <!-- 時間リング用グラデーション（緑系） -->
+                            <linearGradient id="grad-hours" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#86efac;stop-opacity:0.6" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- 背景リング（薄いガイド線） -->
+                        <circle class="ring-bg" cx="150" cy="150" r="90" />
+                        <circle class="ring-bg" cx="150" cy="150" r="105" />
+                        <circle class="ring-bg" cx="150" cy="150" r="120" />
+
+                        <!-- 秒リング（内側・オレンジ・60秒で1周） -->
+                        <circle class="ring-progress ring-seconds" id="ring-seconds" cx="150" cy="150" r="90"
+                            stroke="url(#grad-seconds)" />
+
+                        <!-- 分リング（中間・黄色・60分で1周） -->
+                        <circle class="ring-progress ring-minutes" id="ring-minutes" cx="150" cy="150" r="105"
+                            stroke="url(#grad-minutes)" />
+
+                        <!-- 時間リング（外側・緑・24時間で1周） -->
+                        <circle class="ring-progress ring-hours" id="ring-hours" cx="150" cy="150" r="120"
+                            stroke="url(#grad-hours)" />
                     </svg>
                     <div id="timer-elapsed">00:00:00</div>
                     <div id="current-time-display">現在時刻 <span>--:--</span></div>

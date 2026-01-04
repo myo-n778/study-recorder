@@ -2092,79 +2092,73 @@ function updateTimerDisplay() {
     const s = (state.elapsedSeconds % 60).toString().padStart(2, '0');
     elements.timerElapsed.textContent = `${h}:${m}:${s}`;
 
-    // 円形プログレスリングの更新
-    updateTimerRing();
+    // 3重リングの更新
+    updateTimerRings();
 }
 
-// 円形プログレスリングの初期化と更新
-let timerRingInitialized = false;
+// 3重タイマーリングの初期化フラグ
+let timerRingsInitialized = false;
 
-function initTimerRing() {
-    const bgGroup = document.getElementById('timer-ring-bg');
-    const progressGroup = document.getElementById('timer-ring-progress');
-    if (!bgGroup || !progressGroup || timerRingInitialized) return;
+// リングの円周を計算して初期化
+function initTimerRings() {
+    const ringSeconds = document.getElementById('ring-seconds');
+    const ringMinutes = document.getElementById('ring-minutes');
+    const ringHours = document.getElementById('ring-hours');
 
-    bgGroup.innerHTML = '';
-    progressGroup.innerHTML = '';
+    if (!ringSeconds || !ringMinutes || !ringHours || timerRingsInitialized) return;
 
-    // 60個のドットを配置（1秒ごと、1分で一周）
-    for (let i = 0; i < 60; i++) {
-        const angle = (i / 60) * 360 - 90; // 12時方向（-90度）から開始
-        const rad = angle * (Math.PI / 180);
-        const cx = 100 + 90 * Math.cos(rad);
-        const cy = 100 + 90 * Math.sin(rad);
+    // 各リングの半径から円周を計算
+    const circumferenceSeconds = 2 * Math.PI * 90;  // r=90
+    const circumferenceMinutes = 2 * Math.PI * 105; // r=105
+    const circumferenceHours = 2 * Math.PI * 120;   // r=120
 
-        // 背景ドット
-        const bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        bgCircle.setAttribute('cx', cx);
-        bgCircle.setAttribute('cy', cy);
-        bgCircle.setAttribute('r', i % 5 === 0 ? 3 : 2); // 5秒ごとに少し大きく
-        bgGroup.appendChild(bgCircle);
+    // stroke-dasharrayを設定（円周全体）
+    ringSeconds.style.strokeDasharray = circumferenceSeconds;
+    ringMinutes.style.strokeDasharray = circumferenceMinutes;
+    ringHours.style.strokeDasharray = circumferenceHours;
 
-        // 進捗ドット（初期は非表示）
-        const progressCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        progressCircle.setAttribute('cx', cx);
-        progressCircle.setAttribute('cy', cy);
-        progressCircle.setAttribute('r', i % 5 === 0 ? 3 : 2);
-        progressCircle.style.opacity = '0';
-        progressCircle.dataset.index = i;
-        progressGroup.appendChild(progressCircle);
-    }
+    // 初期状態（進捗なし）
+    ringSeconds.style.strokeDashoffset = circumferenceSeconds;
+    ringMinutes.style.strokeDashoffset = circumferenceMinutes;
+    ringHours.style.strokeDashoffset = circumferenceHours;
 
-    timerRingInitialized = true;
+    timerRingsInitialized = true;
 }
 
-function updateTimerRing() {
-    const progressGroup = document.getElementById('timer-ring-progress');
-    const head = document.getElementById('timer-ring-head');
-    if (!progressGroup) return;
+// 3重リングの更新（学習開始からの経過時間に同期）
+function updateTimerRings() {
+    const ringSeconds = document.getElementById('ring-seconds');
+    const ringMinutes = document.getElementById('ring-minutes');
+    const ringHours = document.getElementById('ring-hours');
+
+    if (!ringSeconds || !ringMinutes || !ringHours) return;
 
     // 初期化されていなければ初期化
-    if (!timerRingInitialized) initTimerRing();
+    if (!timerRingsInitialized) initTimerRings();
 
-    // 現在の秒数を60で割った余り（0-59）
-    const currentSecond = state.elapsedSeconds % 60;
+    // 経過時間から各単位の進捗を計算
+    const totalSeconds = state.elapsedSeconds;
+    const totalMinutes = totalSeconds / 60;
+    const totalHours = totalSeconds / 3600;
 
-    // 進捗ドットの更新
-    const dots = progressGroup.querySelectorAll('circle');
-    dots.forEach((dot, i) => {
-        if (i <= currentSecond) {
-            dot.style.opacity = '1';
-        } else {
-            dot.style.opacity = '0';
-        }
-    });
+    // 秒リング: 60秒で1周（0-59秒 → 0-100%）
+    const secondProgress = (totalSeconds % 60) / 60;
 
-    // 現在位置の強調ドットを更新
-    if (head) {
-        const angle = (currentSecond / 60) * 360 - 90;
-        const rad = angle * (Math.PI / 180);
-        const cx = 100 + 90 * Math.cos(rad);
-        const cy = 100 + 90 * Math.sin(rad);
-        head.setAttribute('cx', cx);
-        head.setAttribute('cy', cy);
-        head.classList.add('active');
-    }
+    // 分リング: 60分で1周（0-59分 → 0-100%）
+    const minuteProgress = (totalMinutes % 60) / 60;
+
+    // 時間リング: 24時間で1周（0-23時間 → 0-100%）
+    const hourProgress = (totalHours % 24) / 24;
+
+    // 各リングの円周
+    const circumferenceSeconds = 2 * Math.PI * 90;
+    const circumferenceMinutes = 2 * Math.PI * 105;
+    const circumferenceHours = 2 * Math.PI * 120;
+
+    // stroke-dashoffsetを更新（進捗に応じてオフセットを減らす）
+    ringSeconds.style.strokeDashoffset = circumferenceSeconds * (1 - secondProgress);
+    ringMinutes.style.strokeDashoffset = circumferenceMinutes * (1 - minuteProgress);
+    ringHours.style.strokeDashoffset = circumferenceHours * (1 - hourProgress);
 }
 
 function updateCurrentTimeDisplay() {
