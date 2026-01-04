@@ -64,6 +64,51 @@ function getBelongingDate(dateStr, timeStr) {
     return `${y}/${m}/${day}`;
 }
 
+// 4時跨ぎセッションを分割するヘルパー
+// 0:00〜3:59開始で終了が4:00以降の場合、2つのレコードに分割して返す
+function splitRecordAt4AMBoundary(record) {
+    if (!record.startTime || !record.endTime) return [record];
+
+    const [startH, startM] = record.startTime.split(':').map(Number);
+    const [endH, endM] = record.endTime.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    const boundary = 4 * 60; // 4:00 = 240分
+
+    // 開始が0:00〜3:59かつ終了が4:00以降の場合のみ分割
+    if (startMinutes < boundary && endMinutes >= boundary) {
+        const beforeDuration = boundary - startMinutes;
+        const afterDuration = endMinutes - boundary;
+
+        // 前半（0:00〜4:00）- 前日所属
+        const beforeRecord = {
+            ...record,
+            endTime: '04:00',
+            duration: beforeDuration,
+            _isSplit: true,
+            _splitPart: 'before'
+        };
+
+        // 後半（4:00〜終了）- 当日所属
+        const afterRecord = {
+            ...record,
+            startTime: '04:00',
+            duration: afterDuration,
+            _isSplit: true,
+            _splitPart: 'after'
+        };
+
+        return [beforeRecord, afterRecord];
+    }
+
+    return [record];
+}
+
+// レコード配列を分割処理して返す
+function getExpandedRecords(records) {
+    return records.flatMap(r => splitRecordAt4AMBoundary(r));
+}
+
 let state = {
     isStudying: false,
     startTime: null,
@@ -1351,7 +1396,8 @@ function updateViewDateRecords() {
     const container = document.getElementById('view-date-records-list');
     if (!container) return;
 
-    const records = state.records
+    // 修正: 4時跨ぎセッションを分割して表示
+    const records = getExpandedRecords(state.records)
         .filter(r => getBelongingDate(r.date, r.startTime) === state.viewDate)
         .sort((a, b) => {
             const timeA = a.startTime.split(':').map(Number);
@@ -1389,8 +1435,8 @@ function updateCategoryChart(period = 'day') {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    // 期間フィルタリング
-    const filteredRecords = filterRecordsByPeriod(state.records, period);
+    // 期間フィルタリング（4時跨ぎセッションを分割して集計）
+    const filteredRecords = filterRecordsByPeriod(getExpandedRecords(state.records), period);
     const dataMap = {};
     filteredRecords.forEach(r => {
         dataMap[r.category] = (dataMap[r.category] || 0) + Number(r.duration);
@@ -1454,7 +1500,8 @@ function updateStickyTimelineChart(period = 'day') {
     const todayCtx = document.getElementById('timelineTodayGraph').getContext('2d');
     if (!yAxisCtx || !mainCtx || !todayCtx) return;
 
-    const groupedData = aggregateByPeriod(state.records, period);
+    // 修正: 4時跨ぎセッションを分割して集計
+    const groupedData = aggregateByPeriod(getExpandedRecords(state.records), period);
     const allLabels = groupedData.labels;
     const allDatasets = groupedData.datasets;
 
@@ -1647,8 +1694,8 @@ function updateMainDetailChart(period = 'day') {
     const ctx = document.getElementById('mainDetailChart').getContext('2d');
     if (!ctx) return;
 
-    // 選択期間内の記録を取得
-    const filteredRecords = filterRecordsByPeriod(state.records, period);
+    // 選択期間内の記録を取得（4時跨ぎセッションを分割して集計）
+    const filteredRecords = filterRecordsByPeriod(getExpandedRecords(state.records), period);
 
     // カテゴリ別に集計
     const categoryDurations = {};
@@ -1849,8 +1896,8 @@ function updateTimelineAnalysis() {
 
     // ヘルパー: 日付行を生成
     const createDayRow = (dateStr, isToday) => {
-        // 修正: 所属判定で記録を取得（0:00〜3:59は前日所属）
-        const recordsOnDate = state.records.filter(r => getBelongingDate(r.date, r.startTime) === dateStr);
+        // 修正: 4時跨ぎセッションを分割して両日に表示
+        const recordsOnDate = getExpandedRecords(state.records).filter(r => getBelongingDate(r.date, r.startTime) === dateStr);
         const dayRow = document.createElement('div');
         dayRow.className = 'timeline-day-row' + (isToday ? ' today-row' : '');
 
