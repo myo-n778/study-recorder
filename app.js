@@ -2105,10 +2105,13 @@ let prevSecondLap = -1;
 let prevMinuteLap = -1;
 let prevHourLap = -1;
 
-// 各リングの色パレット（周回ごとにループ）
-const secondColors = ['#ff6b35', '#ff4500', '#ff8c00', '#e65100', '#ff7043'];
-const minuteColors = ['#ffd700', '#ffb300', '#ffc107', '#f9a825', '#ffe082'];
-const hourColors = ['#22c55e', '#10b981', '#14b8a6', '#059669', '#34d399'];
+// 各リングの色パレット（周回ごとにループ、差が明確に分かる色）
+// 秒リング：オレンジ系（赤寄り→黄寄り→濃い→明るい→深い）
+const secondColors = ['#ff5722', '#ff9800', '#e64a19', '#ffb74d', '#d84315'];
+// 分リング：黄色系（レモン→ゴールド→アンバー→ライム→サフラン）
+const minuteColors = ['#ffeb3b', '#ffc107', '#ff8f00', '#c0ca33', '#f57c00'];
+// 24hリング：緑系（黄緑→エメラルド→青緑→ライム→ティール）
+const hourColors = ['#8bc34a', '#00bfa5', '#26a69a', '#cddc39', '#009688'];
 
 // 新しい半径（HTML対応）
 const RADIUS_SECONDS = 160;

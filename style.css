@@ -1245,16 +1245,16 @@ h3 {
     z-index: 5;
 }
 
-/* 3重タイマーリング（画面いっぱい、見切れない） */
+/* 3重タイマーリング（干渉回避のためサイズ調整） */
 .timer-rings {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: min(85vw, 85vh);
-    height: min(85vw, 85vh);
-    max-width: 550px;
-    max-height: 550px;
+    width: min(75vw, 75vh);
+    height: min(75vw, 75vh);
+    max-width: 480px;
+    max-height: 480px;
     pointer-events: none;
     /* コンテンツの背後に */
     z-index: 1;
@@ -1279,18 +1279,18 @@ h3 {
 }
 
 .ring-seconds-prev {
-    stroke: #ff6b35;
-    filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.4));
+    stroke: #ff5722;
+    filter: drop-shadow(0 0 4px rgba(255, 87, 34, 0.4));
 }
 
 .ring-minutes-prev {
-    stroke: #ffd700;
-    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.4));
+    stroke: #ffeb3b;
+    filter: drop-shadow(0 0 4px rgba(255, 235, 59, 0.4));
 }
 
 .ring-hours-prev {
-    stroke: #22c55e;
-    filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.4));
+    stroke: #8bc34a;
+    filter: drop-shadow(0 0 4px rgba(139, 195, 74, 0.4));
 }
 
 /* 進捗リング共通 */
@@ -1304,20 +1304,20 @@ h3 {
 
 /* 秒リング（内側・オレンジ系） */
 .ring-seconds {
-    stroke: #ff6b35;
-    filter: drop-shadow(0 0 6px rgba(255, 107, 53, 0.6));
+    stroke: #ff5722;
+    filter: drop-shadow(0 0 6px rgba(255, 87, 34, 0.6));
 }
 
 /* 分リング（中間・黄色系） */
 .ring-minutes {
-    stroke: #ffd700;
-    filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));
+    stroke: #ffeb3b;
+    filter: drop-shadow(0 0 6px rgba(255, 235, 59, 0.6));
 }
 
 /* 時間リング（外側・緑系） */
 .ring-hours {
-    stroke: #22c55e;
-    filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6));
+    stroke: #8bc34a;
+    filter: drop-shadow(0 0 6px rgba(139, 195, 74, 0.6));
 }
 
 .timer-elapsed {
