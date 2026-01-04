@@ -1241,6 +1241,8 @@ h3 {
     align-items: center;
     gap: 0.5rem;
     position: relative;
+    /* リングの上にコンテンツを表示 */
+    z-index: 5;
 }
 
 /* 3重タイマーリング（画面いっぱい、見切れない） */
@@ -1249,11 +1251,13 @@ h3 {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: min(90vw, 90vh);
-    height: min(90vw, 90vh);
-    max-width: 600px;
-    max-height: 600px;
+    width: min(85vw, 85vh);
+    height: min(85vw, 85vh);
+    max-width: 550px;
+    max-height: 550px;
     pointer-events: none;
+    /* コンテンツの背後に */
+    z-index: 1;
 }
 
 /* 背景リング（薄いガイド線） */
@@ -1317,49 +1321,74 @@ h3 {
 }
 
 .timer-elapsed {
-    font-size: clamp(4rem, 15vw, 6rem);
-    font-weight: 800;
-    font-family: var(--font-timer);
+    /* デジタル時計風フォント（カクカク斜体） */
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(3.5rem, 12vw, 5.5rem);
+    font-weight: 900;
     font-style: italic;
     /* テーマ色（オレンジ系）のグロー表示 */
     color: #ff8c42;
     text-shadow:
-        0 0 20px rgba(255, 140, 66, 0.8),
-        0 0 40px rgba(255, 107, 53, 0.5),
-        0 0 60px rgba(249, 115, 22, 0.3);
+        0 0 15px rgba(255, 140, 66, 0.7),
+        0 0 30px rgba(255, 107, 53, 0.4),
+        0 0 45px rgba(249, 115, 22, 0.2);
     line-height: 1;
-    letter-spacing: -2px;
-    /* レイアウトシフト防止：等幅数字 */
+    letter-spacing: 2px;
+    /* レイアウトシフト完全防止 */
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
-    /* 固定幅で中央揃え */
-    min-width: 8ch;
+    /* 固定幅コンテナ：8文字（00:00:00）分を確保 */
+    width: 10ch;
+    min-width: 10ch;
+    max-width: 10ch;
     text-align: center;
+    display: inline-block;
+    /* z-indexでリングより手前に */
+    position: relative;
+    z-index: 10;
 }
 
 #current-time-display {
     font-size: 1rem;
     color: var(--text-dim);
     font-family: var(--font-inter);
+    position: relative;
+    z-index: 10;
 }
 
 #current-time-display span {
-    font-family: var(--font-timer);
+    font-family: 'Orbitron', monospace;
     font-style: italic;
     color: var(--text-main);
     margin-left: 0.5rem;
 }
 
+/* 応援メッセージ：2行固定領域 */
 .quote-display {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 500;
     font-family: var(--font-outfit);
     color: var(--text-main);
     background: rgba(255, 255, 255, 0.05);
-    padding: 1rem 1.5rem;
-    border-radius: 20px;
+    padding: 0.8rem 1.2rem;
+    border-radius: 16px;
     border: 1px solid var(--glass-border);
-    max-width: 400px;
+    /* 2行固定領域：min-heightで高さを確保 */
+    min-height: 3.2em;
+    max-height: 3.2em;
+    height: 3.2em;
+    /* 2行までに制限 */
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    /* 幅を固定して横方向のズレも防止 */
+    width: 90%;
+    max-width: 360px;
+    /* リングとの干渉防止：z-indexで手前に */
+    position: relative;
+    z-index: 10;
 }
 
 /* Animations (Restored) */
