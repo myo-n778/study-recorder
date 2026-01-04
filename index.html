@@ -277,6 +277,15 @@
                     <span id="study-current-category">カテゴリー</span> / <span id="study-current-content">内容</span>
                 </div>
                 <div class="timer-display">
+                    <!-- 円形プログレスリング -->
+                    <svg class="timer-ring" viewBox="0 0 200 200">
+                        <!-- 背景の薄いドット（60個、1分で一周） -->
+                        <g class="timer-ring-bg" id="timer-ring-bg"></g>
+                        <!-- 進捗のドット（点灯部分） -->
+                        <g class="timer-ring-progress" id="timer-ring-progress"></g>
+                        <!-- 現在位置の強調ドット -->
+                        <circle class="timer-ring-head" id="timer-ring-head" cx="100" cy="10" r="4" />
+                    </svg>
                     <div id="timer-elapsed">00:00:00</div>
                     <div id="current-time-display">現在時刻 <span>--:--</span></div>
                 </div>

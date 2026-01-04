@@ -2091,6 +2091,80 @@ function updateTimerDisplay() {
     const m = Math.floor((state.elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
     const s = (state.elapsedSeconds % 60).toString().padStart(2, '0');
     elements.timerElapsed.textContent = `${h}:${m}:${s}`;
+
+    // 円形プログレスリングの更新
+    updateTimerRing();
+}
+
+// 円形プログレスリングの初期化と更新
+let timerRingInitialized = false;
+
+function initTimerRing() {
+    const bgGroup = document.getElementById('timer-ring-bg');
+    const progressGroup = document.getElementById('timer-ring-progress');
+    if (!bgGroup || !progressGroup || timerRingInitialized) return;
+
+    bgGroup.innerHTML = '';
+    progressGroup.innerHTML = '';
+
+    // 60個のドットを配置（1秒ごと、1分で一周）
+    for (let i = 0; i < 60; i++) {
+        const angle = (i / 60) * 360 - 90; // 12時方向（-90度）から開始
+        const rad = angle * (Math.PI / 180);
+        const cx = 100 + 90 * Math.cos(rad);
+        const cy = 100 + 90 * Math.sin(rad);
+
+        // 背景ドット
+        const bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        bgCircle.setAttribute('cx', cx);
+        bgCircle.setAttribute('cy', cy);
+        bgCircle.setAttribute('r', i % 5 === 0 ? 3 : 2); // 5秒ごとに少し大きく
+        bgGroup.appendChild(bgCircle);
+
+        // 進捗ドット（初期は非表示）
+        const progressCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        progressCircle.setAttribute('cx', cx);
+        progressCircle.setAttribute('cy', cy);
+        progressCircle.setAttribute('r', i % 5 === 0 ? 3 : 2);
+        progressCircle.style.opacity = '0';
+        progressCircle.dataset.index = i;
+        progressGroup.appendChild(progressCircle);
+    }
+
+    timerRingInitialized = true;
+}
+
+function updateTimerRing() {
+    const progressGroup = document.getElementById('timer-ring-progress');
+    const head = document.getElementById('timer-ring-head');
+    if (!progressGroup) return;
+
+    // 初期化されていなければ初期化
+    if (!timerRingInitialized) initTimerRing();
+
+    // 現在の秒数を60で割った余り（0-59）
+    const currentSecond = state.elapsedSeconds % 60;
+
+    // 進捗ドットの更新
+    const dots = progressGroup.querySelectorAll('circle');
+    dots.forEach((dot, i) => {
+        if (i <= currentSecond) {
+            dot.style.opacity = '1';
+        } else {
+            dot.style.opacity = '0';
+        }
+    });
+
+    // 現在位置の強調ドットを更新
+    if (head) {
+        const angle = (currentSecond / 60) * 360 - 90;
+        const rad = angle * (Math.PI / 180);
+        const cx = 100 + 90 * Math.cos(rad);
+        const cy = 100 + 90 * Math.sin(rad);
+        head.setAttribute('cx', cx);
+        head.setAttribute('cy', cy);
+        head.classList.add('active');
+    }
 }
 
 function updateCurrentTimeDisplay() {

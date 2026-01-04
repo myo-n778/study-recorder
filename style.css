@@ -1235,14 +1235,44 @@ h3 {
     position: relative;
 }
 
-justify-content: center;
-}
-
 .timer-display {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
+    position: relative;
+}
+
+/* 円形プログレスリング */
+.timer-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 280px;
+    height: 280px;
+    pointer-events: none;
+}
+
+.timer-ring-bg circle {
+    fill: rgba(255, 255, 255, 0.08);
+}
+
+.timer-ring-progress circle {
+    fill: var(--primary-color);
+    filter: drop-shadow(0 0 4px var(--primary-glow));
+    transition: opacity 0.1s ease;
+}
+
+.timer-ring-head {
+    fill: white;
+    filter: drop-shadow(0 0 8px var(--primary-color)) drop-shadow(0 0 16px var(--primary-glow));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.timer-ring-head.active {
+    opacity: 1;
 }
 
 .timer-elapsed {
