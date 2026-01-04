@@ -1273,19 +1273,22 @@ h3 {
     /* transition削除: requestAnimationFrameで滑らかに更新 */
 }
 
-/* 秒リング（内側・オレンジ） */
+/* 秒リング（内側・オレンジ系） */
 .ring-seconds {
-    filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.5));
+    stroke: #ff6b35;
+    filter: drop-shadow(0 0 6px rgba(255, 107, 53, 0.6));
 }
 
-/* 分リング（中間・黄色） */
+/* 分リング（中間・黄色系） */
 .ring-minutes {
-    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+    stroke: #ffd700;
+    filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));
 }
 
-/* 時間リング（外側・緑） */
+/* 時間リング（外側・緑系） */
 .ring-hours {
-    filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.5));
+    stroke: #22c55e;
+    filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6));
 }
 
 .timer-elapsed {

@@ -2100,6 +2100,16 @@ function updateTimerDisplay() {
 let timerRingsInitialized = false;
 let ringAnimationId = null;
 
+// 周回カウント（色変更用）
+let prevSecondLap = 0;
+let prevMinuteLap = 0;
+let prevHourLap = 0;
+
+// 各リングの色パレット（周回ごとにループ）
+const secondColors = ['#ff6b35', '#ff4500', '#ff8c00', '#e65100', '#ff7043'];
+const minuteColors = ['#ffd700', '#ffb300', '#ffc107', '#f9a825', '#ffe082'];
+const hourColors = ['#22c55e', '#10b981', '#14b8a6', '#059669', '#34d399'];
+
 // リングの円周を計算して初期化
 function initTimerRings() {
     const ringSeconds = document.getElementById('ring-seconds');
@@ -2118,7 +2128,7 @@ function initTimerRings() {
     ringMinutes.style.strokeDasharray = circumferenceMinutes;
     ringHours.style.strokeDasharray = circumferenceHours;
 
-    // 初期状態（進捗なし）
+    // 初期状態（進捗なし = 全てオフセット）
     ringSeconds.style.strokeDashoffset = circumferenceSeconds;
     ringMinutes.style.strokeDashoffset = circumferenceMinutes;
     ringHours.style.strokeDashoffset = circumferenceHours;
@@ -2126,7 +2136,7 @@ function initTimerRings() {
     timerRingsInitialized = true;
 }
 
-// 3重リングの滑らかな更新（requestAnimationFrameベース）
+// 3重リングの滑らかな更新（requestAnimationFrameベース、塗り増え方式）
 function updateTimerRingsSmoothly() {
     const ringSeconds = document.getElementById('ring-seconds');
     const ringMinutes = document.getElementById('ring-minutes');
@@ -2149,18 +2159,40 @@ function updateTimerRingsSmoothly() {
     elapsedMs = Math.max(0, elapsedMs);
 
     // ミリ秒から各単位の進捗を連続的に計算
-    const msPerSecond = 1000;
-    const msPerMinute = 60 * msPerSecond;
+    const msPerMinute = 60 * 1000;
     const msPerHour = 60 * msPerMinute;
     const msPerDay = 24 * msPerHour;
 
-    // 秒リング: 60秒(60000ms)で1周
-    const secondProgress = (elapsedMs % (60 * msPerSecond)) / (60 * msPerSecond);
+    // 周回数を計算（色変更用）
+    const secondLap = Math.floor(elapsedMs / msPerMinute);
+    const minuteLap = Math.floor(elapsedMs / msPerHour);
+    const hourLap = Math.floor(elapsedMs / msPerDay);
 
-    // 分リング: 60分(3600000ms)で1周
+    // 周回が変わったら色を変更
+    if (secondLap !== prevSecondLap) {
+        prevSecondLap = secondLap;
+        const colorIndex = secondLap % secondColors.length;
+        ringSeconds.style.stroke = secondColors[colorIndex];
+    }
+    if (minuteLap !== prevMinuteLap) {
+        prevMinuteLap = minuteLap;
+        const colorIndex = minuteLap % minuteColors.length;
+        ringMinutes.style.stroke = minuteColors[colorIndex];
+    }
+    if (hourLap !== prevHourLap) {
+        prevHourLap = hourLap;
+        const colorIndex = hourLap % hourColors.length;
+        ringHours.style.stroke = hourColors[colorIndex];
+    }
+
+    // 進捗を計算（0→100%で塗り増え）
+    // 秒リング: 60秒(60000ms)で1周
+    const secondProgress = (elapsedMs % msPerMinute) / msPerMinute;
+
+    // 分リング: 60分で1周
     const minuteProgress = (elapsedMs % msPerHour) / msPerHour;
 
-    // 時間リング: 24時間(86400000ms)で1周
+    // 時間リング: 24時間で1周
     const hourProgress = (elapsedMs % msPerDay) / msPerDay;
 
     // 各リングの円周（HTMLの半径に合わせる）
@@ -2168,7 +2200,7 @@ function updateTimerRingsSmoothly() {
     const circumferenceMinutes = 2 * Math.PI * 162;
     const circumferenceHours = 2 * Math.PI * 184;
 
-    // stroke-dashoffsetを更新（進捗に応じてオフセットを減らす）
+    // stroke-dashoffsetを更新（進捗に応じてオフセットを減らす = 0から塗り増え）
     ringSeconds.style.strokeDashoffset = circumferenceSeconds * (1 - secondProgress);
     ringMinutes.style.strokeDashoffset = circumferenceMinutes * (1 - minuteProgress);
     ringHours.style.strokeDashoffset = circumferenceHours * (1 - hourProgress);
