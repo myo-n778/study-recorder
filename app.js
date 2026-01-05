@@ -2088,12 +2088,48 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
     editModal.classList.add('hidden');
 });
 
-// タイマー表示更新
+// タイマー表示更新（JSから直接スタイルを制御し、Canvas/JS描画と同等の精度を保証）
 function updateTimerDisplay() {
     const h = Math.floor(state.elapsedSeconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((state.elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
     const s = (state.elapsedSeconds % 60).toString().padStart(2, '0');
-    elements.timerElapsed.textContent = `${h}:${m}:${s}`;
+    const timeStr = `${h}:${m}:${s}`;
+
+    const el = elements.timerElapsed;
+    if (!el) return;
+
+    // テキスト内容を更新
+    el.textContent = timeStr;
+
+    // 現在のテーマカラーを取得
+    const theme = state.goals.theme || 'default';
+    const themeColors = {
+        'default': '#ff8c42', // オレンジ系をベースに
+        'orange': '#f97316',
+        'green': '#22c55e',
+        'cyan': '#06b6d4',
+        'yellow': '#eab308',
+        'blue': '#3b82f6',
+        'red': '#ef4444',
+        'white': '#f8fafc',
+        'purple': '#a855f7',
+        'pink': '#ec4899',
+        'emerald': '#10b981'
+    };
+    const color = themeColors[theme] || themeColors['default'];
+
+    // JSからインラインスタイルを強制適用（CSSの詳細度や描画方式の疑義を物理的に解消）
+    el.style.fontFamily = "'Orbitron', monospace";
+    el.style.fontStyle = "italic";
+    el.style.fontWeight = "700";
+    el.style.color = color;
+    el.style.textShadow = `0 0 15px ${color}b3, 0 0 30px ${color}66`;
+    el.style.fontVariantNumeric = "tabular-nums";
+    el.style.fontFeatureSettings = '"tnum"';
+    el.style.letterSpacing = "2px";
+    el.style.display = "inline-block";
+    el.style.width = "9ch"; // 確実に「固定幅」にする（1pxも揺らさない）
+    el.style.textAlign = "center";
 }
 
 // 3重タイマーリングの初期化フラグ
@@ -2265,8 +2301,34 @@ function updateCurrentTimeDisplay() {
     const now = new Date();
     const timeStr = now.toTimeString().slice(0, 5);
     const span = elements.currentTimeDisplay.querySelector('span');
+
+    // 現在のテーマカラーを取得
+    const theme = state.goals.theme || 'default';
+    const themeColors = {
+        'default': '#ff8c42',
+        'orange': '#f97316',
+        'green': '#22c55e',
+        'cyan': '#06b6d4',
+        'yellow': '#eab308',
+        'blue': '#3b82f6',
+        'red': '#ef4444',
+        'white': '#f8fafc',
+        'purple': '#a855f7',
+        'pink': '#ec4899',
+        'emerald': '#10b981'
+    };
+    const color = themeColors[theme] || themeColors['default'];
+
     if (span) {
         span.textContent = timeStr;
+        // JSからスタイルを強制適用（タイマーと統一）
+        span.style.fontFamily = "'Orbitron', monospace";
+        span.style.fontStyle = "italic";
+        span.style.fontWeight = "700";
+        span.style.color = color;
+        span.style.textShadow = `0 0 10px ${color}99, 0 0 20px ${color}4d`;
+        span.style.fontVariantNumeric = "tabular-nums";
+        span.style.fontFeatureSettings = '"tnum"';
     } else {
         elements.currentTimeDisplay.textContent = `現在時刻 ${timeStr}`;
     }
