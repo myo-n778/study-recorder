@@ -275,7 +275,9 @@
         <div id="study-mode" class="study-overlay hidden">
             <div class="study-container">
                 <div class="study-sub-info">
-                    <span id="study-current-category">カテゴリー</span> / <span id="study-current-content">内容</span>
+                    <span id="study-current-category">カテゴリー</span>
+                    <span id="study-info-separator"> / </span>
+                    <span id="study-current-content">内容</span>
                 </div>
                 <div class="timer-display">
                     <!-- 3重タイマーリング（中央UIを避けて外側に大きく配置、塗り重ね方式） -->
@@ -295,7 +297,11 @@
                         <circle class="ring-progress ring-minutes" id="ring-minutes" cx="300" cy="300" r="265" />
                         <circle class="ring-progress ring-hours" id="ring-hours" cx="300" cy="300" r="290" />
                     </svg>
-                    <div id="timer-elapsed">00:00:00</div>
+                    <div id="timer-elapsed" class="timer-grid">
+                        <span id="t-h1">0</span><span id="t-h2">0</span><span class="t-colon">:</span><span
+                            id="t-m1">0</span><span id="t-m2">0</span><span class="t-colon">:</span><span
+                            id="t-s1">0</span><span id="t-s2">0</span>
+                    </div>
                     <div id="current-time-display">現在時刻 <span>--:--</span></div>
                 </div>
                 <div class="quote-display">

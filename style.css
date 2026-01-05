@@ -1332,16 +1332,57 @@ h3 {
         0 0 30px rgba(255, 107, 53, 0.4),
         0 0 45px rgba(249, 115, 22, 0.2) !important;
     line-height: 1 !important;
-    letter-spacing: 2px !important;
+    letter-spacing: 0 !important;
+    /* グリッド(flex)で制御するため0に */
     font-variant-numeric: tabular-nums !important;
     font-feature-settings: "tnum" !important;
-    width: 9ch !important;
-    min-width: 9ch !important;
-    max-width: 9ch !important;
-    text-align: center !important;
-    display: inline-block !important;
+
+    /* 各桁の座標を物理的に固定（揺れをゼロに） */
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0.05em !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
     position: relative !important;
+    /* 既存の配置を維持 */
     z-index: 10 !important;
+    margin: 0 auto !important;
+}
+
+.timer-display #timer-elapsed span {
+    display: inline-block !important;
+    width: 0.72em !important;
+    /* 各数字に固定の幅を与え、文字間の揺れを防止 */
+    text-align: center !important;
+}
+
+.timer-display #timer-elapsed .t-colon {
+    width: 0.3em !important;
+    /* コロンは専用の幅で固定 */
+}
+
+/* 学習情報の個別装飾（カテゴリー/内容/区切りの色分けとグロー） */
+#study-current-category {
+    color: #00e5ff !important;
+    /* 水色 */
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5) !important;
+}
+
+#study-info-separator {
+    color: #ff3d00 !important;
+    /* 赤系 */
+    text-shadow: 0 0 8px rgba(255, 61, 0, 0.5) !important;
+    margin: 0 8px !important;
+    font-weight: 400 !important;
+}
+
+#study-current-content {
+    color: #ffd600 !important;
+    /* 黄色系 */
+    text-shadow: 0 0 10px rgba(255, 214, 0, 0.6) !important;
+    font-weight: 600 !important;
 }
 
 #current-time-display {

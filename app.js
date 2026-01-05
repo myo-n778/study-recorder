@@ -891,6 +891,9 @@ async function startStudy() {
     updateSupportMessage();
     saveStudyState(); // 状態を即時保存
 
+    // 初回のタイマー表示を初期化
+    updateTimerDisplay();
+
     startTimerInterval();
     startSupportMessageInterval();
 }
@@ -2105,23 +2108,15 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
     editModal.classList.add('hidden');
 });
 
-// タイマー表示更新（JSから直接スタイルを制御し、Canvas/JS描画と同等の精度を保証）
+// タイマー表示更新（各桁を個別要素で更新し、レイアウト揺れを物理的にゼロにする）
 function updateTimerDisplay() {
     const h = Math.floor(state.elapsedSeconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((state.elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
     const s = (state.elapsedSeconds % 60).toString().padStart(2, '0');
-    const timeStr = `${h}:${m}:${s}`;
 
-    const el = elements.timerElapsed;
-    if (!el) return;
-
-    // テキスト内容を更新
-    el.textContent = timeStr;
-
-    // 現在のテーマカラーを取得
     const theme = state.goals.theme || 'default';
     const themeColors = {
-        'default': '#ff8c42', // オレンジ系をベースに
+        'default': '#ff8c42',
         'orange': '#f97316',
         'green': '#22c55e',
         'cyan': '#06b6d4',
@@ -2135,18 +2130,30 @@ function updateTimerDisplay() {
     };
     const color = themeColors[theme] || themeColors['default'];
 
-    // JSからインラインスタイルを強制適用（CSSの詳細度や描画方式の疑義を物理的に解消）
-    el.style.fontFamily = "'Orbitron', monospace";
-    el.style.fontStyle = "italic";
-    el.style.fontWeight = "700";
-    el.style.color = color;
-    el.style.textShadow = `0 0 15px ${color}b3, 0 0 30px ${color}66`;
-    el.style.fontVariantNumeric = "tabular-nums";
-    el.style.fontFeatureSettings = '"tnum"';
-    el.style.letterSpacing = "2px";
-    el.style.display = "inline-block";
-    el.style.width = "9ch"; // 確実に「固定幅」にする（1pxも揺らさない）
-    el.style.textAlign = "center";
+    // 各桁の要素を取得して文字をセット（個別に更新することで全体のガタつきを防止）
+    const digits = {
+        't-h1': h[0], 't-h2': h[1],
+        't-m1': m[0], 't-m2': m[1],
+        't-s1': s[0], 't-s2': s[1]
+    };
+
+    for (const [id, value] of Object.entries(digits)) {
+        const el = document.getElementById(id);
+        if (el) {
+            if (el.textContent !== value) {
+                el.textContent = value;
+            }
+            // テーマカラーとグローをJSから強制（Canvas対策を兼ねる）
+            el.style.color = color;
+            el.style.textShadow = `0 0 15px ${color}b3, 0 0 30px ${color}66`;
+        }
+    }
+
+    // コロンの色も合わせる
+    document.querySelectorAll('#timer-elapsed .t-colon').forEach(el => {
+        el.style.color = color;
+        el.style.textShadow = `0 0 15px ${color}b3, 0 0 30px ${color}66`;
+    });
 }
 
 // 3重タイマーリングの初期化フラグ
