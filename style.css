@@ -1430,6 +1430,41 @@ h3 {
     font-feature-settings: "tnum" !important;
 }
 
+/* 達成スタンプ表示エリア（タイマー上部の余白） */
+#achievement-stamps-area {
+    position: absolute !important;
+    top: 15% !important;
+    /* タイマー数字の上の空きスペースに固定 */
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 200px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    pointer-events: none !important;
+    z-index: 15 !important;
+    min-height: 100px !important;
+}
+
+.stamp-row {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    margin-bottom: 2px !important;
+}
+
+.stamp-item {
+    font-size: 1.2rem !important;
+    line-height: 1 !important;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6) !important;
+}
+
+.stamp-star-large {
+    font-size: 1.4rem !important;
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.8) !important;
+}
+
 /* 応援メッセージ：2行固定領域 */
 .quote-display {
     font-size: 1rem;

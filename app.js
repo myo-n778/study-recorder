@@ -2154,6 +2154,91 @@ function updateTimerDisplay() {
         el.style.color = color;
         el.style.textShadow = `0 0 15px ${color}b3, 0 0 30px ${color}66`;
     });
+
+    // 達成スタンプを更新
+    drawAchievementStamps();
+}
+
+/**
+ * 達成スタンプ（⭐/🌟）の描画ロジック
+ * 10分ごとにスタンプ増加。三角形(1,2,3...)配置が基本だが、
+ * 60, 180, 360分到達時には🌟を表示して強制改行する。
+ * 120, 240, 300分は改行しない。
+ */
+function drawAchievementStamps() {
+    const area = document.getElementById('achievement-stamps-area');
+    if (!area) return;
+
+    const elapsedMinutes = Math.floor(state.elapsedSeconds / 60);
+    const totalStampsCount = Math.floor(elapsedMinutes / 10);
+
+    if (totalStampsCount === 0) {
+        area.innerHTML = '';
+        return;
+    }
+
+    // 描画用の行データを構築
+    const rows = [];
+    let currentRow = [];
+    let stampsInCurrentRow = 0;
+    let maxStampsInRow = 1; // 三角形配置の定員(1,2,3...)
+
+    for (let i = 1; i <= totalStampsCount; i++) {
+        const minutes = i * 10;
+        const is60Multiple = minutes % 60 === 0;
+        const stamp = is60Multiple ? '🌟' : '⭐';
+        const isLarge = is60Multiple;
+
+        currentRow.push({ char: stamp, isLarge: isLarge });
+        stampsInCurrentRow++;
+
+        // 改行判定
+        let shouldBreak = false;
+
+        // 1. 特殊改行ルール（60, 180, 360...）
+        if (minutes === 60 || minutes === 180 || minutes === 360 || minutes === 600) {
+            shouldBreak = true;
+        }
+        // 2. 通常の三角形配置ルール（定員に達した場合）
+        else if (stampsInCurrentRow >= maxStampsInRow) {
+            // ただし「改行禁止時間（120, 240, 300など）」ではない場合のみ改行
+            const nextCouldBreak = (minutes !== 120 && minutes !== 240 && minutes !== 300);
+            if (nextCouldBreak) {
+                shouldBreak = true;
+            }
+        }
+
+        if (shouldBreak && i < totalStampsCount) {
+            rows.push(currentRow);
+            currentRow = [];
+            stampsInCurrentRow = 0;
+            maxStampsInRow++; // 次の行は定員を増やす
+        }
+    }
+    // 最後の行を追加
+    if (currentRow.length > 0) {
+        rows.push(currentRow);
+    }
+
+    // DOMに反映（変化がある場合のみ更新するために一括生成）
+    const fragment = document.createDocumentFragment();
+    rows.forEach(rowStamps => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'stamp-row';
+        rowStamps.forEach(s => {
+            const span = document.createElement('span');
+            span.className = 'stamp-item' + (s.isLarge ? ' stamp-star-large' : '');
+            span.textContent = s.char;
+            rowDiv.appendChild(span);
+        });
+        fragment.appendChild(rowDiv);
+    });
+
+    // ちらつき防止のため、内容が変わった時のみ書き換え
+    const newHTML = Array.from(fragment.childNodes).map(node => node.outerHTML).join('');
+    if (area.innerHTML !== newHTML) {
+        area.innerHTML = newHTML;
+    }
 }
 
 // 3重タイマーリングの初期化フラグ
