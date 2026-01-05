@@ -913,7 +913,7 @@ function togglePauseStudy() {
         }
         state.isPaused = false;
         state.lastPauseTime = null;
-        pauseBtn.textContent = '一時中断';
+        pauseBtn.textContent = 'Take a Break';
         pauseBtn.classList.remove('pulse');
         startTimerInterval();
     } else {
@@ -921,7 +921,7 @@ function togglePauseStudy() {
         state.isPaused = true;
         state.lastPauseTime = new Date(now);
         clearInterval(state.timerInterval);
-        pauseBtn.textContent = '再開する';
+        pauseBtn.textContent = 'Resume';
         pauseBtn.classList.add('pulse');
     }
     saveStudyState();
@@ -2326,26 +2326,12 @@ function updateCurrentTimeDisplay() {
     const timeStr = now.toTimeString().slice(0, 5);
     const span = elements.currentTimeDisplay.querySelector('span');
 
-    // 現在のテーマカラーを取得
-    const theme = state.goals.theme || 'default';
-    const themeColors = {
-        'default': '#ff8c42',
-        'orange': '#f97316',
-        'green': '#22c55e',
-        'cyan': '#06b6d4',
-        'yellow': '#eab308',
-        'blue': '#3b82f6',
-        'red': '#ef4444',
-        'white': '#f8fafc',
-        'purple': '#a855f7',
-        'pink': '#ec4899',
-        'emerald': '#10b981'
-    };
-    const color = themeColors[theme] || themeColors['default'];
+    // タイマー画面の現在時刻は常に水色（#00e5ff）グローに固定
+    const color = '#00e5ff';
 
     if (span) {
         span.textContent = timeStr;
-        // JSからスタイルを強制適用（タイマーと統一）
+        // JSからスタイルを強制適用
         span.style.fontFamily = "'Orbitron', monospace";
         span.style.fontStyle = "italic";
         span.style.fontWeight = "700";

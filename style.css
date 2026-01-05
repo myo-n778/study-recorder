@@ -1385,6 +1385,27 @@ h3 {
     font-weight: 600 !important;
 }
 
+/* 中断ボタン（Take a Break）を控えめな塗りつぶしに */
+#pause-study-btn {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: none !important;
+    transition: all 0.3s ease !important;
+}
+
+#pause-study-btn:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+#pause-study-btn.pulse {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #fff !important;
+    border-color: #fff !important;
+}
+
 #current-time-display {
     font-size: 1rem;
     color: var(--text-dim);
