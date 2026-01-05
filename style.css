@@ -1320,11 +1320,11 @@ h3 {
     filter: drop-shadow(0 0 6px rgba(139, 195, 74, 0.6));
 }
 
-.timer-elapsed {
+#timer-elapsed {
     /* デジタル時計風フォント（カクカク斜体） */
     font-family: 'Orbitron', monospace;
     font-size: clamp(3.5rem, 12vw, 5.5rem);
-    font-weight: 900;
+    font-weight: 700;
     font-style: italic;
     /* テーマ色（オレンジ系）のグロー表示 */
     color: #ff8c42;
@@ -1337,10 +1337,10 @@ h3 {
     /* レイアウトシフト完全防止 */
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
-    /* 固定幅コンテナ：8文字（00:00:00）分を確保 */
-    width: 10ch;
-    min-width: 10ch;
-    max-width: 10ch;
+    /* 固定幅コンテナ：確実に揺れないようにする */
+    width: 9ch;
+    min-width: 9ch;
+    max-width: 9ch;
     text-align: center;
     display: inline-block;
     /* z-indexでリングより手前に */
@@ -1354,13 +1354,21 @@ h3 {
     font-family: var(--font-inter);
     position: relative;
     z-index: 10;
+    margin-top: 0.5rem;
 }
 
 #current-time-display span {
     font-family: 'Orbitron', monospace;
+    font-weight: 700;
     font-style: italic;
-    color: var(--text-main);
+    /* タイマーと完全に同一のオレンジ色とグロー */
+    color: #ff8c42;
+    text-shadow:
+        0 0 10px rgba(255, 140, 66, 0.6),
+        0 0 20px rgba(255, 107, 53, 0.3);
     margin-left: 0.5rem;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
 }
 
 /* 応援メッセージ：2行固定領域 */
