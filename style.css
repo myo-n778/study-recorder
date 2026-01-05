@@ -1385,23 +1385,24 @@ h3 {
     font-weight: 600 !important;
 }
 
-/* 中断ボタン（Take a Break）を控えめな塗りつぶしに */
+/* 中断ボタン（Take a Break）を控えめな薄い緑の塗りつぶしに */
 #pause-study-btn {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: rgba(255, 255, 255, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(34, 197, 94, 0.2) !important;
+    /* 薄い緑 */
+    color: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(34, 197, 94, 0.4) !important;
     box-shadow: none !important;
     transition: all 0.3s ease !important;
 }
 
 #pause-study-btn:hover {
-    background: rgba(255, 255, 255, 0.15) !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
+    background: rgba(34, 197, 94, 0.3) !important;
+    color: #fff !important;
+    border-color: rgba(34, 197, 94, 0.6) !important;
 }
 
 #pause-study-btn.pulse {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: rgba(34, 197, 94, 0.4) !important;
     color: #fff !important;
     border-color: #fff !important;
 }
@@ -1419,10 +1420,11 @@ h3 {
     font-family: 'Orbitron', monospace !important;
     font-weight: 700 !important;
     font-style: italic !important;
-    color: #ff8c42 !important;
+    color: #00e5ff !important;
+    /* 水色に変更 */
     text-shadow:
-        0 0 10px rgba(255, 140, 66, 0.6),
-        0 0 20px rgba(255, 107, 53, 0.3) !important;
+        0 0 10px rgba(0, 229, 255, 0.6),
+        0 0 20px rgba(0, 229, 255, 0.3) !important;
     margin-left: 0.5rem;
     font-variant-numeric: tabular-nums !important;
     font-feature-settings: "tnum" !important;
