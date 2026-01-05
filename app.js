@@ -143,7 +143,8 @@ let state = {
     lastPauseTime: null,
     messageInterval: 20000,
     supportMessageInterval: null,
-    isInitializing: false // 起動中フラグ
+    isInitializing: false, // 起動中フラグ
+    userName: '' // 永続化用のユーザー名
 };
 
 // 初期化時に論理的な「今日」を設定
@@ -358,9 +359,26 @@ function updateSupportMessage() {
     const msgEl = document.getElementById('support-message');
     if (msgEl) {
         msgEl.style.opacity = '0';
+        // フォントサイズをリセット
+        msgEl.style.fontSize = '';
+
         setTimeout(() => {
             msgEl.textContent = randomMsg;
             msgEl.style.opacity = '1';
+
+            // 2行(3.2em)に収まるまでフォントサイズを縮小（最大5回、0.05remずつ）
+            const maxAttempts = 5;
+            let currentFontSize = 1; // 1rem
+            const containerHeight = msgEl.parentElement.clientHeight;
+
+            for (let i = 0; i < maxAttempts; i++) {
+                if (msgEl.scrollHeight > containerHeight) {
+                    currentFontSize -= 0.05;
+                    msgEl.style.fontSize = `${currentFontSize}rem`;
+                } else {
+                    break;
+                }
+            }
         }, 500);
     }
 }
@@ -371,8 +389,18 @@ function loadUser() {
     if (!userName) {
         elements.userSetup.classList.remove('hidden');
     } else {
-        elements.userDisplay.textContent = `User: ${userName}`;
+        state.userName = userName; // stateに保持
+        updateUserDisplay();
         hideOverlay();
+    }
+}
+
+// ユーザー名表示の更新（不具合防止のため関数化）
+function updateUserDisplay() {
+    const userName = state.userName || localStorage.getItem(USER_KEY);
+    if (userName && elements.userDisplay) {
+        elements.userDisplay.textContent = `User: ${userName}`;
+        state.userName = userName;
     }
 }
 
@@ -670,9 +698,13 @@ function setupEventListeners() {
         const name = elements.userNameInput.value.trim();
         if (name) {
             localStorage.setItem(USER_KEY, name);
-            elements.userDisplay.textContent = `User: ${name}`;
+            state.userName = name; // stateに即時反映
+            updateUserDisplay();
             hideOverlay();
-            loadRecordsFromGAS(); // 名前が変わったらデータを再読込
+            loadRecordsFromGAS();
+            alert(`User: ${name} として保存しました`);
+        } else {
+            alert('名前を入力してください');
         }
     });
 
@@ -813,14 +845,13 @@ const state = {
 */
 
 function updateGoalDisplay() {
-    if (!elements.displayMinHours || !elements.displayTargetHours) return;
-
     const minH = state.goals.minHours;
     const targetH = state.goals.targetHours;
-
     const format = (h) => `${h}h (${h * 60}min)`;
-    elements.displayMinHours.textContent = format(minH);
-    elements.displayTargetHours.textContent = format(targetH);
+
+    if (elements.displayMinHours) elements.displayMinHours.textContent = format(minH);
+    if (elements.displayTargetHours) elements.displayTargetHours.textContent = format(targetH);
+    updateUserDisplay(); // ユーザー名保護を維持
 }
 
 function changeViewDate(days) {
@@ -1293,6 +1324,7 @@ async function loadRecordsFromGAS() {
         updateCharts();
         setupMasterData();
         updateLocationSuggestions();
+        updateUserDisplay(); // ここでユーザー名を確実に再描画
     }
 
     // ② カテゴリ・学習内容の初期値（直近の記録からセット）
@@ -2165,6 +2197,12 @@ function updateTimerDisplay() {
  * 60, 180, 360分到達時には🌟を表示して強制改行する。
  * 120, 240, 300分は改行しない。
  */
+/**
+ * 達成スタンプ（⭐/🌟）の描画ロジック（スマホ最適化版）
+ * 10分ごとにスタンプ1つ分として計算するが、
+ * 60分単位は常に🌟、それ以外は⭐として表示。
+ * 120分（12スタンプ分）ごとに改行する等間隔配置。
+ */
 function drawAchievementStamps() {
     const area = document.getElementById('achievement-stamps-area');
     if (!area) return;
@@ -2177,50 +2215,26 @@ function drawAchievementStamps() {
         return;
     }
 
-    // 描画用の行データを構築
+    const MAX_STAMPS_PER_ROW = 12; // 120分(12個)で1行
     const rows = [];
     let currentRow = [];
-    let stampsInCurrentRow = 0;
-    let maxStampsInRow = 1; // 三角形配置の定員(1,2,3...)
 
     for (let i = 1; i <= totalStampsCount; i++) {
         const minutes = i * 10;
         const is60Multiple = minutes % 60 === 0;
-        const stamp = is60Multiple ? '🌟' : '⭐';
-        const isLarge = is60Multiple;
 
-        currentRow.push({ char: stamp, isLarge: isLarge });
-        stampsInCurrentRow++;
+        // 60分単位の場合は🌟、それ以外は⭐
+        const char = is60Multiple ? '🌟' : '⭐';
+        currentRow.push({ char: char, isLarge: is60Multiple });
 
-        // 改行判定
-        let shouldBreak = false;
-
-        // 1. 特殊改行ルール（60, 180, 360...）
-        if (minutes === 60 || minutes === 180 || minutes === 360 || minutes === 600) {
-            shouldBreak = true;
-        }
-        // 2. 通常の三角形配置ルール（定員に達した場合）
-        else if (stampsInCurrentRow >= maxStampsInRow) {
-            // ただし「改行禁止時間（120, 240, 300など）」ではない場合のみ改行
-            const nextCouldBreak = (minutes !== 120 && minutes !== 240 && minutes !== 300);
-            if (nextCouldBreak) {
-                shouldBreak = true;
-            }
-        }
-
-        if (shouldBreak && i < totalStampsCount) {
+        // 120分（12個目）で改行、または最後の要素なら行を追加
+        if (i % MAX_STAMPS_PER_ROW === 0 || i === totalStampsCount) {
             rows.push(currentRow);
             currentRow = [];
-            stampsInCurrentRow = 0;
-            maxStampsInRow++; // 次の行は定員を増やす
         }
     }
-    // 最後の行を追加
-    if (currentRow.length > 0) {
-        rows.push(currentRow);
-    }
 
-    // DOMに反映（変化がある場合のみ更新するために一括生成）
+    // DOMに反映（変化がある場合のみ更新）
     const fragment = document.createDocumentFragment();
     rows.forEach(rowStamps => {
         const rowDiv = document.createElement('div');
@@ -2234,7 +2248,6 @@ function drawAchievementStamps() {
         fragment.appendChild(rowDiv);
     });
 
-    // ちらつき防止のため、内容が変わった時のみ書き換え
     const newHTML = Array.from(fragment.childNodes).map(node => node.outerHTML).join('');
     if (area.innerHTML !== newHTML) {
         area.innerHTML = newHTML;
