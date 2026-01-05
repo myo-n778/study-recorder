@@ -851,6 +851,27 @@ function updateGoalDisplay() {
 
     if (elements.displayMinHours) elements.displayMinHours.textContent = format(minH);
     if (elements.displayTargetHours) elements.displayTargetHours.textContent = format(targetH);
+
+    // 目標達成状況に応じたバッジの発光演出反映
+    const totalTodayMinutes = getTodayTotalMinutes();
+    const minGoalMin = minH * 60;
+    const targetGoalMin = targetH * 60;
+
+    if (elements.displayMinHours) {
+        if (minGoalMin > 0 && totalTodayMinutes >= minGoalMin) {
+            elements.displayMinHours.classList.add('achieved');
+        } else {
+            elements.displayMinHours.classList.remove('achieved');
+        }
+    }
+    if (elements.displayTargetHours) {
+        if (targetGoalMin > 0 && totalTodayMinutes >= targetGoalMin) {
+            elements.displayTargetHours.classList.add('achieved');
+        } else {
+            elements.displayTargetHours.classList.remove('achieved');
+        }
+    }
+
     updateUserDisplay(); // ユーザー名保護を維持
 }
 
@@ -2204,6 +2225,9 @@ function updateTimerDisplay() {
 
     // 達成スタンプを更新
     drawAchievementStamps();
+
+    // 目標バッジ（ヘッダー）の発光状態もリアルタイム更新
+    updateGoalDisplay();
 }
 
 /**
