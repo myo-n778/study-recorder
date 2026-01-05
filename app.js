@@ -2162,6 +2162,21 @@ function updateTimerDisplay() {
     };
     const color = themeColors[theme] || themeColors['default'];
 
+    // 目標達成度による発光強度の決定
+    const totalTodayMinutes = getTodayTotalMinutes();
+    const minGoalMinutes = (state.goals.minHours || 0) * 60;
+    const targetGoalMinutes = (state.goals.targetHours || 0) * 60;
+
+    let glowStyle = `0 0 15px ${color}b3, 0 0 30px ${color}66`; // デフォルト
+
+    if (totalTodayMinutes >= targetGoalMinutes && targetGoalMinutes > 0) {
+        // 最終目標達成：強発光＋多層グロー
+        glowStyle = `0 0 10px #fff, 0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}, 0 0 80px ${color}`;
+    } else if (totalTodayMinutes >= minGoalMinutes && minGoalMinutes > 0) {
+        // 最小目標達成：中発光
+        glowStyle = `0 0 10px ${color}, 0 0 25px ${color}, 0 0 45px ${color}`;
+    }
+
     // 各桁の要素を取得して文字をセット（個別に更新することで全体のガタつきを防止）
     const digits = {
         't-h1': h[0], 't-h2': h[1],
@@ -2175,16 +2190,16 @@ function updateTimerDisplay() {
             if (el.textContent !== value) {
                 el.textContent = value;
             }
-            // テーマカラーとグローをJSから強制（Canvas対策を兼ねる）
+            // テーマカラーとグローをJSから強制
             el.style.color = color;
-            el.style.textShadow = `0 0 15px ${color}b3, 0 0 30px ${color}66`;
+            el.style.textShadow = glowStyle;
         }
     }
 
-    // コロンの色も合わせる
+    // コロンの色とグローも更新
     document.querySelectorAll('#timer-elapsed .t-colon').forEach(el => {
         el.style.color = color;
-        el.style.textShadow = `0 0 15px ${color}b3, 0 0 30px ${color}66`;
+        el.style.textShadow = glowStyle;
     });
 
     // 達成スタンプを更新
