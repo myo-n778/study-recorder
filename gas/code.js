@@ -212,13 +212,13 @@ function getBaseData(ss) {
   const finishMessages = [];
 
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0]) categories.push(data[i][0]);
-    if (data[i][1]) contents.push(data[i][1]);
-    if (data[i][2]) enthusiasms.push(data[i][2]);
-    if (data[i][3]) comments.push(data[i][3]);
-    if (data[i][4]) locations.push(data[i][4]);
-    if (data[i][5]) supportMessages.push(data[i][5]);
-    if (data[i][6]) finishMessages.push(data[i][6]);
+    if (data[i][0] && data[i][0].toString().trim()) categories.push(data[i][0].toString().trim());
+    if (data[i][1] && data[i][1].toString().trim()) contents.push(data[i][1].toString().trim());
+    if (data[i][2] && data[i][2].toString().trim()) enthusiasms.push(data[i][2].toString().trim());
+    if (data[i][3] && data[i][3].toString().trim()) comments.push(data[i][3].toString().trim());
+    if (data[i][4] && data[i][4].toString().trim()) locations.push(data[i][4].toString().trim());
+    if (data[i][5] && data[i][5].toString().trim()) supportMessages.push(data[i][5].toString().trim());
+    if (data[i][6] && data[i][6].toString().trim()) finishMessages.push(data[i][6].toString().trim());
   }
 
   return {

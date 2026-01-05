@@ -135,8 +135,10 @@ let state = {
         contents: [],
         enthusiasms: [],
         comments: [],
-        locations: []
+        locations: [],
+        supportMessages: []
     },
+    sessionSupportMessages: [], // 今のタイマーセッション中だけ使い回すメッセージ
     accumulatedPausedMs: 0,
     lastPauseTime: null,
     messageInterval: 20000,
@@ -851,12 +853,27 @@ function updateViewDateUI() {
 }
 
 // 学習開始処理
-function startStudy() {
+async function startStudy() {
     const category = elements.categoryInput.value.trim();
     const content = elements.contentInput.value.trim();
     if (!category || !content) {
         alert('カテゴリーと内容を入力してください');
         return;
+    }
+
+    // 学習開始時に一度だけGASからマスタデータを取得し、応援メッセージを固定（一時キャッシュ）する
+    try {
+        await loadRecordsFromGAS();
+        if (state.gasMasterData && state.gasMasterData.supportMessages && state.gasMasterData.supportMessages.length > 0) {
+            // F列（supportMessages）が有効な場合、それをセッション用キャッシュに設定
+            state.sessionSupportMessages = state.gasMasterData.supportMessages;
+        } else {
+            // 1つも無い場合は空にする（updateSupportMessage側でデフォルトへフォールバック）
+            state.sessionSupportMessages = [];
+        }
+    } catch (e) {
+        console.error("Failed to load support messages from GAS:", e);
+        state.sessionSupportMessages = []; // 失敗時もフォールバック用に空にする
     }
 
     state.isStudying = true;
@@ -2335,8 +2352,13 @@ function updateCurrentTimeDisplay() {
 }
 
 function updateSupportMessage() {
-    const idx = Math.floor(Math.random() * supportMessages.length);
-    elements.supportMessage.textContent = supportMessages[idx];
+    // セッション一時キャッシュ（GAS由来）がある場合はそちらを使用、ない場合はデフォルトを使用
+    const messages = (state.sessionSupportMessages && state.sessionSupportMessages.length > 0)
+        ? state.sessionSupportMessages
+        : supportMessages;
+
+    const idx = Math.floor(Math.random() * messages.length);
+    elements.supportMessage.textContent = messages[idx];
 }
 
 // 実行: 初期化シーケンスを集約
