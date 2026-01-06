@@ -374,7 +374,7 @@ function updateSupportMessage() {
             msgEl.textContent = randomMsg;
             msgEl.style.opacity = '1';
 
-            // 3行(4.8em)に収まるまでフォントサイズを縮小（最大5回、0.05remずつ）
+            // 2行(3.2em)に収まるまでフォントサイズを縮小（最大5回、0.05remずつ）
             const maxAttempts = 5;
             let currentFontSize = 1; // 1rem
             const containerHeight = msgEl.parentElement.clientHeight;

@@ -1508,11 +1508,11 @@ h3 {
     padding: 0.8rem 1.2rem;
     border-radius: 16px;
     border: 1px solid var(--glass-border);
-    /* 3行固定領域：min-heightで高さを確保 */
-    min-height: 4.8em;
-    max-height: 4.8em;
-    height: 4.8em;
-    /* 3行までに制限 */
+    /* 2行固定領域：min-heightで高さを確保 */
+    min-height: 3.2em;
+    max-height: 3.2em;
+    height: 3.2em;
+    /* 2行までに制限 */
     overflow: hidden;
     display: flex;
     align-items: center;
