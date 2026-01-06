@@ -1459,21 +1459,21 @@ h3 {
     font-feature-settings: "tnum" !important;
 }
 
-/* 達成スタンプ表示エリア（タイマー上部の余白） */
+/* 達成スタンプ表示エリア（ボタン直下・固定領域） */
 #achievement-stamps-area {
-    position: absolute !important;
-    top: 15% !important;
-    /* タイマー数字の上の空きスペースに固定 */
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 250px !important;
+    width: 100% !important;
+    max-width: 300px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: flex-end !important;
+    justify-content: flex-start !important;
+    /* 上から順に配置 */
     pointer-events: none !important;
     z-index: 15 !important;
-    min-height: 100px !important;
+    height: 85px !important;
+    /* 3-4行分を確保し、星が増えても動かないようにする */
+    margin-top: 0.5rem !important;
+    overflow: hidden !important;
 }
 
 .stamp-row {

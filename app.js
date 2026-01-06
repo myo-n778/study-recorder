@@ -2248,20 +2248,19 @@ function drawAchievementStamps() {
         return;
     }
 
-    const MAX_STAMPS_PER_ROW = 12; // 120分(12個)で1行
     const rows = [];
     let currentRow = [];
 
     for (let i = 1; i <= totalStampsCount; i++) {
         const minutes = i * 10;
         const is60Multiple = minutes % 60 === 0;
-
-        // 60分単位の場合は🌟、それ以外は⭐
         const char = is60Multiple ? '🌟' : '⭐';
+
         currentRow.push({ char: char, isLarge: is60Multiple });
 
-        // 120分（12個目）で改行、または最後の要素なら行を追加
-        if (i % MAX_STAMPS_PER_ROW === 0 || i === totalStampsCount) {
+        // 120分（12個目）に達した時点、または最後の星の場合に行を確定
+        // i=12 (120 min) までは同じ行、i=13 (130 min) から次の行
+        if (i % 12 === 0 || i === totalStampsCount) {
             rows.push(currentRow);
             currentRow = [];
         }
