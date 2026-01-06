@@ -280,15 +280,14 @@ async function init() {
     elements.enthusiasmInput.value = '集中して取り組む！';
     elements.commentInput.value = '次も頑張ろう！';
 
-    // 3. 非同期データ取得
+    // 3. 非同期データ取得の前にセッション復元 (モバイルでの再開を最優先)
+    resumeStudySession();
+
     setupMasterData();
     updateGoalDisplay();
     await loadRecordsFromGAS();
 
     state.isInitializing = false;
-
-    // 4. セッション復元 (最後に実行してUIの状態を確定させる)
-    resumeStudySession();
 
     // 応援メッセージの初期インターバル設定
     const savedInterval = localStorage.getItem('study_recorder_message_interval');
@@ -338,9 +337,12 @@ function resumeStudySession() {
                 }
             }
 
-            // 修正: 学習中なら画面を自動表示する
+            // 修正: 学習中なら画面を自動表示し、オーバーレイを確実に消す
             if (elements.studyMode) {
                 elements.studyMode.classList.remove('hidden');
+                // オーバーレイと名前入力画面を強制的に非表示
+                if (elements.overlay) elements.overlay.classList.add('hidden');
+                if (elements.userSetup) elements.userSetup.classList.add('hidden');
             }
         }
     }
@@ -2480,34 +2482,34 @@ function updateSupportMessage() {
 
     const randomMsg = messages[Math.floor(Math.random() * messages.length)];
     const msgEl = document.getElementById('support-message');
-    if (msgEl) {
+    const container = msgEl?.parentElement;
+
+    if (msgEl && container) {
         msgEl.style.opacity = '0';
-        msgEl.style.fontSize = '1.1rem'; // 初期フォントサイズを少し大きめに
 
         setTimeout(() => {
             msgEl.textContent = randomMsg;
-            msgEl.style.opacity = '1';
-
-            // 2行(3.2em = 1.6em * 2)に収まるまでフォントサイズを縮小
-            // 全文表示を優先し、絶対にはみ出させない
-            const container = msgEl.parentElement;
-            const maxHeight = container.clientHeight || 52; // fallback
             let fontSize = 1.1;
+            msgEl.style.fontSize = fontSize + 'rem';
 
-            // 縮小処理：全文が表示され、かつ2行以内に収まるまで繰り返す
-            for (let i = 0; i < 15; i++) { // 最大15段階まで縮小
-                if (msgEl.scrollHeight > maxHeight) {
-                    fontSize -= 0.05;
-                    msgEl.style.fontSize = `${fontSize}rem`;
-                } else {
-                    break;
-                }
+            // 利用可能な高さを正確に取得（paddingを除く）
+            const computedStyle = window.getComputedStyle(container);
+            const padding = parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.paddingBottom);
+            const availableHeight = container.clientHeight - padding;
+
+            // 2行に収まるまで（または最小サイズ 0.6rem まで）フォントサイズを縮小
+            // scrollHeight と offsetHeight 両方でチェックして確実に収める
+            let attempts = 0;
+            while ((msgEl.scrollHeight > availableHeight || msgEl.offsetHeight > availableHeight) && fontSize > 0.6 && attempts < 40) {
+                fontSize -= 0.02;
+                msgEl.style.fontSize = fontSize + 'rem';
+                attempts++;
             }
-        }, 500);
+
+            msgEl.style.opacity = '1';
+        }, 400);
     }
 }
 
 // 実行: 初期化シーケンスを集約
 init();
-loadRecordsFromGAS(); // GASから記録を非同期で読み込む
-// updateHistoryUI や updateCharts は loadRecordsFromGAS 内で呼ばれる
