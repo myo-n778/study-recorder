@@ -263,9 +263,14 @@ const supportMessages = [
 
 // 初期化
 async function init() {
-    state.isInitializing = true; // 重複読み込み防止フラグ
-    state.viewDate = getLogicalDate(); // まずは論理日付をセット
-    loadUser();
+    state.isInitializing = true;
+    state.viewDate = getLogicalDate();
+
+    // 1. 同期的な復元 (User, LocalSettings)
+    loadUser();         // ユーザー名復元
+    loadLocalRecords(); // 目標・テーマ復元 & updateUserDisplay実行
+
+    // 2. UI基本設定
     setupEventListeners();
     setupPeriodSwitchers();
     setCurrentTimeInputs();
@@ -275,15 +280,14 @@ async function init() {
     elements.enthusiasmInput.value = '集中して取り組む！';
     elements.commentInput.value = '次も頑張ろう！';
 
+    // 3. 非同期データ取得
     setupMasterData();
     updateGoalDisplay();
-
-    // GASからデータを読み込む (完了を待つ)
     await loadRecordsFromGAS();
 
     state.isInitializing = false;
 
-    // 以前のセッションがあれば復元
+    // 4. セッション復元 (最後に実行してUIの状態を確定させる)
     resumeStudySession();
 
     // 応援メッセージの初期インターバル設定
@@ -396,8 +400,10 @@ function loadUser() {
     const userName = localStorage.getItem(USER_KEY);
     if (!userName) {
         elements.userSetup.classList.remove('hidden');
+        elements.overlay.classList.remove('hidden'); // 確実に見せる
+        elements.overlay.style.opacity = '1';
     } else {
-        state.userName = userName; // stateに保持
+        state.userName = userName;
         updateUserDisplay();
         hideOverlay();
     }
@@ -997,7 +1003,8 @@ function saveStudyState() {
             lastPauseTime: state.lastPauseTime ? state.lastPauseTime.toISOString() : null,
             category: elements.categoryInput.value.trim(),
             content: elements.contentInput.value.trim(),
-            location: elements.locationInput.value.trim()
+            location: elements.locationInput.value.trim(),
+            theme: state.goals.theme || 'default'
         }));
     } else {
         localStorage.removeItem(STATE_STUDY_KEY);
@@ -1352,8 +1359,8 @@ async function loadRecordsFromGAS() {
         updateUserDisplay(); // ここでユーザー名を確実に再描画
     }
 
-    // ② カテゴリ・学習内容の初期値（直近の記録からセット）
-    if (state.records.length > 0) {
+    // ② カテゴリ・学習内容の初期値（初期起動時かつ学習中でない場合のみセット）
+    if (!state.isStudying && state.records.length > 0 && !elements.categoryInput.value && !elements.contentInput.value) {
         const sorted = [...state.records].sort((a, b) => {
             const parseTime = (r) => {
                 if (!r.date || !r.startTime) return 0;
@@ -1381,6 +1388,8 @@ function loadLocalRecords() {
         elements.targetHoursInput.value = state.goals.targetHours;
         if (state.goals.theme) {
             document.documentElement.setAttribute('data-theme', state.goals.theme);
+            const dots = document.querySelectorAll('.color-dot');
+            dots.forEach(d => d.classList.remove('active'));
             const activeDot = document.querySelector(`.color-dot[data-theme="${state.goals.theme}"]`);
             if (activeDot) activeDot.classList.add('active');
         }
