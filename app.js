@@ -109,6 +109,14 @@ function getExpandedRecords(records) {
     return records.flatMap(r => splitRecordAt4AMBoundary(r));
 }
 
+// 本日の論理的な合計学習時間を取得
+function getTodayTotalMinutes() {
+    const logicalTodayStr = getLogicalDate(new Date());
+    return getExpandedRecords(state.records)
+        .filter(r => getBelongingDate(r.date, r.startTime) === logicalTodayStr)
+        .reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0);
+}
+
 let state = {
     isStudying: false,
     startTime: null,
@@ -1033,12 +1041,8 @@ async function finishStudy() {
 
     // ① 2軸評価用データの準備 (A: 今回, B: 本日合計)
     const durationA = duration;
-    // 修正: 所属判定で本日合計を計算（0:00〜3:59は前日所属）
-    const logicalTodayStr = getLogicalDate(endTime);
-    const todayTotalMinutes = state.records
-        .filter(r => getBelongingDate(r.date, r.startTime) === logicalTodayStr)
-        .reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0);
-    const durationB = todayTotalMinutes + durationA;
+    // 修正: 共通関数を使用して本日合計を計算
+    const durationB = getTodayTotalMinutes() + durationA;
 
     // ② メッセージの取得とフィルタリング
     const rawMsgs = (state.gasMasterData && state.gasMasterData.finishMessages && state.gasMasterData.finishMessages.length > 0)
