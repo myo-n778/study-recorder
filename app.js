@@ -362,38 +362,7 @@ function startTimerInterval() {
     startRingAnimation();
 }
 
-function updateSupportMessage() {
-    const messages = (state.gasMasterData && state.gasMasterData.supportMessages && state.gasMasterData.supportMessages.length > 0)
-        ? state.gasMasterData.supportMessages
-        : supportMessages;
-
-    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-    const msgEl = document.getElementById('support-message');
-    if (msgEl) {
-        msgEl.style.opacity = '0';
-        // フォントサイズをリセット
-        msgEl.style.fontSize = '';
-
-        setTimeout(() => {
-            msgEl.textContent = randomMsg;
-            msgEl.style.opacity = '1';
-
-            // 2行(3.2em)に収まるまでフォントサイズを縮小（最大5回、0.05remずつ）
-            const maxAttempts = 5;
-            let currentFontSize = 1; // 1rem
-            const containerHeight = msgEl.parentElement.clientHeight;
-
-            for (let i = 0; i < maxAttempts; i++) {
-                if (msgEl.scrollHeight > containerHeight) {
-                    currentFontSize -= 0.05;
-                    msgEl.style.fontSize = `${currentFontSize}rem`;
-                } else {
-                    break;
-                }
-            }
-        }, 500);
-    }
-}
+// 重複防止のためこの位置の updateSupportMessage は削除。末尾の定義を使用。
 
 // ユーザー情報のロード
 function loadUser() {
@@ -943,23 +912,33 @@ async function startStudy() {
     }
 
     state.isStudying = true;
-    state.startTime = new Date(); // ① 基準修正: 必ず現在（開始タップ時）をstartTimeとする
+    state.startTime = new Date();
 
     state.elapsedSeconds = 0;
     state.isPaused = false;
     state.accumulatedPausedMs = 0;
     state.lastPauseTime = null;
 
+    // リングの周回状態をリセット（初期塗りバグ防止）
+    prevSecondLap = -1;
+    prevMinuteLap = -1;
+    prevHourLap = -1;
+    timerRingsInitialized = false;
+
+    // リングの不透明度をリセット
+    ['ring-seconds-prev', 'ring-minutes-prev', 'ring-hours-prev'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.opacity = '0';
+    });
+
     document.getElementById('study-current-category').textContent = category;
     document.getElementById('study-current-content').textContent = content;
 
     elements.studyMode.classList.remove('hidden');
     updateSupportMessage();
-    saveStudyState(); // 状態を即時保存
+    saveStudyState();
 
-    // 初回のタイマー表示を初期化
     updateTimerDisplay();
-
     startTimerInterval();
     startSupportMessageInterval();
 }
@@ -2201,14 +2180,14 @@ function updateTimerDisplay() {
     const minGoalMinutes = (state.goals.minHours || 0) * 60;
     const targetGoalMinutes = (state.goals.targetHours || 0) * 60;
 
-    let glowStyle = `0 0 15px ${color}b3, 0 0 30px ${color}66`; // デフォルト
+    let glowStyle = `0 0 15px ${color}cc, 0 0 30px ${color}66`;
 
     if (totalTodayMinutes >= targetGoalMinutes && targetGoalMinutes > 0) {
-        // 最終目標達成：強発光＋多層グロー
-        glowStyle = `0 0 10px #fff, 0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}, 0 0 80px ${color}`;
+        // 最終目標達成：白抜きグローを削除し、テーマカラーの強発光のみに
+        glowStyle = `0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}`;
     } else if (totalTodayMinutes >= minGoalMinutes && minGoalMinutes > 0) {
-        // 最小目標達成：中発光
-        glowStyle = `0 0 10px ${color}, 0 0 25px ${color}, 0 0 45px ${color}`;
+        // 最小目標達成
+        glowStyle = `0 0 10px ${color}, 0 0 25px ${color}`;
     }
 
     // 各桁の要素を取得して文字をセット（個別に更新することで全体のガタつきを防止）
@@ -2495,13 +2474,37 @@ function updateCurrentTimeDisplay() {
 }
 
 function updateSupportMessage() {
-    // セッション一時キャッシュ（GAS由来）がある場合はそちらを使用、ない場合はデフォルトを使用
-    const messages = (state.sessionSupportMessages && state.sessionSupportMessages.length > 0)
-        ? state.sessionSupportMessages
+    const messages = (state.gasMasterData && state.gasMasterData.supportMessages && state.gasMasterData.supportMessages.length > 0)
+        ? state.gasMasterData.supportMessages
         : supportMessages;
 
-    const idx = Math.floor(Math.random() * messages.length);
-    elements.supportMessage.textContent = messages[idx];
+    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+    const msgEl = document.getElementById('support-message');
+    if (msgEl) {
+        msgEl.style.opacity = '0';
+        msgEl.style.fontSize = '1.1rem'; // 初期フォントサイズを少し大きめに
+
+        setTimeout(() => {
+            msgEl.textContent = randomMsg;
+            msgEl.style.opacity = '1';
+
+            // 2行(3.2em = 1.6em * 2)に収まるまでフォントサイズを縮小
+            // 全文表示を優先し、絶対にはみ出させない
+            const container = msgEl.parentElement;
+            const maxHeight = container.clientHeight || 52; // fallback
+            let fontSize = 1.1;
+
+            // 縮小処理：全文が表示され、かつ2行以内に収まるまで繰り返す
+            for (let i = 0; i < 15; i++) { // 最大15段階まで縮小
+                if (msgEl.scrollHeight > maxHeight) {
+                    fontSize -= 0.05;
+                    msgEl.style.fontSize = `${fontSize}rem`;
+                } else {
+                    break;
+                }
+            }
+        }, 500);
+    }
 }
 
 // 実行: 初期化シーケンスを集約
