@@ -365,13 +365,13 @@ header {
 /* Aggressive Grid Control */
 .grid-2col {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
 }
 
 @media (max-width: 600px) {
     .grid-2col {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.4rem;
     }
 }
@@ -434,6 +434,8 @@ label {
 input,
 select {
     width: 100%;
+    min-width: 0;
+    /* はみ出し防止 */
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 6px;
@@ -442,6 +444,13 @@ select {
     font-size: 16px;
     /* モバイルでのズーム防止: 16px以上に設定 */
     transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+/* 時刻入力のパディング微調整（重なり防止） */
+input[type="time"],
+input[type="date"] {
+    padding: 0.3rem 0.3rem;
 }
 
 @media (min-width: 600px) {
