@@ -442,52 +442,24 @@ function setCurrentTimeInputs() {
 
 // マスターデータのセットアップ (履歴 + GASのbaseシートから候補抽出)
 function setupMasterData() {
-    // 1. カテゴリー候補 (自分の履歴のみを使用)
-    const catFreq = {};
-    state.records.forEach(r => {
-        if (r.category && r.category.trim()) {
-            catFreq[r.category] = (catFreq[r.category] || 0) + 1;
-        }
-    });
+    // ▼ボタン（datalist）: baseシートの共通マスタから取得
+    // 履歴ボタン（ポップアップ）: 自分の記録から取得（showHistoryTypePopup内で処理）
 
-    const sortedCats = Object.keys(catFreq).sort((a, b) => catFreq[b] - catFreq[a]);
+    // 1. カテゴリー候補 (baseシートから取得)
     elements.categoryList.innerHTML = '';
-    sortedCats.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        elements.categoryList.appendChild(opt);
-    });
+    if (state.gasMasterData?.categories) {
+        state.gasMasterData.categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            elements.categoryList.appendChild(opt);
+        });
+    }
 
-    // 全履歴から内容を収集 (フィルタなし時の候補用)
-    const allContents = new Set();
-    state.records.forEach(r => {
-        if (r.content && r.content.trim()) allContents.add(r.content);
-    });
-
-    // 2. 学習内容の候補更新
+    // 2. 学習内容の候補更新 (baseシートから取得)
     const updateContentList = () => {
-        const catVal = elements.categoryInput.value;
-        const contFreq = {};
-
-        if (catVal) {
-            state.records.filter(r => r.category === catVal).forEach(r => {
-                if (r.content && r.content.trim()) contFreq[r.content] = (contFreq[r.content] || 0) + 1;
-            });
-            const sortedConts = Object.keys(contFreq).sort((a, b) => contFreq[b] - contFreq[a]);
-            elements.contentList.innerHTML = '';
-            sortedConts.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item;
-                elements.contentList.appendChild(opt);
-            });
-            if (sortedConts.length === 0) fillList(elements.contentList, allContents);
-        } else {
-            state.records.forEach(r => {
-                if (r.content && r.content.trim()) contFreq[r.content] = (contFreq[r.content] || 0) + 1;
-            });
-            const sortedConts = Object.keys(contFreq).sort((a, b) => contFreq[b] - contFreq[a]);
-            elements.contentList.innerHTML = '';
-            sortedConts.forEach(item => {
+        elements.contentList.innerHTML = '';
+        if (state.gasMasterData?.contents) {
+            state.gasMasterData.contents.forEach(item => {
                 const opt = document.createElement('option');
                 opt.value = item;
                 elements.contentList.appendChild(opt);
@@ -495,38 +467,25 @@ function setupMasterData() {
         }
     };
 
-    // 3. 意気込みの候補更新
+    // 3. 意気込みの候補更新 (baseシートから取得)
     const updateEnthusiasmList = () => {
-        const intFreq = {};
-        state.records.forEach(r => {
-            if (r.enthusiasm && r.enthusiasm.trim()) {
-                intFreq[r.enthusiasm] = (intFreq[r.enthusiasm] || 0) + 1;
-            }
-        });
-
-        // 履歴がない場合のフォールバック（利便性のために維持）
-        if (Object.keys(intFreq).length === 0) {
-            ['集中して取り組む！', 'まずは15分頑張る', '復習をメインに'].forEach(i => intFreq[i] = 0.1);
-        }
-
-        const sortedIntents = Object.keys(intFreq).sort((a, b) => intFreq[b] - intFreq[a]);
         elements.enthusiasmList.innerHTML = '';
-        sortedIntents.forEach(i => {
-            const opt = document.createElement('option');
-            opt.value = i;
-            elements.enthusiasmList.appendChild(opt);
-        });
+        if (state.gasMasterData?.enthusiasms && state.gasMasterData.enthusiasms.length > 0) {
+            state.gasMasterData.enthusiasms.forEach(i => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                elements.enthusiasmList.appendChild(opt);
+            });
+        } else {
+            // フォールバック
+            ['集中して取り組む！', 'まずは15分頑張る', '復習をメインに'].forEach(i => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                elements.enthusiasmList.appendChild(opt);
+            });
+        }
     };
 
-    const fillList = (listEl, set) => {
-        listEl.innerHTML = '';
-        const sorted = Array.from(set).sort(); // 文字列順
-        sorted.forEach(val => {
-            const opt = document.createElement('option');
-            opt.value = val;
-            listEl.appendChild(opt);
-        });
-    };
 
     // リスナー設定
     if (!elements.categoryInput.dataset.listeners) {
@@ -698,23 +657,15 @@ function setupMasterData() {
 }
 
 function updateCommentSuggestions() {
+    // ▼ボタン（datalist）: baseシートの共通マスタから取得
     elements.commentList.innerHTML = '';
-    const commFreq = {};
-
-    // 自分の履歴のみを使用 (baseシート由来は除外)
-    state.records.forEach(r => {
-        if (r.comment && r.comment.trim()) {
-            commFreq[r.comment] = (commFreq[r.comment] || 0) + 1;
-        }
-    });
-
-    const sortedComms = Object.keys(commFreq).sort((a, b) => commFreq[b] - commFreq[a]);
-
-    sortedComms.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        elements.commentList.appendChild(opt);
-    });
+    if (state.gasMasterData?.comments) {
+        state.gasMasterData.comments.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            elements.commentList.appendChild(opt);
+        });
+    }
 }
 
 /**
@@ -1224,19 +1175,15 @@ async function saveSummaryRecord() {
 }
 
 function updateLocationSuggestions() {
+    // ▼ボタン（datalist）: baseシートの共通マスタから取得
     elements.locationList.innerHTML = '';
-    const locFreq = {};
-    // baseシート（共通候補）は含めず、自分の履歴のみを使用する
-    state.records.forEach(r => {
-        if (r.location) locFreq[r.location] = (locFreq[r.location] || 0) + 1;
-    });
-
-    const sortedLocs = Object.keys(locFreq).sort((a, b) => locFreq[b] - locFreq[a]);
-    sortedLocs.forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l;
-        elements.locationList.appendChild(opt);
-    });
+    if (state.gasMasterData?.locations) {
+        state.gasMasterData.locations.forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l;
+            elements.locationList.appendChild(opt);
+        });
+    }
 }
 
 // 手動記録処理
