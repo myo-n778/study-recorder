@@ -398,16 +398,20 @@
     <!-- Edit Modal -->
     <div id="edit-modal" class="modal hidden">
         <div class="modal-content glass-card">
-            <h3>記録の編集</h3>
+            <h3 style="user-select: none; -webkit-user-select: none;">記録の編集</h3>
             <input type="hidden" id="edit-id">
             <div class="grid-2col">
                 <div class="form-group">
-                    <label>カテゴリー</label>
+                    <label>カテゴリー <button type="button" class="history-btn"
+                            id="edit-category-history-btn">📋</button></label>
                     <input type="text" id="edit-category" list="category-list">
+                    <div class="history-popup hidden" id="edit-category-history-popup"></div>
                 </div>
                 <div class="form-group">
-                    <label>内容</label>
+                    <label>内容 <button type="button" class="history-btn"
+                            id="edit-content-history-btn">📋</button></label>
                     <input type="text" id="edit-content" list="content-list">
+                    <div class="history-popup hidden" id="edit-content-history-popup"></div>
                 </div>
             </div>
             <div class="grid-2col">
@@ -431,12 +435,14 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>場所</label>
+                <label>場所 <button type="button" class="history-btn" id="edit-location-history-btn">📋</button></label>
                 <input type="text" id="edit-location" list="location-list">
+                <div class="history-popup hidden" id="edit-location-history-popup"></div>
             </div>
             <div class="form-group">
-                <label>コメント</label>
+                <label>コメント <button type="button" class="history-btn" id="edit-comment-history-btn">📋</button></label>
                 <input type="text" id="edit-comment">
+                <div class="history-popup hidden" id="edit-comment-history-popup"></div>
             </div>
 
             <div class="modal-actions">

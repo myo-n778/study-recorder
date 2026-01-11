@@ -2248,6 +2248,43 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
     editModal.classList.add('hidden');
 });
 
+// 編集モーダル用履歴ボタンのセットアップ
+function setupEditHistoryButtons() {
+    const historyConfig = [
+        { btnId: 'edit-category-history-btn', popupId: 'edit-category-history-popup', inputId: 'edit-category', field: 'category' },
+        { btnId: 'edit-content-history-btn', popupId: 'edit-content-history-popup', inputId: 'edit-content', field: 'content' },
+        { btnId: 'edit-location-history-btn', popupId: 'edit-location-history-popup', inputId: 'edit-location', field: 'location' },
+        { btnId: 'edit-comment-history-btn', popupId: 'edit-comment-history-popup', inputId: 'edit-comment', field: 'comment' }
+    ];
+
+    historyConfig.forEach(config => {
+        const btn = document.getElementById(config.btnId);
+        const popup = document.getElementById(config.popupId);
+        const input = document.getElementById(config.inputId);
+
+        if (btn && popup && input) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!popup.classList.contains('hidden')) {
+                    popup.classList.add('hidden');
+                    return;
+                }
+                showHistoryTypePopup(popup, input, config.field);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!btn.contains(e.target) && !popup.contains(e.target)) {
+                    popup.classList.add('hidden');
+                }
+            });
+        }
+    });
+}
+
+// 初期化時に履歴ボタンをセットアップ
+setupEditHistoryButtons();
+
+
 // タイマー表示更新（各桁を個別要素で更新し、レイアウト揺れを物理的にゼロにする）
 function updateTimerDisplay() {
     const h = Math.floor(state.elapsedSeconds / 3600).toString().padStart(2, '0');
