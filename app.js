@@ -2113,21 +2113,33 @@ const editModal = document.getElementById('edit-modal');
 
 
 function setupCardEvents(card, rec) {
-    if (!rec.id) return; // IDがない古いデータは編集不可(またはGAS側でID付与が必要)
+    console.log('setupCardEvents called, rec.id:', rec.id);
+
+    // IDがなくても編集画面は開けるようにする（削除は不可）
+    const recordId = rec.id || null;
 
     // PC: 右クリック
     card.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        showContextMenu(e.pageX, e.pageY, rec.id);
+        console.log('contextmenu triggered, id:', recordId);
+        if (recordId) {
+            showContextMenu(e.pageX, e.pageY, recordId);
+        } else {
+            alert('この記録にはIDがないため編集できません。');
+        }
     });
 
     // Mobile: 長押し
     let touchTimer;
     card.addEventListener('touchstart', (e) => {
         touchTimer = setTimeout(() => {
-            // 長押し検知
-            const touch = e.touches[0];
-            showContextMenu(touch.pageX, touch.pageY, rec.id);
+            console.log('long press triggered, id:', recordId);
+            if (recordId) {
+                const touch = e.touches[0];
+                showContextMenu(touch.pageX, touch.pageY, recordId);
+            } else {
+                alert('この記録にはIDがないため編集できません。');
+            }
         }, 600);
     });
 
@@ -2136,7 +2148,7 @@ function setupCardEvents(card, rec) {
     });
 
     card.addEventListener('touchmove', () => {
-        clearTimeout(touchTimer); // スクロールしたらキャンセル
+        clearTimeout(touchTimer);
     });
 }
 
