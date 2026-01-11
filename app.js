@@ -151,9 +151,17 @@ let state = {
     lastPauseTime: null,
     messageInterval: 20000,
     supportMessageInterval: null,
-    isInitializing: false, // 起動中フラグ
-    userName: '' // 永続化用のユーザー名
+    userName: '', // 永続化用のユーザー名
+    lastSettings: {
+        targetTime: '60',
+        condition: '◯',
+        comment: '',
+        location: ''
+    }
 };
+
+// 最後に使用した設定のキー
+const LAST_SETTINGS_KEY = 'study_recorder_last_settings';
 
 // 初期化時に論理的な「今日」を設定
 state.viewDate = getLogicalDate();
@@ -276,9 +284,20 @@ async function init() {
     setCurrentTimeInputs();
     updateViewDateUI();
 
-    // デフォルト値の設定
-    elements.enthusiasmInput.value = '集中して取り組む！';
-    elements.commentInput.value = '次も頑張ろう！';
+    // 復元したユーザーに基づいた設定の読み込み
+    const savedSettings = localStorage.getItem(LAST_SETTINGS_KEY);
+    if (savedSettings) {
+        state.lastSettings = JSON.parse(savedSettings);
+        elements.targetTime = document.getElementById('target-time');
+        if (elements.targetTime) elements.targetTime.value = state.lastSettings.targetTime || '60';
+        if (elements.conditionInput) elements.conditionInput.value = state.lastSettings.condition || '◯';
+        if (elements.commentInput) elements.commentInput.value = state.lastSettings.comment || '';
+        if (elements.locationInput) elements.locationInput.value = state.lastSettings.location || '';
+    }
+
+    // デフォルト値の設定（保存設定がない場合のみ）
+    if (!elements.enthusiasmInput.value) elements.enthusiasmInput.value = '集中して取り組む！';
+    if (!elements.commentInput.value && !state.lastSettings.comment) elements.commentInput.value = '次も頑張ろう！';
 
     // 3. 非同期データ取得の前にセッション復元 (モバイルでの再開を最優先)
     resumeStudySession();
@@ -413,14 +432,12 @@ function setCurrentTimeInputs() {
 
 // マスターデータのセットアップ (履歴 + GASのbaseシートから候補抽出)
 function setupMasterData() {
-    // 1. カテゴリー候補
+    // 1. カテゴリー候補 (自分の履歴のみを使用)
     const catFreq = {};
-    // GASからのデータを優先的に追加
-    if (state.gasMasterData && state.gasMasterData.categories) {
-        state.gasMasterData.categories.forEach(c => catFreq[c] = (catFreq[c] || 0) + 10); // 重み付け
-    }
-    Object.keys(state.masterData).forEach(c => catFreq[c] = (catFreq[c] || 0) + 1);
-    state.records.forEach(r => catFreq[r.category] = (catFreq[r.category] || 0) + 1);
+    state.records.forEach(r => {
+        if (r.category) catFreq[r.category] = (catFreq[r.category] || 0) + 1;
+    });
+
     const sortedCats = Object.keys(catFreq).sort((a, b) => catFreq[b] - catFreq[a]);
     elements.categoryList.innerHTML = '';
     sortedCats.forEach(cat => {
@@ -429,23 +446,20 @@ function setupMasterData() {
         elements.categoryList.appendChild(opt);
     });
 
-    // 全体の履歴 + GASデータから収集しておく
-    const allContents = new Set(state.gasMasterData?.contents || []);
-    const allIntents = new Set(state.gasMasterData?.enthusiasms || []);
+    // 全体の履歴から収集しておく (自分の記録のみ)
+    const allContents = new Set();
     state.records.forEach(r => {
         if (r.content) allContents.add(r.content);
-        if (r.intent) allIntents.add(r.intent);
     });
-    Object.values(state.masterData).forEach(arr => arr.forEach(c => allContents.add(c)));
 
     // 2. 学習内容の候補更新
     const updateContentList = () => {
         const catVal = elements.categoryInput.value;
         const contFreq = {};
         if (catVal) {
-            (state.masterData[catVal] || []).forEach(c => contFreq[c] = (contFreq[c] || 0) + 1);
-            // GASからのデータ（そのカテゴリに合致するか不明だが、全体候補として出すか検討）
-            state.records.filter(r => r.category === catVal).forEach(r => contFreq[r.content] = (contFreq[r.content] || 0) + 1);
+            state.records.filter(r => r.category === catVal).forEach(r => {
+                if (r.content) contFreq[r.content] = (contFreq[r.content] || 0) + 1;
+            });
             const sortedConts = Object.keys(contFreq).sort((a, b) => contFreq[b] - contFreq[a]);
             elements.contentList.innerHTML = '';
             sortedConts.forEach(item => {
@@ -462,11 +476,7 @@ function setupMasterData() {
     // 3. 意気込みの候補更新
     const updateEnthusiasmList = () => {
         const intFreq = {};
-        // GASデータ
-        if (state.gasMasterData?.enthusiasms) {
-            state.gasMasterData.enthusiasms.forEach(i => intFreq[i] = (intFreq[i] || 0) + 5);
-        }
-        ['集中して取り組む！', 'まずは15分頑張る', '復習をメインに'].forEach(i => intFreq[i] = (intFreq[i] || 0) + 1);
+        ['集中して取り組む！', 'まずは15分頑張る', '復習をメインに'].forEach(i => intFreq[i] = (intFreq[i] || 0) + 0.1);
         state.records.forEach(r => { if (r.enthusiasm) intFreq[r.enthusiasm] = (intFreq[r.enthusiasm] || 0) + 1; });
         const sortedIntents = Object.keys(intFreq).sort((a, b) => intFreq[b] - intFreq[a]);
         elements.enthusiasmList.innerHTML = '';
@@ -479,7 +489,8 @@ function setupMasterData() {
 
     const fillList = (listEl, set) => {
         listEl.innerHTML = '';
-        Array.from(set).forEach(val => {
+        const sorted = Array.from(set).sort(); // 文字列順
+        sorted.forEach(val => {
             const opt = document.createElement('option');
             opt.value = val;
             listEl.appendChild(opt);
@@ -513,7 +524,7 @@ function setupMasterData() {
                 elements.commentInput.dataset.oldValue = elements.commentInput.value;
                 elements.commentInput.value = '';
             }
-            updateConditionSuggestions();
+            updateCommentSuggestions();
             updateLocationSuggestions();
             // 初期状態の表示を更新
         });
@@ -533,6 +544,63 @@ function setupMasterData() {
         elements.commentInput.addEventListener('click', selectAll);
         elements.commentInput.dataset.listeners = "true";
 
+        // カテゴリー履歴ボタン
+        const catBtn = document.getElementById('show-category-history-btn');
+        const catPopup = document.getElementById('category-history-popup');
+        if (catBtn && catPopup) {
+            catBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!catPopup.classList.contains('hidden')) {
+                    catPopup.classList.add('hidden');
+                    return;
+                }
+                showHistoryTypePopup(catPopup, elements.categoryInput, 'category');
+            });
+            document.addEventListener('click', (e) => {
+                if (!catBtn.contains(e.target) && !catPopup.contains(e.target)) {
+                    catPopup.classList.add('hidden');
+                }
+            });
+        }
+
+        // 内容履歴ボタン
+        const contentBtn = document.getElementById('show-content-history-btn');
+        const contentPopup = document.getElementById('content-history-popup');
+        if (contentBtn && contentPopup) {
+            contentBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!contentPopup.classList.contains('hidden')) {
+                    contentPopup.classList.add('hidden');
+                    return;
+                }
+                showHistoryTypePopup(contentPopup, elements.contentInput, 'content');
+            });
+            document.addEventListener('click', (e) => {
+                if (!contentBtn.contains(e.target) && !contentPopup.contains(e.target)) {
+                    contentPopup.classList.add('hidden');
+                }
+            });
+        }
+
+        // メインコメント履歴ボタン
+        const mainCommentBtn = document.getElementById('show-main-comment-history-btn');
+        const mainCommentPopup = document.getElementById('main-comment-history-popup');
+        if (mainCommentBtn && mainCommentPopup) {
+            mainCommentBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!mainCommentPopup.classList.contains('hidden')) {
+                    mainCommentPopup.classList.add('hidden');
+                    return;
+                }
+                showHistoryTypePopup(mainCommentPopup, elements.commentInput, 'comment');
+            });
+            document.addEventListener('click', (e) => {
+                if (!mainCommentBtn.contains(e.target) && !mainCommentPopup.contains(e.target)) {
+                    mainCommentPopup.classList.add('hidden');
+                }
+            });
+        }
+
         // サマリーモーダルの履歴ボタン
         const historyBtn = document.getElementById('show-comment-history-btn');
         const historyPopup = document.getElementById('comment-history-popup');
@@ -543,33 +611,7 @@ function setupMasterData() {
                     historyPopup.classList.add('hidden');
                     return;
                 }
-
-                const commentInput = document.getElementById('summary-comment');
-                const commFreq = {};
-                if (state.gasMasterData?.comments) {
-                    state.gasMasterData.comments.forEach(c => commFreq[c] = (commFreq[c] || 0) + 5);
-                }
-                state.records.forEach(r => {
-                    if (r.comment) commFreq[r.comment] = (commFreq[r.comment] || 0) + 1;
-                });
-                ['集中できた！', '復習が必要', '目標達成', '少し疲れた'].forEach(c => commFreq[c] = (commFreq[c] || 0) + 1);
-
-                const sortedComms = Object.keys(commFreq).sort((a, b) => commFreq[b] - commFreq[a]);
-                if (sortedComms.length === 0) return;
-
-                historyPopup.innerHTML = '';
-                sortedComms.forEach(text => {
-                    const item = document.createElement('div');
-                    item.className = 'history-item';
-                    item.textContent = text;
-                    item.addEventListener('click', () => {
-                        commentInput.value = text;
-                        historyPopup.classList.add('hidden');
-                        commentInput.focus();
-                    });
-                    historyPopup.appendChild(item);
-                });
-                historyPopup.classList.remove('hidden');
+                showHistoryTypePopup(historyPopup, document.getElementById('summary-comment'), 'comment');
             });
 
             document.addEventListener('click', (e) => {
@@ -589,7 +631,7 @@ function setupMasterData() {
                     summaryLocPopup.classList.add('hidden');
                     return;
                 }
-                showLocationTypePopup(summaryLocPopup, document.getElementById('summary-location'));
+                showHistoryTypePopup(summaryLocPopup, document.getElementById('summary-location'), 'location');
             });
             document.addEventListener('click', (e) => {
                 if (!summaryLocBtn.contains(e.target) && !summaryLocPopup.contains(e.target)) {
@@ -608,7 +650,7 @@ function setupMasterData() {
                     manualLocPopup.classList.add('hidden');
                     return;
                 }
-                showLocationTypePopup(manualLocPopup, document.getElementById('location-input'));
+                showHistoryTypePopup(manualLocPopup, document.getElementById('location-input'), 'location');
             });
             document.addEventListener('click', (e) => {
                 if (!manualLocBtn.contains(e.target) && !manualLocPopup.contains(e.target)) {
@@ -627,11 +669,7 @@ function setupMasterData() {
 function updateCommentSuggestions() {
     elements.commentList.innerHTML = '';
     const commFreq = {};
-    // GASデータ
-    if (state.gasMasterData?.comments) {
-        state.gasMasterData.comments.forEach(c => commFreq[c] = (commFreq[c] || 0) + 5);
-    }
-    ['集中できた！', '復習が必要', '目標達成', '少し疲れた'].forEach(c => commFreq[c] = (commFreq[c] || 0) + 1);
+    // 自分の履歴のみ使用
     state.records.forEach(r => {
         if (r.comment) commFreq[r.comment] = (commFreq[r.comment] || 0) + 1;
     });
@@ -645,25 +683,29 @@ function updateCommentSuggestions() {
     });
 }
 
-// イベントリスナー
-function showLocationTypePopup(popup, input) {
-    const locFreq = {};
-    // マスタデータ(スプレッドシートE列)を優先
-    if (state.gasMasterData?.locations) {
-        state.gasMasterData.locations.forEach(l => locFreq[l] = (locFreq[l] || 0) + 10);
-    }
-    // 過去の記録から集計
-    state.records.forEach(r => {
-        if (r.location) locFreq[r.location] = (locFreq[r.location] || 0) + 1;
-    });
-    // デフォルト候補
-    ['自宅', 'カフェ', '図書館', '学校', '塾'].forEach(l => locFreq[l] = (locFreq[l] || 0) + 1);
+/**
+ * 汎用的な履歴ポップアップ表示関数
+ * プライバシーに配慮し、自分の記録(state.records)を最優先する
+ */
+function showHistoryTypePopup(popup, input, field) {
+    const freq = {};
+    const catVal = field === 'content' ? elements.categoryInput.value : null;
 
-    const sortedLocs = Object.keys(locFreq).sort((a, b) => locFreq[b] - locFreq[a]);
-    if (sortedLocs.length === 0) return;
+    // 自分の過去記録
+    state.records.forEach(r => {
+        const val = r[field];
+        if (val) {
+            // content の場合は現在のカテゴリに一致するもののみ
+            if (field === 'content' && catVal && r.category !== catVal) return;
+            freq[val] = (freq[val] || 0) + 1;
+        }
+    });
+
+    const sorted = Object.keys(freq).sort((a, b) => freq[b] - freq[a]);
+    if (sorted.length === 0) return;
 
     popup.innerHTML = '';
-    sortedLocs.forEach(text => {
+    sorted.forEach(text => {
         const item = document.createElement('div');
         item.className = 'history-item';
         item.textContent = text;
@@ -671,6 +713,7 @@ function showLocationTypePopup(popup, input) {
             input.value = text;
             popup.classList.add('hidden');
             input.focus();
+            if (field === 'category') setupMasterData(); // カテゴリが変わったので内容候補を更新
         });
         popup.appendChild(item);
     });
@@ -1119,6 +1162,15 @@ async function saveSummaryRecord() {
     state.isStudying = false;
     saveStudyState(); // 状態をクリア
 
+    // 設定を保存
+    state.lastSettings = {
+        targetTime: document.getElementById('target-time').value,
+        condition: condition,
+        comment: comment,
+        location: location
+    };
+    localStorage.setItem(LAST_SETTINGS_KEY, JSON.stringify(state.lastSettings));
+
     state.records.push(record);
     saveLocalRecords();
     updateHistoryUI();
@@ -1200,6 +1252,16 @@ async function manualRecord() {
     };
 
     state.records.push(record);
+
+    // 設定を保存
+    state.lastSettings = {
+        targetTime: document.getElementById('target-time').value,
+        condition: condition,
+        comment: comment,
+        location: location
+    };
+    localStorage.setItem(LAST_SETTINGS_KEY, JSON.stringify(state.lastSettings));
+
     saveLocalRecords();
     updateHistoryUI();
     updateCharts();

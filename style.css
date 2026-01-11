@@ -1467,13 +1467,19 @@ h3 {
     flex-direction: column !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    /* 上から順に配置 */
     pointer-events: none !important;
     z-index: 15 !important;
-    height: 85px !important;
-    /* 3-4行分を確保し、星が増えても動かないようにする */
+    height: 90px !important;
+    /* 少し高さを確保 */
     margin-top: 0.5rem !important;
     overflow: hidden !important;
+}
+
+/* PC版：スタンプを「1行改行した位置」に置く（余白を広げる） */
+@media (min-width: 768px) {
+    #achievement-stamps-area {
+        margin-top: 1.8rem !important;
+    }
 }
 
 .stamp-row {
@@ -1487,6 +1493,17 @@ h3 {
     font-size: 1.2rem !important;
     line-height: 1 !important;
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.6) !important;
+}
+
+/* スマホ版：スタンプを常に1pt（約1.33px）小さくする */
+@media (max-width: 600px) {
+    .stamp-item {
+        font-size: calc(1.2rem - 1pt) !important;
+    }
+
+    .stamp-star-large {
+        font-size: calc(1.4rem - 1pt) !important;
+    }
 }
 
 .stamp-star-large {

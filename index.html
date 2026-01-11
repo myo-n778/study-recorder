@@ -54,12 +54,24 @@
                     <div class="grid-2col">
                         <div class="form-group">
                             <label>カテゴリー</label>
-                            <input type="text" id="category-input" list="category-list" placeholder="例：プログラミング">
+                            <div class="input-with-action">
+                                <input type="text" id="category-input" list="category-list" placeholder="例：プログラミング">
+                                <button id="show-category-history-btn" class="icon-btn" title="カテゴリー履歴">
+                                    <span class="material-icons-outlined">history</span>
+                                </button>
+                                <div id="category-history-popup" class="history-popup hidden"></div>
+                            </div>
                             <datalist id="category-list"></datalist>
                         </div>
                         <div class="form-group">
                             <label>学習内容</label>
-                            <input type="text" id="content-input" list="content-list" placeholder="例：JavaScript基礎">
+                            <div class="input-with-action">
+                                <input type="text" id="content-input" list="content-list" placeholder="例：JavaScript基礎">
+                                <button id="show-content-history-btn" class="icon-btn" title="内容履歴">
+                                    <span class="material-icons-outlined">history</span>
+                                </button>
+                                <div id="content-history-popup" class="history-popup hidden"></div>
+                            </div>
                             <datalist id="content-list"></datalist>
                         </div>
                         <div class="form-group">
@@ -92,6 +104,10 @@
                             <datalist id="location-list"></datalist>
                         </div>
                         <div class="form-group">
+                            <label>実施日</label>
+                            <input type="date" id="record-date">
+                        </div>
+                        <div class="form-group">
                             <label>開始時刻</label>
                             <input type="time" id="start-time">
                         </div>
@@ -108,15 +124,17 @@
                                 <option value="×">× (苦戦)</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>実施日</label>
-                            <input type="date" id="record-date">
-                        </div>
                     </div>
 
                     <div class="form-group comment-group">
                         <label>コメント</label>
-                        <input type="text" id="comment-input" list="comment-list" placeholder="例：集中できた、復習が必要">
+                        <div class="input-with-action">
+                            <input type="text" id="comment-input" list="comment-list" placeholder="例：集中できた、復習が必要">
+                            <button id="show-main-comment-history-btn" class="icon-btn" title="コメント履歴">
+                                <span class="material-icons-outlined">history</span>
+                            </button>
+                            <div id="main-comment-history-popup" class="history-popup hidden"></div>
+                        </div>
                         <datalist id="comment-list"></datalist>
                     </div>
 
