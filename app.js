@@ -171,7 +171,7 @@ let charts = {
     timeline: null
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxMPi0wtR49-Hs_mVRdJYkN4Abd0TsaFxrlXXsSfHGteI9amDOQVPdF2tUb5QNk8GVuTQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyWZFMOnmx73_d_TyoG5dtUin2UFKgsUM8YWuwDEYtaaojKEaa7tP5r095Az_FIoTLjzA/exec';
 
 // DOM Elements
 const elements = {
