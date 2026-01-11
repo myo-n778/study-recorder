@@ -1516,16 +1516,17 @@ h3 {
     justify-content: flex-start !important;
     pointer-events: none !important;
     z-index: 15 !important;
-    height: 90px !important;
-    /* 少し高さを確保 */
-    margin-top: 0.5rem !important;
+    height: auto !important;
+    /* 固定高さを解除 */
+    margin-top: 0 !important;
+    /* 上の隙間を消す */
     overflow: hidden !important;
 }
 
 /* PC版：スタンプを「1行改行した位置」に置く（余白を広げる） */
 @media (min-width: 768px) {
     #achievement-stamps-area {
-        margin-top: 1.8rem !important;
+        margin-top: 0.5rem !important;
     }
 }
 
