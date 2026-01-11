@@ -452,34 +452,22 @@ select {
     /* セル自体のはみ出し防止 */
 }
 
-/* 時刻・日付入力の幅を75%に固定し、枠内の文字を縦横中央寄せにする（パディング方式で安定化） */
+/* 時刻・日付入力の幅を75%に設定し中央に配置（スタイルは他の入力欄と統一） */
 #start-time,
 #end-time,
 #record-date {
-    display: block !important;
-    width: 75% !important;
-    max-width: 75% !important;
-    min-width: 0 !important;
-    margin: 0 auto !important;
-    padding: 0.4rem 0 !important;
-    /* 他の入力欄と同様にパディングで中央に */
-    height: auto !important;
-    min-height: 38px !important;
-    text-align: center !important;
-    box-sizing: border-box !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
+    width: 75%;
+    margin: 0 auto;
+    display: block;
+    text-align: center;
 }
 
-/* モバイルブラウザ特有の内側余白をリセットして位置を安定させる */
+/* Safari/iOS等のブラウザ固有の内部余白をリセット（中央寄せを安定させるため） */
 #start-time::-webkit-date-and-time-value,
 #end-time::-webkit-date-and-time-value,
 #record-date::-webkit-date-and-time-value {
-    margin: 0 !important;
-    padding: 0 !important;
-    min-height: 1.2em !important;
-    text-align: center !important;
-    display: block !important;
+    margin: 0;
+    padding: 0;
 }
 
 @media (min-width: 600px) {
