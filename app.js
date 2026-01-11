@@ -2216,14 +2216,38 @@ function openEditModal(id) {
     document.getElementById('edit-id').value = rec.id;
     document.getElementById('edit-category').value = rec.category;
     document.getElementById('edit-content').value = rec.content;
-    document.getElementById('edit-duration').value = rec.duration;
+    document.getElementById('edit-start-time').value = rec.startTime || '';
+    document.getElementById('edit-end-time').value = rec.endTime || '';
     document.getElementById('edit-date').value = rec.date; // YYYY/MM/DD
     document.getElementById('edit-condition').value = rec.condition || '◯';
     document.getElementById('edit-location').value = rec.location || '';
     document.getElementById('edit-comment').value = rec.comment || '';
 
+    // 学習時間を計算して表示
+    updateEditDuration();
+
     editModal.classList.remove('hidden');
 }
+
+// 編集モーダルの学習時間を自動計算
+function updateEditDuration() {
+    const startTime = document.getElementById('edit-start-time').value;
+    const endTime = document.getElementById('edit-end-time').value;
+
+    if (startTime && endTime) {
+        const [h1, m1] = startTime.split(':').map(Number);
+        const [h2, m2] = endTime.split(':').map(Number);
+        let duration = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (duration < 0) duration += 24 * 60; // 日を跨ぐ場合
+        document.getElementById('edit-duration').value = `${duration} 分`;
+    } else {
+        document.getElementById('edit-duration').value = '';
+    }
+}
+
+// 開始時刻・終了時刻変更時に学習時間を再計算
+document.getElementById('edit-start-time').addEventListener('change', updateEditDuration);
+document.getElementById('edit-end-time').addEventListener('change', updateEditDuration);
 
 document.getElementById('cancel-edit-btn').addEventListener('click', () => {
     editModal.classList.add('hidden');
@@ -2231,11 +2255,25 @@ document.getElementById('cancel-edit-btn').addEventListener('click', () => {
 
 document.getElementById('save-edit-btn').addEventListener('click', async () => {
     const id = document.getElementById('edit-id').value;
+    const startTime = document.getElementById('edit-start-time').value;
+    const endTime = document.getElementById('edit-end-time').value;
+
+    // 学習時間を再計算
+    let duration = 0;
+    if (startTime && endTime) {
+        const [h1, m1] = startTime.split(':').map(Number);
+        const [h2, m2] = endTime.split(':').map(Number);
+        duration = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (duration < 0) duration += 24 * 60;
+    }
+
     const updatedRecord = {
         id: id,
         category: document.getElementById('edit-category').value,
         content: document.getElementById('edit-content').value,
-        duration: document.getElementById('edit-duration').value,
+        startTime: startTime,
+        endTime: endTime,
+        duration: duration,
         date: document.getElementById('edit-date').value,
         condition: document.getElementById('edit-condition').value,
         location: document.getElementById('edit-location').value,
