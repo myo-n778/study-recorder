@@ -1596,8 +1596,9 @@ function updateCategoryChart(period = 'day') {
                     callbacks: {
                         label: (context) => {
                             const val = context.raw;
+                            const h = (val / 60).toFixed(1);
                             const pct = totalDuration > 0 ? ((val / totalDuration) * 100).toFixed(1) : 0;
-                            return `${context.label}: ${val}分 (${pct}%)`;
+                            return `${context.label}: ${val}分（${h}h） (${pct}%)`;
                         }
                     }
                 }
@@ -1782,7 +1783,14 @@ function updateStickyTimelineChart(period = 'day') {
                     enabled: false,
                     external: externalTooltipHandler,
                     mode: 'index',
-                    intersect: false
+                    intersect: false,
+                    callbacks: {
+                        label: (context) => {
+                            const val = context.raw;
+                            const h = (val / 60).toFixed(1);
+                            return `${context.dataset.label}: ${val}分（${h}h）`;
+                        }
+                    }
                 }
             }
         }
@@ -1801,7 +1809,14 @@ function updateStickyTimelineChart(period = 'day') {
                     enabled: false,
                     external: externalTooltipHandler,
                     mode: 'index',
-                    intersect: false
+                    intersect: false,
+                    callbacks: {
+                        label: (context) => {
+                            const val = context.raw;
+                            const h = (val / 60).toFixed(1);
+                            return `${context.dataset.label}: ${val}分（${h}h）`;
+                        }
+                    }
                 }
             },
             scales: {
@@ -1910,22 +1925,21 @@ function aggregateByPeriod(records, period) {
         for (let i = diffDays; i >= 0; i--) {
             const d = new Date(viewDate);
             d.setDate(viewDate.getDate() - i);
-            const yy = d.getFullYear().toString().slice(-2);
             const mm = (d.getMonth() + 1).toString().padStart(2, '0');
             const dd = d.getDate().toString().padStart(2, '0');
-            const label = `${yy}/${mm}/${dd}`;
+            const label = `${mm}/${dd}`;
             allLabelsSet.add(label);
         }
     } else if (period === 'week') {
         for (let i = 11; i >= 0; i--) { // 直近12週
             const d = new Date(viewDate);
             d.setDate(viewDate.getDate() - i * 7);
-            allLabelsSet.add(`${d.getFullYear()} W${getWeekNumber(d)}`);
+            allLabelsSet.add(`W${getWeekNumber(d)}`);
         }
     } else if (period === 'month') {
         // 同一年の月を網羅
         for (let i = 0; i < 12; i++) {
-            const label = `${viewDate.getFullYear()}-${(i + 1).toString().padStart(2, '0')}`;
+            const label = `${(i + 1).toString().padStart(2, '0')}`;
             allLabelsSet.add(label);
         }
     }
@@ -1936,13 +1950,12 @@ function aggregateByPeriod(records, period) {
         const date = new Date(belongingDateStr);
         let label = '';
         if (period === 'day') {
-            const yy = date.getFullYear().toString().slice(-2);
             const mm = (date.getMonth() + 1).toString().padStart(2, '0');
             const dd = date.getDate().toString().padStart(2, '0');
-            label = `${yy}/${mm}/${dd}`;
+            label = `${mm}/${dd}`;
         }
-        else if (period === 'week') label = `${date.getFullYear()} W${getWeekNumber(date)}`;
-        else if (period === 'month') label = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        else if (period === 'week') label = `W${getWeekNumber(date)}`;
+        else if (period === 'month') label = `${(date.getMonth() + 1).toString().padStart(2, '0')}`;
         else if (period === 'year') label = `${date.getFullYear()}`;
 
         // allLabelsSet にあるか、または年単位の場合は集計
