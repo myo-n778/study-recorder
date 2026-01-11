@@ -3,14 +3,11 @@
  */
 
 const STUDY_REC_SS_ID = '1Zr2IDZiu4ixCh6NPExyVYLxXrSrabXm4L841MjbkAuM';
-const SHEET_NAME_BASE = 'base'; // 応援メッセージ・マスタデータの格納先
+const STUDY_REC_SHEET_NAME_BASE = 'base'; // 応援メッセージ・マスタデータの格納先
 
 /**
  * ユーザー別シートの取得・初期化
  * シート名: "rec" + userName (例: "rec山田")
- * 読み書き対象列 (A~L列 / 1~12列):
- * [0]日付(A), [1]ユーザー名(B), [2]開始時刻(C), [3]終了時刻(D), [4]学習時間(E),
- * [5]カテゴリ(F), [6]内容(G), [7]意気込み(H), [8]コメント(I), [9]意欲(J), [10]場所(K), [11]ID(L)
  */
 function getSheetForUser(ss, userName) {
   let name = userName ? userName.trim() : 'デフォルト';
@@ -29,9 +26,7 @@ function getSheetForUser(ss, userName) {
   }
 
   if (sheet.getLastColumn() < 12) {
-    // 12列目にIDヘッダーがない場合、追加して既存のK列(11)のIDがなければ生成
     sheet.getRange(1, 12).setValue('ID');
-    // 注意: ここでは列の移動までは行わず、新規保存時から使い分ける
   }
 
   return sheet;
@@ -71,7 +66,6 @@ function doPost(e) {
       if (action === 'update') {
         const rowIdx = findRowIndexById(sheet, data.id);
         if (rowIdx !== -1) {
-          const updates = [];
           if (data.date !== undefined) sheet.getRange(rowIdx, 1).setValue(data.date);
           if (data.startTime !== undefined) sheet.getRange(rowIdx, 3).setValue(data.startTime);
           if (data.endTime !== undefined) sheet.getRange(rowIdx, 4).setValue(data.endTime);
@@ -108,41 +102,20 @@ function doPost(e) {
   } catch (e) {
     return errorResponse(`Server Error: ${e.message}`);
   }
-
   return errorResponse('Invalid action');
 }
 
-/**
- * baseシートに新しいマスタデータを同期する
- */
 function syncToBaseSheet(ss, data) {
-  let baseSheet = ss.getSheetByName(SHEET_NAME_BASE);
+  let baseSheet = ss.getSheetByName(STUDY_REC_SHEET_NAME_BASE);
   if (!baseSheet) {
-    baseSheet = ss.insertSheet(SHEET_NAME_BASE);
+    baseSheet = ss.insertSheet(STUDY_REC_SHEET_NAME_BASE);
     baseSheet.appendRow(['カテゴリ', '内容', '意気込み', 'コメント', '場所', '応援メッセージ', '終了メッセージ']);
-    // 初期の応援メッセージを登録
-    const defaultSupport = [
-      "素晴らしい集中力です！",
-      "一歩ずつ、着実に進んでいますね。",
-      "休憩も大切ですよ。無理せず頑張りましょう。",
-      "その調子です！未来の自分が感謝します。",
-      "今はきつくても、必ず力になります。"
-    ];
-    const defaultFinish = [
-      "お疲れ様でした！",
-      "今日も一歩前進ですね。",
-      "[A30] 30分達成！ナイススタートです。",
-      "[A60] 1時間継続！集中できていますね。",
-      "[A90] 90分突破！素晴らしい成果です。",
-      "[A120] 2時間達成！圧倒的な努力です！",
-      "[A30][B120] 本日の累計が2時間を超えました！素晴らしい積み重ねです。",
-      "[A60][B300] 1日5時間達成！極限の集中力ですね。"
-    ];
+    const defaultSupport = ["素晴らしい集中力です！", "一歩ずつ、着実に進んでいますね。", "休憩も大切ですよ。無理せず頑張りましょう。", "その調子です！未来の自分が感謝します。", "今はきつくても、必ず力になります。"];
+    const defaultFinish = ["お疲れ様でした！", "今日も一歩前進ですね。"];
     defaultSupport.forEach((m, i) => baseSheet.getRange(i + 2, 6).setValue(m));
     defaultFinish.forEach((m, i) => baseSheet.getRange(i + 2, 7).setValue(m));
   }
 
-  // 同期対象のフィールドと列番号のマッピング
   const syncFields = [
     { value: data.category, col: 1 },
     { value: data.content, col: 2 },
@@ -155,8 +128,6 @@ function syncToBaseSheet(ss, data) {
     if (field.value && field.value.trim() !== '') {
       const val = field.value.trim();
       const columnData = baseSheet.getRange(1, field.col, baseSheet.getLastRow(), 1).getValues().flat();
-
-      // まだ登録されていなければ追記
       if (columnData.indexOf(val) === -1) {
         const lastRowInCol = getFirstEmptyRowInColumn(baseSheet, field.col);
         baseSheet.getRange(lastRowInCol, field.col).setValue(val);
@@ -210,7 +181,7 @@ function doGet(e) {
 }
 
 function getBaseData(ss) {
-  const sheet = ss.getSheetByName(SHEET_NAME_BASE);
+  const sheet = ss.getSheetByName(STUDY_REC_SHEET_NAME_BASE);
   if (!sheet) return { categories: [], contents: [], enthusiasms: [], comments: [], supportMessages: [], finishMessages: [] };
 
   const data = sheet.getDataRange().getValues();
