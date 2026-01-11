@@ -2168,10 +2168,21 @@ function showContextMenu(x, y, id) {
         return;
     }
 
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y}px`;
+    // 画面内に収める（メニューのサイズを考慮）
+    const menuWidth = 160;
+    const menuHeight = 100;
+    const maxX = window.innerWidth - menuWidth;
+    const maxY = window.innerHeight - menuHeight;
+
+    const finalX = Math.min(Math.max(0, x), maxX);
+    const finalY = Math.min(Math.max(0, y), maxY);
+
+    console.log('Final position: x:', finalX, 'y:', finalY);
+
+    menu.style.left = `${finalX}px`;
+    menu.style.top = `${finalY}px`;
     menu.classList.remove('hidden');
-    console.log('context-menu should now be visible');
+    console.log('context-menu should now be visible at', finalX, finalY);
 }
 
 // メニュー外クリックで閉じる
