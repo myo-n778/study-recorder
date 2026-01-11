@@ -447,10 +447,11 @@ select {
     box-sizing: border-box;
 }
 
-/* 時刻入力のパディング微調整（重なり防止） */
+/* 時刻・日付入力の幅を75%に縮小（重なり防止） */
 input[type="time"],
 input[type="date"] {
     padding: 0.3rem 0.3rem;
+    width: 75% !important;
 }
 
 @media (min-width: 600px) {
