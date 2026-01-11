@@ -182,7 +182,7 @@ function doGet(e) {
 
 function getBaseData(ss) {
   const sheet = ss.getSheetByName(STUDY_REC_SHEET_NAME_BASE);
-  if (!sheet) return { categories: [], contents: [], enthusiasms: [], comments: [], supportMessages: [], finishMessages: [] };
+  if (!sheet) return { categories: [], contents: [], enthusiasms: [], comments: [], locations: [], supportMessages: [], finishMessages: [] };
 
   const data = sheet.getDataRange().getValues();
   const categories = [];
