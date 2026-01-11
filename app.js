@@ -426,12 +426,12 @@ function hideOverlay() {
 // 時刻・日付の初期値設定
 function setCurrentTimeInputs() {
     const now = new Date();
-    const timeStr = now.toTimeString().slice(0, 5);
-    elements.startTimeInput.value = timeStr;
+    const endTimeStr = now.toTimeString().slice(0, 5);
+    elements.endTimeInput.value = endTimeStr;
 
-    // 終了時刻は1時間後をデフォルトに
-    const later = new Date(now.getTime() + 60 * 60 * 1000);
-    elements.endTimeInput.value = later.toTimeString().slice(0, 5);
+    // 開始時刻は1時間前をデフォルトに
+    const earlier = new Date(now.getTime() - 60 * 60 * 1000);
+    elements.startTimeInput.value = earlier.toTimeString().slice(0, 5);
 
     // 日付の初期値を今日に (YYYY-MM-DD形式)
     const yyyy = now.getFullYear();
