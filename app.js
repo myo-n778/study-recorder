@@ -1086,6 +1086,14 @@ async function finishStudy() {
     // 現在のコメント・場所をプリセット
     document.getElementById('summary-comment').value = elements.commentInput.value.trim() || '次も頑張ろう！';
 
+    // 公開設定の状態を同期
+    const recordVisibility = document.getElementById('visibility-toggle')?.checked;
+    const recordTlVisibility = document.getElementById('timeline-visibility-toggle')?.checked;
+    const summaryVisibility = document.getElementById('summary-visibility-toggle');
+    const summaryTlVisibility = document.getElementById('summary-timeline-visibility-toggle');
+    if (summaryVisibility) summaryVisibility.checked = !!recordVisibility;
+    if (summaryTlVisibility) summaryTlVisibility.checked = !!recordTlVisibility;
+
     // 前回または現在の場所を自動入力 (現在の入力を優先、なければ最新の履歴から取得)
     const currentLocation = elements.locationInput.value.trim();
     const lastLocation = currentLocation || (state.records.length > 0 ? (state.records[state.records.length - 1].location || '') : '');

@@ -42,15 +42,30 @@ function getSheetForUser(ss, userName) {
 function doPost(e) {
   const ss = SpreadsheetApp.openById(STUDY_REC_SS_ID);
   let data = {};
+
+  // 1. JSONパースの試行
   try {
-    if (e.postData && e.postData.contents) {
+    if (e.postData && e.postData.contents && e.postData.type === "application/json") {
       data = JSON.parse(e.postData.contents);
     }
   } catch (err) { }
 
+  // 2. URLSearchParams (application/x-www-form-urlencoded) の試行
+  // e.parameter が期待通りでない場合の保険として自力でパース
+  if (e.postData && e.postData.contents && e.postData.contents.indexOf('=') !== -1) {
+    const contents = e.postData.contents;
+    contents.split('&').forEach(pair => {
+      const [key, val] = pair.split('=');
+      if (key) data[decodeURIComponent(key)] = decodeURIComponent(val || '');
+    });
+  }
+
+  // 3. e.parameter による最終補完
   const fields = ['id', 'action', 'userName', 'date', 'startTime', 'endTime', 'duration', 'content', 'enthusiasm', 'condition', 'comment', 'category', 'location', 'visibility', 'timeline_visibility'];
   fields.forEach(field => {
-    if (e.parameter[field]) data[field] = e.parameter[field];
+    if (e.parameter[field] !== undefined) {
+      data[field] = e.parameter[field];
+    }
   });
 
   const userName = data.userName;
