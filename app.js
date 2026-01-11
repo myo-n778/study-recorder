@@ -2269,6 +2269,7 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
 
     const updatedRecord = {
         id: id,
+        userName: localStorage.getItem(USER_KEY),
         category: document.getElementById('edit-category').value,
         content: document.getElementById('edit-content').value,
         startTime: startTime,
@@ -2279,6 +2280,8 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
         location: document.getElementById('edit-location').value,
         comment: document.getElementById('edit-comment').value
     };
+
+    console.log('Updating record:', updatedRecord);
 
     // 保存処理
     const btn = document.getElementById('save-edit-btn');
