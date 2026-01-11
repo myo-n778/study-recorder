@@ -413,6 +413,24 @@
                 </div>
             </div>
 
+            <!-- 公開設定トグル（まとめモーダル用） -->
+            <div class="visibility-settings" style="margin-bottom: 1.5rem;">
+                <div class="toggle-row">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="summary-visibility-toggle">
+                        <span class="toggle-switch"></span>
+                        <span class="toggle-text">この記録を公開する</span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="summary-timeline-visibility-toggle">
+                        <span class="toggle-switch"></span>
+                        <span class="toggle-text">タイムラインを公開する</span>
+                    </label>
+                </div>
+            </div>
+
             <div class="modal-actions">
                 <button id="save-summary-btn" class="primary-btn">記録を保存する</button>
             </div>
@@ -490,6 +508,24 @@
                 <label>コメント <button type="button" class="history-btn" id="edit-comment-history-btn">📋</button></label>
                 <input type="text" id="edit-comment">
                 <div class="history-popup hidden" id="edit-comment-history-popup"></div>
+            </div>
+
+            <!-- 公開設定トグル（編集モーダル用） -->
+            <div class="visibility-settings" style="margin: 1rem 0;">
+                <div class="toggle-row">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="edit-visibility-toggle">
+                        <span class="toggle-switch"></span>
+                        <span class="toggle-text">この記録を公開する</span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="edit-timeline-visibility-toggle">
+                        <span class="toggle-switch"></span>
+                        <span class="toggle-text">タイムラインを公開する</span>
+                    </label>
+                </div>
             </div>
 
             <div class="modal-actions">

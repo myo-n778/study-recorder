@@ -1178,8 +1178,8 @@ async function saveSummaryRecord() {
         condition: condition,
         comment: comment,
         location: location,
-        visibility: document.getElementById('visibility-toggle').checked ? 'public' : 'private',
-        timeline_visibility: document.getElementById('timeline-visibility-toggle').checked ? 'public' : 'private'
+        visibility: document.getElementById('summary-visibility-toggle')?.checked ? 'public' : 'private',
+        timeline_visibility: document.getElementById('summary-timeline-visibility-toggle')?.checked ? 'public' : 'private'
     };
 
     state.isStudying = false;
@@ -1266,8 +1266,8 @@ async function manualRecord() {
         condition: condition,
         location: location,
         comment: comment,
-        visibility: document.getElementById('visibility-toggle').checked ? 'public' : 'private',
-        timeline_visibility: document.getElementById('timeline-visibility-toggle').checked ? 'public' : 'private'
+        visibility: document.getElementById('visibility-toggle')?.checked ? 'public' : 'private',
+        timeline_visibility: document.getElementById('timeline-visibility-toggle')?.checked ? 'public' : 'private'
     };
 
     state.records.push(record);
@@ -2260,6 +2260,12 @@ function openEditModal(id) {
     document.getElementById('edit-location').value = rec.location || '';
     document.getElementById('edit-comment').value = rec.comment || '';
 
+    // 公開設定の反映
+    const visibilityToggle = document.getElementById('edit-visibility-toggle');
+    const tlVisibilityToggle = document.getElementById('edit-timeline-visibility-toggle');
+    if (visibilityToggle) visibilityToggle.checked = (rec.visibility === 'public');
+    if (tlVisibilityToggle) tlVisibilityToggle.checked = (rec.timeline_visibility === 'public');
+
     // 学習時間を計算して表示
     updateEditDuration();
 
@@ -2315,7 +2321,9 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
         date: document.getElementById('edit-date').value,
         condition: document.getElementById('edit-condition').value,
         location: document.getElementById('edit-location').value,
-        comment: document.getElementById('edit-comment').value
+        comment: document.getElementById('edit-comment').value,
+        visibility: document.getElementById('edit-visibility-toggle')?.checked ? 'public' : 'private',
+        timeline_visibility: document.getElementById('edit-timeline-visibility-toggle')?.checked ? 'public' : 'private'
     };
 
     console.log('Updating record:', updatedRecord);
