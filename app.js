@@ -64,6 +64,29 @@ function getBelongingDate(dateStr, timeStr) {
     return `${y}/${m}/${day}`;
 }
 
+// visibilityフィルタ: 表示対象のレコードを取得
+function getFilteredRecords() {
+    const filterValue = document.getElementById('visibility-filter')?.value || 'all';
+    return state.records.filter(rec => {
+        const visibility = rec.visibility || 'private';
+        if (filterValue === 'all') return true;
+        if (filterValue === 'public') return visibility === 'public';
+        if (filterValue === 'private') return visibility === 'private';
+        return true;
+    });
+}
+
+// タイムライン専用フィルタ: timeline_visibility=public のみ（トグルON時）
+function getTimelineFilteredRecords() {
+    const baseRecords = getFilteredRecords();
+    const timelinePublicOnly = document.getElementById('timeline-public-only-toggle')?.checked || false;
+    if (!timelinePublicOnly) return baseRecords;
+    return baseRecords.filter(rec => {
+        const tlVisibility = rec.timeline_visibility || 'private';
+        return tlVisibility === 'public';
+    });
+}
+
 // 4時跨ぎセッションを分割するヘルパー
 // 0:00〜3:59開始で終了が4:00以降の場合、2つのレコードに分割して返す
 function splitRecordAt4AMBoundary(record) {
@@ -328,6 +351,15 @@ async function init() {
         const input = document.getElementById('message-interval-input');
         if (input) input.value = "20";
     }
+
+    // VIEW画面のフィルタ変更時にUIを更新
+    document.getElementById('visibility-filter')?.addEventListener('change', () => {
+        updateHistoryUI();
+        updateCharts();
+    });
+    document.getElementById('timeline-public-only-toggle')?.addEventListener('change', () => {
+        updateTimelineAnalysis();
+    });
 }
 
 function resumeStudySession() {
@@ -1436,8 +1468,9 @@ function updateHistoryUI() {
     if (!list) return;
     list.innerHTML = '';
 
-    // 最新順にソート（日付と時刻から判断）
-    const sortedRecords = [...state.records].sort((a, b) => {
+    // フィルタを適用してから最新順にソート
+    const filteredRecords = getFilteredRecords();
+    const sortedRecords = [...filteredRecords].sort((a, b) => {
         const getTime = (r) => {
             try {
                 if (!r.date || !r.startTime) return 0;
@@ -1512,8 +1545,8 @@ function updateViewDateRecords() {
     const container = document.getElementById('view-date-records-list');
     if (!container) return;
 
-    // 修正: 4時跨ぎセッションを分割して表示
-    const records = getExpandedRecords(state.records)
+    // フィルタを適用し、4時跨ぎセッションを分割して表示
+    const records = getExpandedRecords(getFilteredRecords())
         .filter(r => getBelongingDate(r.date, r.startTime) === state.viewDate)
         .sort((a, b) => {
             const timeA = a.startTime.split(':').map(Number);
@@ -1551,8 +1584,8 @@ function updateCategoryChart(period = 'day') {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    // 期間フィルタリング（4時跨ぎセッションを分割して集計）
-    const filteredRecords = filterRecordsByPeriod(getExpandedRecords(state.records), period);
+    // フィルタを適用し、期間フィルタリング（4時跨ぎセッションを分割して集計）
+    const filteredRecords = filterRecordsByPeriod(getExpandedRecords(getFilteredRecords()), period);
     const dataMap = {};
     filteredRecords.forEach(r => {
         dataMap[r.category] = (dataMap[r.category] || 0) + Number(r.duration);
@@ -1617,8 +1650,8 @@ function updateStickyTimelineChart(period = 'day') {
     const todayCtx = document.getElementById('timelineTodayGraph').getContext('2d');
     if (!yAxisCtx || !mainCtx || !todayCtx) return;
 
-    // 修正: 4時跨ぎセッションを分割して集計
-    const groupedData = aggregateByPeriod(getExpandedRecords(state.records), period);
+    // フィルタを適用し、4時跨ぎセッションを分割して集計
+    const groupedData = aggregateByPeriod(getExpandedRecords(getFilteredRecords()), period);
     const allLabels = groupedData.labels;
     const allDatasets = groupedData.datasets;
 
@@ -1825,8 +1858,8 @@ function updateMainDetailChart(period = 'day') {
     const ctx = document.getElementById('mainDetailChart').getContext('2d');
     if (!ctx) return;
 
-    // 選択期間内の記録を取得（4時跨ぎセッションを分割して集計）
-    const filteredRecords = filterRecordsByPeriod(getExpandedRecords(state.records), period);
+    // フィルタを適用し、選択期間内の記録を取得（4時跨ぎセッションを分割して集計）
+    const filteredRecords = filterRecordsByPeriod(getExpandedRecords(getFilteredRecords()), period);
 
     // カテゴリ別に集計
     const categoryDurations = {};
@@ -2025,8 +2058,8 @@ function updateTimelineAnalysis() {
 
     // ヘルパー: 日付行を生成
     const createDayRow = (dateStr, isToday) => {
-        // 修正: 4時跨ぎセッションを分割して両日に表示
-        const recordsOnDate = getExpandedRecords(state.records).filter(r => getBelongingDate(r.date, r.startTime) === dateStr);
+        // タイムライン専用フィルタを適用し、4時跨ぎセッションを分割して両日に表示
+        const recordsOnDate = getExpandedRecords(getTimelineFilteredRecords()).filter(r => getBelongingDate(r.date, r.startTime) === dateStr);
         const dayRow = document.createElement('div');
         dayRow.className = 'timeline-day-row' + (isToday ? ' today-row' : '');
 

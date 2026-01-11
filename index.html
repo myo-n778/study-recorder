@@ -171,6 +171,24 @@
                     <button id="today-btn" class="today-shortcut">今日</button>
                 </div>
 
+                <!-- 表示対象フィルタ -->
+                <div class="visibility-filter-bar">
+                    <div class="filter-group">
+                        <span class="filter-label">表示対象:</span>
+                        <select id="visibility-filter">
+                            <option value="all" selected>すべて</option>
+                            <option value="public">publicのみ</option>
+                            <option value="private">privateのみ</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="toggle-label-inline">
+                            <input type="checkbox" id="timeline-public-only-toggle">
+                            <span class="toggle-switch-small"></span>
+                            <span>タイムライン公開分のみ</span>
+                        </label>
+                    </div>
+                </div>
 
                 <div class="glass-card timeline-analysis compact-card">
                     <div class="header-flex">

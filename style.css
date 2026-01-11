@@ -1667,3 +1667,83 @@ h3 {
     font-size: 0.85rem;
     color: var(--text-dim);
 }
+
+/* VIEW画面の表示対象フィルタ */
+.visibility-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.5rem 0;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+#visibility-filter {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+#visibility-filter:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.toggle-label-inline {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+.toggle-label-inline input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-switch-small {
+    width: 32px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 9px;
+    position: relative;
+    transition: background 0.3s;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.toggle-switch-small::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+}
+
+.toggle-label-inline input[type="checkbox"]:checked+.toggle-switch-small {
+    background: var(--primary-color);
+}
+
+.toggle-label-inline input[type="checkbox"]:checked+.toggle-switch-small::after {
+    transform: translateX(14px);
+}
