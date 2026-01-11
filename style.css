@@ -456,24 +456,34 @@ select {
 #start-time,
 #end-time,
 #record-date {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    display: inline-block !important;
+    /* flexから戻して安定させる */
     width: 75% !important;
     max-width: 75% !important;
     min-width: 0 !important;
     margin: 0 auto !important;
     height: 38px !important;
-    /* 高さを固定して中央寄せを安定させる */
+    min-height: 38px !important;
+    line-height: 38px !important;
+    /* 高さと合わせることで垂直中央に */
     padding: 0 !important;
     text-align: center !important;
+    vertical-align: middle !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
 }
 
 /* Safari/iOS等で時刻入力の文字を垂直中央にするための微調整 */
 #start-time::-webkit-date-and-time-value,
 #end-time::-webkit-date-and-time-value,
 #record-date::-webkit-date-and-time-value {
-    margin: auto;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 38px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: center !important;
 }
 
 @media (min-width: 600px) {
