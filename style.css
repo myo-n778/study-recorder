@@ -452,22 +452,33 @@ select {
     /* セル自体のはみ出し防止 */
 }
 
-/* 時刻・日付入力の幅を75%に設定し中央に配置（スタイルは他の入力欄と統一） */
+/* 時刻・日付入力の幅を75%に設定し中央に配置（スタイルを『今の意気込み』と完全に一致させる） */
 #start-time,
 #end-time,
 #record-date {
-    width: 75%;
-    margin: 0 auto;
-    display: block;
-    text-align: center;
+    width: 75% !important;
+    margin: 0 auto !important;
+    display: block !important;
+    /* 「今の意気込み」と共通のパディング設定 */
+    padding: 0.3rem 0.5rem !important;
+    font-size: 16px !important;
+    text-align: center !important;
+    line-height: normal !important;
+    /* ブラウザ独自の行高さをリセット */
+    height: auto !important;
+    min-height: 0 !important;
+    /* ブラウザ独自の最小高さをリセット */
+    box-sizing: border-box !important;
 }
 
-/* Safari/iOS等のブラウザ固有の内部余白をリセット（中央寄せを安定させるため） */
+/* ブラウザ固有の表示位置オフセットを完全に消去 */
 #start-time::-webkit-date-and-time-value,
 #end-time::-webkit-date-and-time-value,
 #record-date::-webkit-date-and-time-value {
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline !important;
+    /* 内部要素をインライン化してパディングに従わせる */
 }
 
 @media (min-width: 600px) {
