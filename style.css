@@ -452,38 +452,34 @@ select {
     /* セル自体のはみ出し防止 */
 }
 
-/* 時刻・日付入力の幅を75%に固定し、枠内の文字を縦横中央寄せにする */
+/* 時刻・日付入力の幅を75%に固定し、枠内の文字を縦横中央寄せにする（パディング方式で安定化） */
 #start-time,
 #end-time,
 #record-date {
-    display: inline-block !important;
-    /* flexから戻して安定させる */
+    display: block !important;
     width: 75% !important;
     max-width: 75% !important;
     min-width: 0 !important;
     margin: 0 auto !important;
-    height: 38px !important;
+    padding: 0.4rem 0 !important;
+    /* 他の入力欄と同様にパディングで中央に */
+    height: auto !important;
     min-height: 38px !important;
-    line-height: 38px !important;
-    /* 高さと合わせることで垂直中央に */
-    padding: 0 !important;
     text-align: center !important;
-    vertical-align: middle !important;
-    appearance: none !important;
+    box-sizing: border-box !important;
     -webkit-appearance: none !important;
+    appearance: none !important;
 }
 
-/* Safari/iOS等で時刻入力の文字を垂直中央にするための微調整 */
+/* モバイルブラウザ特有の内側余白をリセットして位置を安定させる */
 #start-time::-webkit-date-and-time-value,
 #end-time::-webkit-date-and-time-value,
 #record-date::-webkit-date-and-time-value {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    height: 38px !important;
     margin: 0 !important;
     padding: 0 !important;
+    min-height: 1.2em !important;
     text-align: center !important;
+    display: block !important;
 }
 
 @media (min-width: 600px) {
