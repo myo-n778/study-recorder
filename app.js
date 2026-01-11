@@ -1134,8 +1134,8 @@ async function saveSummaryRecord() {
     const location = document.getElementById('summary-location').value.trim();
 
     const record = {
-        // 修正: 実日付をそのまま保存（所属判定は表示時にgetBelongingDateで行う）
-        date: endTime.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/-/g, '/'),
+        // 記録日は「開始時刻の日付」を基準に決定する（深夜跨ぎでも開始日を使用）
+        date: state.startTime.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/-/g, '/'),
         userName: localStorage.getItem(USER_KEY),
         startTime: state.startTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         endTime: endTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
