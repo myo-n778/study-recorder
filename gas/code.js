@@ -48,7 +48,7 @@ function doPost(e) {
     }
   } catch (err) { }
 
-  const fields = ['id', 'action', 'userName', 'date', 'startTime', 'endTime', 'duration', 'content', 'enthusiasm', 'condition', 'comment', 'category', 'location'];
+  const fields = ['id', 'action', 'userName', 'date', 'startTime', 'endTime', 'duration', 'content', 'enthusiasm', 'condition', 'comment', 'category', 'location', 'visibility', 'timeline_visibility'];
   fields.forEach(field => {
     if (e.parameter[field]) data[field] = e.parameter[field];
   });
@@ -109,6 +109,10 @@ function doPost(e) {
           timelineVisibility
         ];
         sheet.appendRow(rowData);
+
+        // マスタデータへの同期 (新規作成時のみ実行)
+        syncToBaseSheet(ss, data);
+
         return successResponse({ status: 'created', id: newId });
       }
     }
