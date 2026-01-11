@@ -171,7 +171,7 @@ let charts = {
     timeline: null
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyZxaCwGCAIsWHutoWG3w0asMU6lOfPykktn36YzlnkC0x13EYUxA2l29JOflqapzRUEg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzXm6C74iP41Wnqh4i6IWa5sxHqvQ9XmYUqXFax63XsuFlUchpXbVcQWTmXYYgK9G0FOw/exec';
 
 // DOM Elements
 const elements = {
@@ -227,7 +227,10 @@ const elements = {
     summaryLocationHistoryPopup: document.getElementById('summary-location-history-popup'),
     // Manual Record Location Elements
     locationCandidatesBtn: document.getElementById('show-location-candidates-btn'),
-    locationCandidatesPopup: document.getElementById('location-candidates-popup')
+    locationCandidatesPopup: document.getElementById('location-candidates-popup'),
+    // Timer Layout Correction
+    timerStage: document.getElementById('timer-stage'),
+    timerRings: document.querySelector('.timer-rings')
 };
 
 // 期間切り替えイベントの初期化
@@ -288,16 +291,21 @@ async function init() {
     const savedSettings = localStorage.getItem(LAST_SETTINGS_KEY);
     if (savedSettings) {
         state.lastSettings = JSON.parse(savedSettings);
-        elements.targetTime = document.getElementById('target-time');
-        if (elements.targetTime) elements.targetTime.value = state.lastSettings.targetTime || '60';
+        const targetTimeEl = document.getElementById('target-time');
+        if (targetTimeEl) targetTimeEl.value = state.lastSettings.targetTime || '60';
         if (elements.conditionInput) elements.conditionInput.value = state.lastSettings.condition || '◯';
         if (elements.commentInput) elements.commentInput.value = state.lastSettings.comment || '';
         if (elements.locationInput) elements.locationInput.value = state.lastSettings.location || '';
     }
 
-    // デフォルト値の設定（保存設定がない場合のみ）
-    if (!elements.enthusiasmInput.value) elements.enthusiasmInput.value = '集中して取り組む！';
-    if (!elements.commentInput.value && !state.lastSettings.comment) elements.commentInput.value = '次も頑張ろう！';
+    // タイマー補正用イベント
+    window.addEventListener('resize', adjustTimerPosition);
+    window.addEventListener('orientationchange', () => setTimeout(adjustTimerPosition, 300));
+    window.visualViewport?.addEventListener('resize', adjustTimerPosition);
+    window.visualViewport?.addEventListener('scroll', adjustTimerPosition);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') adjustTimerPosition();
+    });
 
     // 3. 非同期データ取得の前にセッション復元 (モバイルでの再開を最優先)
     resumeStudySession();
@@ -363,6 +371,8 @@ function resumeStudySession() {
                 if (elements.overlay) elements.overlay.classList.add('hidden');
                 if (elements.userSetup) elements.userSetup.classList.add('hidden');
             }
+            // リロード復帰時も位置補正を実行
+            setTimeout(adjustTimerPosition, 100);
         }
     }
 }
@@ -432,8 +442,11 @@ function setCurrentTimeInputs() {
 
 // マスターデータのセットアップ (履歴 + GASのbaseシートから候補抽出)
 function setupMasterData() {
-    // 1. カテゴリー候補 (自分の履歴のみを使用)
+    // 1. カテゴリー候補 (GASのbaseシート + 自分の履歴を使用)
     const catFreq = {};
+    if (state.gasMasterData?.categories) {
+        state.gasMasterData.categories.forEach(c => catFreq[c] = (catFreq[c] || 0) + 0.1); // 低めの優先度
+    }
     state.records.forEach(r => {
         if (r.category) catFreq[r.category] = (catFreq[r.category] || 0) + 1;
     });
@@ -456,6 +469,12 @@ function setupMasterData() {
     const updateContentList = () => {
         const catVal = elements.categoryInput.value;
         const contFreq = {};
+
+        // baseシートからの候補 (全量。カテゴリ不問)
+        if (state.gasMasterData?.contents) {
+            state.gasMasterData.contents.forEach(c => contFreq[c] = (contFreq[c] || 0) + 0.1);
+        }
+
         if (catVal) {
             state.records.filter(r => r.category === catVal).forEach(r => {
                 if (r.content) contFreq[r.content] = (contFreq[r.content] || 0) + 1;
@@ -469,14 +488,30 @@ function setupMasterData() {
             });
             if (sortedConts.length === 0) fillList(elements.contentList, allContents);
         } else {
-            fillList(elements.contentList, allContents);
+            // カテゴリなしの場合、自分の全履歴も混ぜる
+            state.records.forEach(r => {
+                if (r.content) contFreq[r.content] = (contFreq[r.content] || 0) + 1;
+            });
+            const sortedConts = Object.keys(contFreq).sort((a, b) => contFreq[b] - contFreq[a]);
+            elements.contentList.innerHTML = '';
+            sortedConts.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                elements.contentList.appendChild(opt);
+            });
         }
     };
 
     // 3. 意気込みの候補更新
     const updateEnthusiasmList = () => {
         const intFreq = {};
-        ['集中して取り組む！', 'まずは15分頑張る', '復習をメインに'].forEach(i => intFreq[i] = (intFreq[i] || 0) + 0.1);
+        // baseシートからの候補があれば追加
+        if (state.gasMasterData?.enthusiasms) {
+            state.gasMasterData.enthusiasms.forEach(i => intFreq[i] = (intFreq[i] || 0) + 0.1);
+        } else {
+            // フォールバック
+            ['集中して取り組む！', 'まずは15分頑張る', '復習をメインに'].forEach(i => intFreq[i] = (intFreq[i] || 0) + 0.1);
+        }
         state.records.forEach(r => { if (r.enthusiasm) intFreq[r.enthusiasm] = (intFreq[r.enthusiasm] || 0) + 1; });
         const sortedIntents = Object.keys(intFreq).sort((a, b) => intFreq[b] - intFreq[a]);
         elements.enthusiasmList.innerHTML = '';
@@ -669,7 +704,11 @@ function setupMasterData() {
 function updateCommentSuggestions() {
     elements.commentList.innerHTML = '';
     const commFreq = {};
-    // 自分の履歴のみ使用
+    // 1. baseシートからの共通候補
+    if (state.gasMasterData?.comments) {
+        state.gasMasterData.comments.forEach(c => commFreq[c] = (commFreq[c] || 0) + 0.1);
+    }
+    // 2. 自分の履歴
     state.records.forEach(r => {
         if (r.comment) commFreq[r.comment] = (commFreq[r.comment] || 0) + 1;
     });
@@ -986,6 +1025,9 @@ async function startStudy() {
     updateTimerDisplay();
     startTimerInterval();
     startSupportMessageInterval();
+
+    // タイマー位置補正を実行
+    setTimeout(adjustTimerPosition, 100);
 }
 
 function startSupportMessageInterval() {
@@ -1066,8 +1108,9 @@ async function finishStudy() {
     // 現在のコメント・場所をプリセット
     document.getElementById('summary-comment').value = elements.commentInput.value.trim() || '次も頑張ろう！';
 
-    // 前回選択した場所を自動入力 (最新の記録から取得)
-    const lastLocation = state.records.length > 0 ? (state.records[0].location || '') : '';
+    // 前回または現在の場所を自動入力 (現在の入力を優先、なければ最新の履歴から取得)
+    const currentLocation = elements.locationInput.value.trim();
+    const lastLocation = currentLocation || (state.records.length > 0 ? (state.records[state.records.length - 1].location || '') : '');
     document.getElementById('summary-location').value = lastLocation;
 
     // ① 2軸評価用データの準備 (A: 今回, B: 本日合計)
@@ -1188,9 +1231,7 @@ async function saveSummaryRecord() {
 function updateLocationSuggestions() {
     elements.locationList.innerHTML = '';
     const locFreq = {};
-    if (state.gasMasterData?.locations) {
-        state.gasMasterData.locations.forEach(l => locFreq[l] = (locFreq[l] || 0) + 5);
-    }
+    // baseシート（共通候補）は含めず、自分の履歴のみを使用する
     state.records.forEach(r => {
         if (r.location) locFreq[r.location] = (locFreq[r.location] || 0) + 1;
     });
@@ -2583,6 +2624,51 @@ function updateSupportMessage() {
             msgEl.style.opacity = '1';
         }, 400);
     }
+}
+
+/**
+ * タイマー画面の位置補正
+ * リングの上端が安全領域（safe-area-inset-top）に収まるように translateY を調整する
+ */
+function adjustTimerPosition() {
+    if (!state.isStudying || elements.studyMode.classList.contains('hidden')) return;
+
+    const stage = elements.timerStage;
+    const rings = elements.timerRings;
+    if (!stage || !rings) return;
+
+    // 1. 正確な計測のため、一時的にアニメーションをオフにする
+    const originalTransition = stage.style.transition;
+    stage.style.transition = 'none';
+    stage.style.transform = 'translateY(0)';
+
+    // 強制リフロー（現在の位置をブラウザに確定させる）
+    stage.offsetHeight;
+
+    // 2. リングの現在位置を取得
+    const ringRect = rings.getBoundingClientRect();
+
+    // 3. 安全領域の取得
+    const overlayStyle = window.getComputedStyle(elements.studyMode);
+    const safeTopStr = overlayStyle.getPropertyValue('--safe-top') || '0px';
+    const safeTop = parseFloat(safeTopStr.replace('px', '')) || 0;
+
+    // 上部の余白（安全領域 + ブラウザバー回避用の 40px）
+    const safetyBoundary = safeTop + 40;
+
+    // 4. スライド量の計算（リング天頂を基準）
+    const scale = ringRect.width / 600;
+    const actualRingTop = ringRect.top + (10 * scale);
+
+    if (actualRingTop < safetyBoundary) {
+        const delta = safetyBoundary - actualRingTop;
+        stage.style.transform = `translateY(${delta}px)`;
+    }
+
+    // 5. アニメーションを元に戻す
+    requestAnimationFrame(() => {
+        stage.style.transition = originalTransition;
+    });
 }
 
 // 実行: 初期化シーケンスを集約

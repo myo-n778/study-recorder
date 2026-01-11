@@ -291,7 +291,8 @@
 
         <!-- 学習中画面 -->
         <div id="study-mode" class="study-overlay hidden">
-            <div class="study-container">
+            <!-- 動的補正用ステージ領域 -->
+            <div id="timer-stage" class="timer-stage study-container">
                 <div class="study-sub-info">
                     <span id="study-current-category">カテゴリー</span>
                     <span id="study-info-separator"> / </span>
@@ -329,130 +330,131 @@
                     <button id="pause-study-btn" class="secondary-btn">Take a Break</button>
                     <button id="finish-study-btn" class="primary-btn">Well Done</button>
                 </div>
-                <!-- 達成スタンプ表示エリア（ボタン直下） -->
-                <div id="achievement-stamps-area"></div>
             </div>
+            <!-- 達成スタンプ表示エリア（ボタン直下） -->
+            <div id="achievement-stamps-area"></div>
         </div>
+    </div>
 
-        <!-- 学習終了後のまとめモーダル -->
-        <div id="summary-modal" class="modal hidden">
-            <div class="modal-content summary-content-styled">
-                <div class="summary-visual-bg"></div> <!-- 星とグロー用 -->
-                <h3>お疲れ様でした！</h3>
-                <p id="summary-duration-display">学習時間: --分</p>
+    <!-- 学習終了後のまとめモーダル -->
+    <div id="summary-modal" class="modal hidden">
+        <div class="modal-content summary-content-styled">
+            <div class="summary-visual-bg"></div> <!-- 星とグロー用 -->
+            <h3>お疲れ様でした！</h3>
+            <p id="summary-duration-display">学習時間: --分</p>
 
-                <div class="grid-2col">
-                    <div class="form-group">
-                        <label>ふりかえり(FB)</label>
-                        <select id="summary-condition">
-                            <option value="◎">◎ (絶好調)</option>
-                            <option value="◯" selected>◯ (順調)</option>
-                            <option value="△">△ (ぼちぼち)</option>
-                            <option value="×">× (苦戦)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>場所</label>
-                        <div class="input-with-action">
-                            <input type="text" id="summary-location" list="location-list" placeholder="場所">
-                            <button id="show-summary-location-history-btn" class="icon-btn" title="履歴から選ぶ">
-                                <span class="material-icons-outlined">history</span>
-                            </button>
-                            <div id="summary-location-history-popup" class="history-popup hidden"></div>
-                        </div>
-                    </div>
-                </div>
-
+            <div class="grid-2col">
                 <div class="form-group">
-                    <label>コメント</label>
-                    <div class="input-with-action">
-                        <input type="text" id="summary-comment" list="comment-list" placeholder="コメント">
-                        <button id="show-comment-history-btn" class="icon-btn" title="履歴から選ぶ">
-                            <span class="material-icons-outlined">history</span>
-                        </button>
-                        <div id="comment-history-popup" class="history-popup hidden"></div>
-                    </div>
-                </div>
-
-                <div class="modal-actions">
-                    <button id="save-summary-btn" class="primary-btn">記録を保存する</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 休憩・継続確認モーダル -->
-        <div id="confirm-modal" class="modal hidden">
-            <div class="modal-content glass-card">
-                <h3>休憩にしますか？</h3>
-                <p>画面を離れようとしています。今の状態を選んでください。</p>
-                <div class="modal-actions">
-                    <button id="keep-working-btn" class="primary-btn">作業を続ける</button>
-                    <button id="take-rest-btn" class="secondary-btn">休憩する</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Edit Modal -->
-        <div id="edit-modal" class="modal hidden">
-            <div class="modal-content glass-card">
-                <h3>記録の編集</h3>
-                <input type="hidden" id="edit-id">
-                <div class="grid-2col">
-                    <div class="form-group">
-                        <label>カテゴリー</label>
-                        <input type="text" id="edit-category" list="category-list">
-                    </div>
-                    <div class="form-group">
-                        <label>内容</label>
-                        <input type="text" id="edit-content" list="content-list">
-                    </div>
-                </div>
-                <div class="grid-2col">
-                    <div class="form-group">
-                        <label>学習時間(分)</label>
-                        <input type="number" id="edit-duration">
-                    </div>
-                    <div class="form-group">
-                        <label>日付</label>
-                        <input type="text" id="edit-date" placeholder="YYYY/MM/DD">
-                    </div>
-                </div>
-                <!-- 簡易編集のため、時刻は省略し時間は直接編集させる -->
-                <div class="form-group">
-                    <label>FB</label>
-                    <select id="edit-condition">
+                    <label>ふりかえり(FB)</label>
+                    <select id="summary-condition">
                         <option value="◎">◎ (絶好調)</option>
-                        <option value="◯">◯ (順調)</option>
+                        <option value="◯" selected>◯ (順調)</option>
                         <option value="△">△ (ぼちぼち)</option>
                         <option value="×">× (苦戦)</option>
                     </select>
                 </div>
+
                 <div class="form-group">
                     <label>場所</label>
-                    <input type="text" id="edit-location" list="location-list">
+                    <div class="input-with-action">
+                        <input type="text" id="summary-location" list="location-list" placeholder="場所">
+                        <button id="show-summary-location-history-btn" class="icon-btn" title="履歴から選ぶ">
+                            <span class="material-icons-outlined">history</span>
+                        </button>
+                        <div id="summary-location-history-popup" class="history-popup hidden"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>コメント</label>
+                <div class="input-with-action">
+                    <input type="text" id="summary-comment" list="comment-list" placeholder="コメント">
+                    <button id="show-comment-history-btn" class="icon-btn" title="履歴から選ぶ">
+                        <span class="material-icons-outlined">history</span>
+                    </button>
+                    <div id="comment-history-popup" class="history-popup hidden"></div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="save-summary-btn" class="primary-btn">記録を保存する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 休憩・継続確認モーダル -->
+    <div id="confirm-modal" class="modal hidden">
+        <div class="modal-content glass-card">
+            <h3>休憩にしますか？</h3>
+            <p>画面を離れようとしています。今の状態を選んでください。</p>
+            <div class="modal-actions">
+                <button id="keep-working-btn" class="primary-btn">作業を続ける</button>
+                <button id="take-rest-btn" class="secondary-btn">休憩する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-content glass-card">
+            <h3>記録の編集</h3>
+            <input type="hidden" id="edit-id">
+            <div class="grid-2col">
+                <div class="form-group">
+                    <label>カテゴリー</label>
+                    <input type="text" id="edit-category" list="category-list">
                 </div>
                 <div class="form-group">
-                    <label>コメント</label>
-                    <input type="text" id="edit-comment">
-                </div>
-
-                <div class="modal-actions">
-                    <button id="cancel-edit-btn" class="secondary-btn">キャンセル</button>
-                    <button id="save-edit-btn" class="primary-btn">保存</button>
+                    <label>内容</label>
+                    <input type="text" id="edit-content" list="content-list">
                 </div>
             </div>
-        </div>
+            <div class="grid-2col">
+                <div class="form-group">
+                    <label>学習時間(分)</label>
+                    <input type="number" id="edit-duration">
+                </div>
+                <div class="form-group">
+                    <label>日付</label>
+                    <input type="text" id="edit-date" placeholder="YYYY/MM/DD">
+                </div>
+            </div>
+            <!-- 簡易編集のため、時刻は省略し時間は直接編集させる -->
+            <div class="form-group">
+                <label>FB</label>
+                <select id="edit-condition">
+                    <option value="◎">◎ (絶好調)</option>
+                    <option value="◯">◯ (順調)</option>
+                    <option value="△">△ (ぼちぼち)</option>
+                    <option value="×">× (苦戦)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>場所</label>
+                <input type="text" id="edit-location" list="location-list">
+            </div>
+            <div class="form-group">
+                <label>コメント</label>
+                <input type="text" id="edit-comment">
+            </div>
 
-        <!-- Context Menu -->
-        <div id="context-menu" class="context-menu hidden">
-            <div class="context-menu-item" id="ctx-edit">
-                <span>✏️</span> 編集
-            </div>
-            <div class="context-menu-item delete" id="ctx-delete">
-                <span>🗑️</span> 削除
+            <div class="modal-actions">
+                <button id="cancel-edit-btn" class="secondary-btn">キャンセル</button>
+                <button id="save-edit-btn" class="primary-btn">保存</button>
             </div>
         </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <div class="context-menu-item" id="ctx-edit">
+            <span>✏️</span> 編集
+        </div>
+        <div class="context-menu-item delete" id="ctx-delete">
+            <span>🗑️</span> 削除
+        </div>
+    </div>
     </div>
     <script src="app.js"></script>
 </body>

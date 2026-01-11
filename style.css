@@ -1165,20 +1165,24 @@ h3 {
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 100dvh;
     background: #0c0e14;
     /* 深い紺色 */
     z-index: 1050;
     display: flex;
     flex-direction: column;
     align-items: center;
+    /* 動的計算の基準とするため一旦中央へ */
     justify-content: center;
     backdrop-filter: blur(10px);
     overflow: hidden;
-    padding: 1.5rem;
+    padding: 1rem;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     box-sizing: border-box;
-    max-height: 100vh;
     touch-action: none;
+    /* JSで取得できるように安全領域をエクスポート */
+    --safe-top: env(safe-area-inset-top, 0px);
 }
 
 /* 常に表示されるオレンジグロー（最背面） */
@@ -1256,9 +1260,19 @@ h3 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 0.8rem;
     height: 100%;
-    justify-content: center;
+}
+
+.timer-stage {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    /* JSによる translateY 補正を許可 */
+    will-change: transform;
+    transition: transform 0.3s cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 /* サマリーモーダルの特別スタイル */
@@ -1312,18 +1326,17 @@ h3 {
     z-index: 5;
 }
 
-/* 3重タイマーリング（外側にオフセットし、中央UIとの干渉を回避） */
 .timer-rings {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    /* サイズを元に戻す */
     width: min(92vw, 92vh);
     height: min(92vw, 92vh);
     max-width: 650px;
     max-height: 650px;
     pointer-events: none;
-    /* コンテンツの背後に */
     z-index: 1;
 }
 

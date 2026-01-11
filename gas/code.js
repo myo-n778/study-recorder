@@ -59,8 +59,8 @@ function doPost(e) {
   }
 
   if (action === 'update' || action === 'create') {
-    // baseシートへの同期（マスタデータの自動蓄積）
-    syncToBaseSheet(ss, data);
+    // baseシートへの同期（マスタデータの自動蓄積）は停止中
+    // syncToBaseSheet(ss, data);
 
     if (action === 'update') {
       const rowIdx = findRowIndexById(sheet, data.id);
