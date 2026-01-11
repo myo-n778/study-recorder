@@ -2123,7 +2123,7 @@ function setupCardEvents(card, rec) {
         e.preventDefault();
         console.log('contextmenu triggered, id:', recordId);
         if (recordId) {
-            showContextMenu(e.pageX, e.pageY, recordId);
+            showContextMenu(e.clientX, e.clientY, recordId);
         } else {
             alert('この記録にはIDがないため編集できません。');
         }
@@ -2136,7 +2136,7 @@ function setupCardEvents(card, rec) {
             console.log('long press triggered, id:', recordId);
             if (recordId) {
                 const touch = e.touches[0];
-                showContextMenu(touch.pageX, touch.pageY, recordId);
+                showContextMenu(touch.clientX, touch.clientY, recordId);
             } else {
                 alert('この記録にはIDがないため編集できません。');
             }
