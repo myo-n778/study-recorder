@@ -171,7 +171,7 @@ let charts = {
     timeline: null
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxBppJr_nlrelavZueWQvSN-28DjxU8zjLAtgjc9gDudABnaaNKomT7shF87ZSbhNvblQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzmxpOn43gXSNs2x8Ci2DgwZruKcjkVtJB9Xz7CxhdS5hptUDbnLdyBgpNIBxkWRFaHTA/exec';
 
 // DOM Elements
 const elements = {
@@ -1327,37 +1327,20 @@ async function sendRecord(record, button = null, action = 'create') {
     let attempt = 0;
     let success = false;
 
-    while (attempt < maxRetries && !success) {
-        try {
-            attempt++;
-            // no-cors を外し、レスポンスを確認可能にする（URLSearchParamsでのPOST）
-            const response = await fetch(GAS_URL, {
-                method: 'POST',
-                body: params,
-                // リダイレクトを自動追従
-                redirect: 'follow'
-            });
+    try {
+        // GASの仕様上、リダイレクトが発生するため no-cors を使用し、成否判定はコンソールのみとします
+        await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: params
+        });
 
-            // GASからのレスポンスを解析（ContentService経由のJSON）
-            const result = await response.json();
-
-            if (response.ok && result && !result.error) {
-                console.log(`送信成功 (試行 ${attempt}):`, result);
-                success = true;
-                // 成功時は1.5秒後に再読み込みして整合性をとる
-                setTimeout(() => loadRecordsFromGAS(), 1500);
-            } else {
-                throw new Error(result?.error || 'Unknown server error');
-            }
-        } catch (error) {
-            console.warn(`送信試行 ${attempt} 失敗:`, error);
-            if (attempt === maxRetries) {
-                alert(`記録の送信に失敗しました（${maxRetries}回試行）。\nエラー: ${error.message}\nローカルには保存されていますが、スプレッドシートへの反映は手動で行う必要があります。`);
-            } else {
-                // 指数バックオフ
-                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-            }
-        }
+        console.log('送信完了(no-cors)');
+        setTimeout(() => loadRecordsFromGAS(), 1500);
+        success = true;
+    } catch (error) {
+        console.error('送信エラー:', error);
+        alert('記録の送信に失敗しました。ネットワークを確認してください。');
     }
 
     if (button) {

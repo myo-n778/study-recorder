@@ -2,7 +2,7 @@
  * 学習記録アプリ StudyRecorder 用 GAS (CRUD & マルチユーザー & マスタデータ同期対応)
  */
 
-const SPREADSHEET_ID = '1Zr2IDZiu4ixCh6NPExyVYLxXrSrabXm4L841MjbkAuM';
+const STUDY_REC_SS_ID = '1Zr2IDZiu4ixCh6NPExyVYLxXrSrabXm4L841MjbkAuM';
 const SHEET_NAME_BASE = 'base'; // 応援メッセージ・マスタデータの格納先
 
 /**
@@ -38,7 +38,7 @@ function getSheetForUser(ss, userName) {
 }
 
 function doPost(e) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById(STUDY_REC_SS_ID);
   let data = {};
   try {
     if (e.postData && e.postData.contents) {
@@ -177,7 +177,7 @@ function getFirstEmptyRowInColumn(sheet, column) {
 }
 
 function doGet(e) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById(STUDY_REC_SS_ID);
   const userName = e.parameter.userName;
   const sheet = getSheetForUser(ss, userName);
 
