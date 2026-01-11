@@ -452,33 +452,39 @@ select {
     /* セル自体のはみ出し防止 */
 }
 
-/* 時刻・日付入力の幅を75%に設定し中央に配置（スタイルを『今の意気込み』と完全に一致させる） */
+/* 実施日、開始時刻、終了時刻：縦方向の中央寄せを確実にする設定 */
+#record-date,
 #start-time,
-#end-time,
-#record-date {
+#end-time {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     width: 75% !important;
     margin: 0 auto !important;
-    display: block !important;
-    /* 「今の意気込み」と共通のパディング設定 */
-    padding: 0.3rem 0.5rem !important;
+    padding: 0 0.5rem !important;
+    /* 横の余白のみ、縦はflexで中央寄せ */
+    height: 38px !important;
+    /* 「意気込み」等の高さに合わせる */
+    min-height: 38px !important;
     font-size: 16px !important;
     text-align: center !important;
-    line-height: normal !important;
-    /* ブラウザ独自の行高さをリセット */
-    height: auto !important;
-    min-height: 0 !important;
-    /* ブラウザ独自の最小高さをリセット */
     box-sizing: border-box !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
 }
 
-/* ブラウザ固有の表示位置オフセットを完全に消去 */
+/* Safari/iOS等で文字が上詰めになるのを解消する内部設定 */
+#record-date::-webkit-date-and-time-value,
 #start-time::-webkit-date-and-time-value,
-#end-time::-webkit-date-and-time-value,
-#record-date::-webkit-date-and-time-value {
+#end-time::-webkit-date-and-time-value {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    display: inline !important;
-    /* 内部要素をインライン化してパディングに従わせる */
+    text-align: center !important;
+    color: inherit !important;
 }
 
 @media (min-width: 600px) {
