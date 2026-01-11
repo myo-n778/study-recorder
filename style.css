@@ -452,40 +452,31 @@ select {
     /* セル自体のはみ出し防止 */
 }
 
-/* 実施日、開始時刻、終了時刻：縦方向の中央寄せを確実にする設定 */
+/* 実施日、開始時刻、終了時刻：パディング数値指定による垂直中央の視覚的調整 */
 #record-date,
 #start-time,
 #end-time {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    display: block !important;
     width: 75% !important;
     margin: 0 auto !important;
-    padding: 0 0.5rem !important;
-    /* 横の余白のみ、縦はflexで中央寄せ */
     height: 38px !important;
-    /* 「意気込み」等の高さに合わせる */
-    min-height: 38px !important;
+    box-sizing: border-box !important;
+    /* ブラウザの上詰め仕様を相殺するため、padding-topを調整 */
+    padding-top: 6.5px !important;
+    padding-bottom: 0 !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
     font-size: 16px !important;
     text-align: center !important;
-    box-sizing: border-box !important;
-    appearance: none !important;
-    -webkit-appearance: none !important;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--text-main);
+    appearance: none;
+    -webkit-appearance: none;
 }
 
-/* Safari/iOS等で文字が上詰めになるのを解消する内部設定 */
-#record-date::-webkit-date-and-time-value,
-#start-time::-webkit-date-and-time-value,
-#end-time::-webkit-date-and-time-value {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    text-align: center !important;
-    color: inherit !important;
-}
+/* Shadow DOM等への直接操作を廃止 */
 
 @media (min-width: 600px) {
 
