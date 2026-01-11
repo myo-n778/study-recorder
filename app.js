@@ -2153,10 +2153,25 @@ function setupCardEvents(card, rec) {
 }
 
 function showContextMenu(x, y, id) {
+    console.log('showContextMenu called, x:', x, 'y:', y, 'id:', id);
     contextMenuTargetId = id;
-    contextMenu.style.left = `${x}px`;
-    contextMenu.style.top = `${y}px`;
-    contextMenu.classList.remove('hidden');
+
+    // contextMenuがnullの場合は再取得
+    let menu = contextMenu;
+    if (!menu) {
+        menu = document.getElementById('context-menu');
+        console.log('context-menu re-fetched:', menu);
+    }
+
+    if (!menu) {
+        console.error('context-menu element not found!');
+        return;
+    }
+
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    menu.classList.remove('hidden');
+    console.log('context-menu should now be visible');
 }
 
 // メニュー外クリックで閉じる
