@@ -452,13 +452,17 @@ select {
     /* セル自体のはみ出し防止 */
 }
 
-/* 時刻・日付入力の幅を75%に固定（ID指定で優先度を高め、重なりを確実に防止） */
+/* 時刻・日付入力の幅を75%に固定（重なりを物理的に防止し、目標時間等とサイズを合わせる） */
 #start-time,
 #end-time,
 #record-date {
+    display: block !important;
     width: 75% !important;
+    max-width: 75% !important;
     min-width: 0 !important;
-    padding: 0.3rem 0.3rem;
+    margin: 0 auto !important;
+    padding: 0.3rem 0.2rem !important;
+    text-align: center;
 }
 
 @media (min-width: 600px) {
