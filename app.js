@@ -171,7 +171,7 @@ let charts = {
     timeline: null
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzXm6C74iP41Wnqh4i6IWa5sxHqvQ9XmYUqXFax63XsuFlUchpXbVcQWTmXYYgK9G0FOw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxBppJr_nlrelavZueWQvSN-28DjxU8zjLAtgjc9gDudABnaaNKomT7shF87ZSbhNvblQ/exec';
 
 // DOM Elements
 const elements = {
@@ -442,13 +442,12 @@ function setCurrentTimeInputs() {
 
 // マスターデータのセットアップ (履歴 + GASのbaseシートから候補抽出)
 function setupMasterData() {
-    // 1. カテゴリー候補 (GASのbaseシート + 自分の履歴を使用)
+    // 1. カテゴリー候補 (自分の履歴のみを使用)
     const catFreq = {};
-    if (state.gasMasterData?.categories) {
-        state.gasMasterData.categories.forEach(c => catFreq[c] = (catFreq[c] || 0) + 0.1); // 低めの優先度
-    }
     state.records.forEach(r => {
-        if (r.category) catFreq[r.category] = (catFreq[r.category] || 0) + 1;
+        if (r.category && r.category.trim()) {
+            catFreq[r.category] = (catFreq[r.category] || 0) + 1;
+        }
     });
 
     const sortedCats = Object.keys(catFreq).sort((a, b) => catFreq[b] - catFreq[a]);
@@ -459,10 +458,10 @@ function setupMasterData() {
         elements.categoryList.appendChild(opt);
     });
 
-    // 全体の履歴から収集しておく (自分の記録のみ)
+    // 全履歴から内容を収集 (フィルタなし時の候補用)
     const allContents = new Set();
     state.records.forEach(r => {
-        if (r.content) allContents.add(r.content);
+        if (r.content && r.content.trim()) allContents.add(r.content);
     });
 
     // 2. 学習内容の候補更新
@@ -470,14 +469,9 @@ function setupMasterData() {
         const catVal = elements.categoryInput.value;
         const contFreq = {};
 
-        // baseシートからの候補 (全量。カテゴリ不問)
-        if (state.gasMasterData?.contents) {
-            state.gasMasterData.contents.forEach(c => contFreq[c] = (contFreq[c] || 0) + 0.1);
-        }
-
         if (catVal) {
             state.records.filter(r => r.category === catVal).forEach(r => {
-                if (r.content) contFreq[r.content] = (contFreq[r.content] || 0) + 1;
+                if (r.content && r.content.trim()) contFreq[r.content] = (contFreq[r.content] || 0) + 1;
             });
             const sortedConts = Object.keys(contFreq).sort((a, b) => contFreq[b] - contFreq[a]);
             elements.contentList.innerHTML = '';
@@ -488,9 +482,8 @@ function setupMasterData() {
             });
             if (sortedConts.length === 0) fillList(elements.contentList, allContents);
         } else {
-            // カテゴリなしの場合、自分の全履歴も混ぜる
             state.records.forEach(r => {
-                if (r.content) contFreq[r.content] = (contFreq[r.content] || 0) + 1;
+                if (r.content && r.content.trim()) contFreq[r.content] = (contFreq[r.content] || 0) + 1;
             });
             const sortedConts = Object.keys(contFreq).sort((a, b) => contFreq[b] - contFreq[a]);
             elements.contentList.innerHTML = '';
@@ -505,14 +498,17 @@ function setupMasterData() {
     // 3. 意気込みの候補更新
     const updateEnthusiasmList = () => {
         const intFreq = {};
-        // baseシートからの候補があれば追加
-        if (state.gasMasterData?.enthusiasms) {
-            state.gasMasterData.enthusiasms.forEach(i => intFreq[i] = (intFreq[i] || 0) + 0.1);
-        } else {
-            // フォールバック
-            ['集中して取り組む！', 'まずは15分頑張る', '復習をメインに'].forEach(i => intFreq[i] = (intFreq[i] || 0) + 0.1);
+        state.records.forEach(r => {
+            if (r.enthusiasm && r.enthusiasm.trim()) {
+                intFreq[r.enthusiasm] = (intFreq[r.enthusiasm] || 0) + 1;
+            }
+        });
+
+        // 履歴がない場合のフォールバック（利便性のために維持）
+        if (Object.keys(intFreq).length === 0) {
+            ['集中して取り組む！', 'まずは15分頑張る', '復習をメインに'].forEach(i => intFreq[i] = 0.1);
         }
-        state.records.forEach(r => { if (r.enthusiasm) intFreq[r.enthusiasm] = (intFreq[r.enthusiasm] || 0) + 1; });
+
         const sortedIntents = Object.keys(intFreq).sort((a, b) => intFreq[b] - intFreq[a]);
         elements.enthusiasmList.innerHTML = '';
         sortedIntents.forEach(i => {
@@ -704,13 +700,12 @@ function setupMasterData() {
 function updateCommentSuggestions() {
     elements.commentList.innerHTML = '';
     const commFreq = {};
-    // 1. baseシートからの共通候補
-    if (state.gasMasterData?.comments) {
-        state.gasMasterData.comments.forEach(c => commFreq[c] = (commFreq[c] || 0) + 0.1);
-    }
-    // 2. 自分の履歴
+
+    // 自分の履歴のみを使用 (baseシート由来は除外)
     state.records.forEach(r => {
-        if (r.comment) commFreq[r.comment] = (commFreq[r.comment] || 0) + 1;
+        if (r.comment && r.comment.trim()) {
+            commFreq[r.comment] = (commFreq[r.comment] || 0) + 1;
+        }
     });
 
     const sortedComms = Object.keys(commFreq).sort((a, b) => commFreq[b] - commFreq[a]);
@@ -1311,7 +1306,7 @@ async function manualRecord() {
     await sendRecord(record, elements.manualRecordBtn);
 }
 
-// レコード送信 (Create / Update / Delete)
+// レコード送信 (Create / Update / Delete) とリトライ処理
 async function sendRecord(record, button = null, action = 'create') {
     let originalText = '';
     if (button) {
@@ -1320,13 +1315,7 @@ async function sendRecord(record, button = null, action = 'create') {
         button.disabled = true;
     }
 
-    // Update/Deleteの場合はIDが必須
-    const dataToSend = {
-        action: action, // 'create', 'update', 'delete'
-        ...record
-    };
-
-    // no-cors対策のためURLパラメータにも付与
+    const dataToSend = { action: action, ...record };
     const params = new URLSearchParams();
     Object.keys(dataToSend).forEach(key => {
         if (dataToSend[key] !== null && dataToSend[key] !== undefined) {
@@ -1334,27 +1323,48 @@ async function sendRecord(record, button = null, action = 'create') {
         }
     });
 
-    try {
-        const response = await fetch(GAS_URL + '?' + params.toString(), {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dataToSend)
-        });
+    const maxRetries = 3;
+    let attempt = 0;
+    let success = false;
 
-        // no-corsなのでレスポンス読めないが成功とみなす
-        // リロードして反映
-        setTimeout(() => loadRecordsFromGAS(), 1000);
+    while (attempt < maxRetries && !success) {
+        try {
+            attempt++;
+            // no-cors を外し、レスポンスを確認可能にする（URLSearchParamsでのPOST）
+            const response = await fetch(GAS_URL, {
+                method: 'POST',
+                body: params,
+                // リダイレクトを自動追従
+                redirect: 'follow'
+            });
 
-    } catch (error) {
-        console.error('送信エラー:', error);
-        alert('送信に失敗しました。');
-    } finally {
-        if (button) {
-            button.textContent = originalText;
-            button.disabled = false;
+            // GASからのレスポンスを解析（ContentService経由のJSON）
+            const result = await response.json();
+
+            if (response.ok && result && !result.error) {
+                console.log(`送信成功 (試行 ${attempt}):`, result);
+                success = true;
+                // 成功時は1.5秒後に再読み込みして整合性をとる
+                setTimeout(() => loadRecordsFromGAS(), 1500);
+            } else {
+                throw new Error(result?.error || 'Unknown server error');
+            }
+        } catch (error) {
+            console.warn(`送信試行 ${attempt} 失敗:`, error);
+            if (attempt === maxRetries) {
+                alert(`記録の送信に失敗しました（${maxRetries}回試行）。\nエラー: ${error.message}\nローカルには保存されていますが、スプレッドシートへの反映は手動で行う必要があります。`);
+            } else {
+                // 指数バックオフ
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            }
         }
     }
+
+    if (button) {
+        button.textContent = originalText;
+        button.disabled = false;
+    }
+    return success;
 }
 
 function saveLocalRecords() {
@@ -1363,102 +1373,101 @@ function saveLocalRecords() {
 }
 
 async function loadRecordsFromGAS() {
+    if (state.isLoadingRecords) return;
     const userName = localStorage.getItem(USER_KEY);
-    if (!userName) return;
+    if (!userName) {
+        console.warn('ユーザー名が設定されていないため、GASからの入力をスキップします。');
+        return;
+    }
 
-    // NOTE: ここで state.viewDate を getLogicalDate() で上書きしないこと
-    // (Navでの日付切り替えや今日ボタンの動作を破壊するため)
-
+    state.isLoadingRecords = true;
     try {
-        const response = await fetch(`${GAS_URL}?userName=${encodeURIComponent(userName)}`);
-        if (response.ok) {
-            const result = await response.json();
-            const recordsData = result.records || [];
+        const response = await fetch(`${GAS_URL}?userName=${encodeURIComponent(userName)}`, {
+            cache: 'no-store'
+        });
 
-            // マスタデータの更新
-            if (result.masterData) {
-                state.gasMasterData = result.masterData;
-            }
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
-            if (Array.isArray(recordsData)) {
-                state.records = recordsData.map(record => {
-                    let datePart = record.date;
+        const result = await response.json();
+        if (!result) throw new Error('Response is empty');
 
-                    // 修正: ISOString（UTC）をローカル日付に正しく変換
-                    // GASはDate型をISOString（UTC）として返すため、ローカル時間に変換が必要
-                    if (datePart && typeof datePart === 'string' && datePart.includes('T')) {
-                        // ISOString形式の場合はDateオブジェクトを経由してローカル日付を取得
-                        const d = new Date(datePart);
-                        if (!isNaN(d.getTime())) {
-                            const y = d.getFullYear();
-                            const m = ('0' + (d.getMonth() + 1)).slice(-2);
-                            const day = ('0' + d.getDate()).slice(-2);
-                            datePart = `${y}/${m}/${day}`;
-                        } else {
-                            datePart = datePart.split(/[ T]/)[0].replace(/-/g, '/');
-                        }
-                    } else if (datePart && typeof datePart === 'string') {
-                        // 既に日付文字列の場合はそのまま正規化
+        // マスタデータの更新 (応援メッセージ等に使用)
+        if (result.masterData) {
+            state.gasMasterData = result.masterData;
+        }
+
+        const recordsData = result.records;
+        if (Array.isArray(recordsData)) {
+            state.records = recordsData.map(record => {
+                let datePart = record.date;
+
+                // ISOString（UTC）をローカル日付に変換
+                if (datePart && typeof datePart === 'string' && datePart.includes('T')) {
+                    const d = new Date(datePart);
+                    if (!isNaN(d.getTime())) {
+                        const y = d.getFullYear();
+                        const m = ('0' + (d.getMonth() + 1)).slice(-2);
+                        const day = ('0' + d.getDate()).slice(-2);
+                        datePart = `${y}/${m}/${day}`;
+                    } else {
                         datePart = datePart.split(/[ T]/)[0].replace(/-/g, '/');
-                    } else if (datePart) {
-                        datePart = datePart.toString().split(/[ T]/)[0].replace(/-/g, '/');
                     }
+                } else if (datePart && typeof datePart === 'string') {
+                    datePart = datePart.split(/[ T]/)[0].replace(/-/g, '/');
+                } else if (datePart) {
+                    datePart = datePart.toString().split(/[ T]/)[0].replace(/-/g, '/');
+                }
 
-                    const formatTime = (timeStr) => {
-                        if (!timeStr) return '';
-                        if (typeof timeStr === 'string' && timeStr.includes('T')) {
-                            const d = new Date(timeStr);
-                            if (isNaN(d.getTime())) return timeStr;
-                            const h = ('0' + d.getHours()).slice(-2);
-                            const m = ('0' + d.getMinutes()).slice(-2);
-                            return `${h}:${m}`;
-                        }
-                        return timeStr;
-                    };
+                const formatTime = (timeStr) => {
+                    if (!timeStr) return '';
+                    if (typeof timeStr === 'string' && timeStr.includes('T')) {
+                        const d = new Date(timeStr);
+                        if (isNaN(d.getTime())) return timeStr;
+                        const h = ('0' + d.getHours()).slice(-2);
+                        const m = ('0' + d.getMinutes()).slice(-2);
+                        return `${h}:${m}`;
+                    }
+                    return timeStr;
+                };
 
-                    const startTime = formatTime(record.startTime);
-                    const endTime = formatTime(record.endTime);
-
-                    // 修正: 表示日付はスプレッドシートの実データをそのまま使用
-                    // 所属判定（どの日に載せるか）はgetBelongingDateで別途行う
-                    return {
-                        ...record,
-                        date: datePart || '',
-                        startTime: startTime,
-                        endTime: endTime
-                    };
-                });
-                console.log('GASから学習記録を正常に読み込みました。');
-            }
+                return {
+                    ...record,
+                    date: datePart || '',
+                    startTime: formatTime(record.startTime),
+                    endTime: formatTime(record.endTime)
+                };
+            });
+            console.log(`GASから ${state.records.length} 件の記録を正常に読み込みました。`);
         }
     } catch (error) {
         console.error('GASからの記録読み込みに失敗しました:', error);
+        // 失敗してもローカルの記録のみで動作を継続
     } finally {
-        // UIとチャートを更新 (正常・異常に関わらず最新状態を反映して「消失」を防ぐ)
+        state.isLoadingRecords = false;
         updateHistoryUI();
         updateGoalDisplay();
         updateCharts();
         setupMasterData();
         updateLocationSuggestions();
-        updateUserDisplay(); // ここでユーザー名を確実に再描画
+        updateUserDisplay();
     }
+}
 
-    // ② カテゴリ・学習内容の初期値（初期起動時かつ学習中でない場合のみセット）
-    if (!state.isStudying && state.records.length > 0 && !elements.categoryInput.value && !elements.contentInput.value) {
-        const sorted = [...state.records].sort((a, b) => {
-            const parseTime = (r) => {
-                if (!r.date || !r.startTime) return 0;
-                const [y, m, d] = r.date.split('/').map(Number);
-                const [h, min] = r.startTime.split(':').map(Number);
-                return new Date(y, m - 1, d, h, min).getTime();
-            };
-            return parseTime(b) - parseTime(a);
-        });
-        const lastRec = sorted[0];
-        if (lastRec) {
-            elements.categoryInput.value = lastRec.category || '';
-            elements.contentInput.value = lastRec.content || '';
-        }
+// ② カテゴリ・学習内容の初期値（初期起動時かつ学習中でない場合のみセット）
+if (!state.isStudying && state.records.length > 0 && !elements.categoryInput.value && !elements.contentInput.value) {
+    const sorted = [...state.records].sort((a, b) => {
+        const parseTime = (r) => {
+            if (!r.date || !r.startTime) return 0;
+            const [y, m, d] = r.date.split('/').map(Number);
+            const [h, min] = r.startTime.split(':').map(Number);
+            return new Date(y, m - 1, d, h, min).getTime();
+        };
+        return parseTime(b) - parseTime(a);
+    });
+    const lastRec = sorted[0];
+    if (lastRec) {
+        elements.categoryInput.value = lastRec.category || '';
+        elements.contentInput.value = lastRec.content || '';
     }
 }
 

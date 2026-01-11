@@ -3,9 +3,15 @@
  */
 
 const SPREADSHEET_ID = '1Zr2IDZiu4ixCh6NPExyVYLxXrSrabXm4L841MjbkAuM';
-const SHEET_NAME_BASE = 'base'; // マスタデータのシート名
+const SHEET_NAME_BASE = 'base'; // 応援メッセージ・マスタデータの格納先
 
-// ユーザー名に基づいてシートを取得（なければ作成）
+/**
+ * ユーザー別シートの取得・初期化
+ * シート名: "rec" + userName (例: "rec山田")
+ * 読み書き対象列 (A~L列 / 1~12列):
+ * [0]日付(A), [1]ユーザー名(B), [2]開始時刻(C), [3]終了時刻(D), [4]学習時間(E),
+ * [5]カテゴリ(F), [6]内容(G), [7]意気込み(H), [8]コメント(I), [9]意欲(J), [10]場所(K), [11]ID(L)
+ */
 function getSheetForUser(ss, userName) {
   let name = userName ? userName.trim() : 'デフォルト';
   let sheetName = "rec" + name;
@@ -46,56 +52,61 @@ function doPost(e) {
   });
 
   const userName = data.userName;
-  const sheet = getSheetForUser(ss, userName);
   const action = data.action || 'create';
 
-  if (action === 'delete') {
-    const rowIdx = findRowIndexById(sheet, data.id);
-    if (rowIdx !== -1) {
-      sheet.deleteRow(rowIdx);
-      return successResponse({ status: 'deleted' });
-    }
-    return errorResponse("Record not found");
-  }
+  try {
+    const sheet = getSheetForUser(ss, userName);
+    if (!sheet) throw new Error("Target sheet could not be initialized.");
 
-  if (action === 'update' || action === 'create') {
-    // baseシートへの同期（マスタデータの自動蓄積）は停止中
-    // syncToBaseSheet(ss, data);
-
-    if (action === 'update') {
+    if (action === 'delete') {
       const rowIdx = findRowIndexById(sheet, data.id);
       if (rowIdx !== -1) {
-        if (data.date !== undefined) sheet.getRange(rowIdx, 1).setValue(data.date);
-        if (data.startTime !== undefined) sheet.getRange(rowIdx, 3).setValue(data.startTime);
-        if (data.endTime !== undefined) sheet.getRange(rowIdx, 4).setValue(data.endTime);
-        if (data.duration !== undefined) sheet.getRange(rowIdx, 5).setValue(Number(data.duration));
-        if (data.category !== undefined) sheet.getRange(rowIdx, 6).setValue(data.category);
-        if (data.content !== undefined) sheet.getRange(rowIdx, 7).setValue(data.content);
-        if (data.enthusiasm !== undefined) sheet.getRange(rowIdx, 8).setValue(data.enthusiasm);
-        if (data.comment !== undefined) sheet.getRange(rowIdx, 9).setValue(data.comment);
-        if (data.condition !== undefined) sheet.getRange(rowIdx, 10).setValue(data.condition);
-        if (data.location !== undefined) sheet.getRange(rowIdx, 11).setValue(data.location);
-        return successResponse({ status: 'updated' });
+        sheet.deleteRow(rowIdx);
+        return successResponse({ status: 'deleted', id: data.id });
       }
-      return errorResponse("Record not found");
-    } else {
-      const newId = Utilities.getUuid();
-      sheet.appendRow([
-        data.date || '',
-        data.userName || '',
-        data.startTime || '',
-        data.endTime || '',
-        data.duration || '',
-        data.category || '',
-        data.content || '',
-        data.enthusiasm || '',
-        data.comment || '',
-        data.condition || '',
-        data.location || '',
-        newId
-      ]);
-      return successResponse({ status: 'created', id: newId });
+      return errorResponse(`Record with ID ${data.id} not found for deletion.`);
     }
+
+    if (action === 'update' || action === 'create') {
+      if (action === 'update') {
+        const rowIdx = findRowIndexById(sheet, data.id);
+        if (rowIdx !== -1) {
+          const updates = [];
+          if (data.date !== undefined) sheet.getRange(rowIdx, 1).setValue(data.date);
+          if (data.startTime !== undefined) sheet.getRange(rowIdx, 3).setValue(data.startTime);
+          if (data.endTime !== undefined) sheet.getRange(rowIdx, 4).setValue(data.endTime);
+          if (data.duration !== undefined) sheet.getRange(rowIdx, 5).setValue(Number(data.duration));
+          if (data.category !== undefined) sheet.getRange(rowIdx, 6).setValue(data.category);
+          if (data.content !== undefined) sheet.getRange(rowIdx, 7).setValue(data.content);
+          if (data.enthusiasm !== undefined) sheet.getRange(rowIdx, 8).setValue(data.enthusiasm);
+          if (data.comment !== undefined) sheet.getRange(rowIdx, 9).setValue(data.comment);
+          if (data.condition !== undefined) sheet.getRange(rowIdx, 10).setValue(data.condition);
+          if (data.location !== undefined) sheet.getRange(rowIdx, 11).setValue(data.location);
+          return successResponse({ status: 'updated', id: data.id });
+        }
+        return errorResponse(`Record with ID ${data.id} not found for update.`);
+      } else {
+        const newId = Utilities.getUuid();
+        const rowData = [
+          data.date || '',
+          data.userName || '',
+          data.startTime || '',
+          data.endTime || '',
+          data.duration || '',
+          data.category || '',
+          data.content || '',
+          data.enthusiasm || '',
+          data.comment || '',
+          data.condition || '',
+          data.location || '',
+          newId
+        ];
+        sheet.appendRow(rowData);
+        return successResponse({ status: 'created', id: newId });
+      }
+    }
+  } catch (e) {
+    return errorResponse(`Server Error: ${e.message}`);
   }
 
   return errorResponse('Invalid action');
