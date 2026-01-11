@@ -447,11 +447,18 @@ select {
     box-sizing: border-box;
 }
 
-/* 時刻・日付入力の幅を75%に縮小（重なり防止） */
-input[type="time"],
-input[type="date"] {
-    padding: 0.3rem 0.3rem;
+.grid-2col>.form-group {
+    min-width: 0;
+    /* セル自体のはみ出し防止 */
+}
+
+/* 時刻・日付入力の幅を75%に固定（ID指定で優先度を高め、重なりを確実に防止） */
+#start-time,
+#end-time,
+#record-date {
     width: 75% !important;
+    min-width: 0 !important;
+    padding: 0.3rem 0.3rem;
 }
 
 @media (min-width: 600px) {
