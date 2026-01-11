@@ -16,7 +16,7 @@ function getSheetForUser(ss, userName) {
 
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-    const headers = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', '意欲', '場所', 'ID'];
+    const headers = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', '意欲', '場所', 'ID', 'visibility', 'timeline_visibility'];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(1, 100);
@@ -25,8 +25,15 @@ function getSheetForUser(ss, userName) {
     sheet.setColumnWidth(12, 250);
   }
 
+  // 既存シートに新列がない場合はヘッダーを追加
   if (sheet.getLastColumn() < 12) {
     sheet.getRange(1, 12).setValue('ID');
+  }
+  if (sheet.getLastColumn() < 13) {
+    sheet.getRange(1, 13).setValue('visibility');
+  }
+  if (sheet.getLastColumn() < 14) {
+    sheet.getRange(1, 14).setValue('timeline_visibility');
   }
 
   return sheet;
@@ -76,11 +83,15 @@ function doPost(e) {
           if (data.comment !== undefined) sheet.getRange(rowIdx, 9).setValue(data.comment);
           if (data.condition !== undefined) sheet.getRange(rowIdx, 10).setValue(data.condition);
           if (data.location !== undefined) sheet.getRange(rowIdx, 11).setValue(data.location);
+          if (data.visibility !== undefined) sheet.getRange(rowIdx, 13).setValue(data.visibility);
+          if (data.timeline_visibility !== undefined) sheet.getRange(rowIdx, 14).setValue(data.timeline_visibility);
           return successResponse({ status: 'updated', id: data.id });
         }
         return errorResponse(`Record with ID ${data.id} not found for update.`);
       } else {
         const newId = Utilities.getUuid();
+        const visibility = data.visibility || 'private';
+        const timelineVisibility = data.timeline_visibility || 'private';
         const rowData = [
           data.date || '',
           data.userName || '',
@@ -93,7 +104,9 @@ function doPost(e) {
           data.comment || '',
           data.condition || '',
           data.location || '',
-          newId
+          newId,
+          visibility,
+          timelineVisibility
         ];
         sheet.appendRow(rowData);
         return successResponse({ status: 'created', id: newId });
@@ -168,7 +181,9 @@ function doGet(e) {
       comment: row[8],
       condition: row[9],
       location: hasIdInL ? (row[10] || '') : '',
-      id: hasIdInL ? row[11] : row[10]
+      id: hasIdInL ? row[11] : row[10],
+      visibility: row[12] || 'private',
+      timeline_visibility: row[13] || 'private'
     };
   });
 

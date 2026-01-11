@@ -1145,7 +1145,9 @@ async function saveSummaryRecord() {
         enthusiasm: elements.enthusiasmInput.value,
         condition: condition,
         comment: comment,
-        location: location
+        location: location,
+        visibility: document.getElementById('visibility-toggle').checked ? 'public' : 'private',
+        timeline_visibility: document.getElementById('timeline-visibility-toggle').checked ? 'public' : 'private'
     };
 
     state.isStudying = false;
@@ -1231,7 +1233,9 @@ async function manualRecord() {
         enthusiasm: document.getElementById('enthusiasm-input').value,
         condition: condition,
         location: location,
-        comment: comment
+        comment: comment,
+        visibility: document.getElementById('visibility-toggle').checked ? 'public' : 'private',
+        timeline_visibility: document.getElementById('timeline-visibility-toggle').checked ? 'public' : 'private'
     };
 
     state.records.push(record);

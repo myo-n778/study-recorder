@@ -1607,3 +1607,63 @@ h3 {
 .pulse {
     animation: pulse 2s infinite;
 }
+
+/* 公開設定トグル */
+.visibility-settings {
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.toggle-row {
+    margin: 0.5rem 0;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-label input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-switch {
+    width: 40px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 11px;
+    position: relative;
+    transition: background 0.3s;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+}
+
+.toggle-label input[type="checkbox"]:checked+.toggle-switch {
+    background: var(--primary-color);
+}
+
+.toggle-label input[type="checkbox"]:checked+.toggle-switch::after {
+    transform: translateX(18px);
+}
+
+.toggle-text {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
