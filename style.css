@@ -1747,3 +1747,68 @@ h3 {
 .toggle-label-inline input[type="checkbox"]:checked+.toggle-switch-small::after {
     transform: translateX(14px);
 }
+
+/* Public View Styles */
+#public-view-screen {
+    padding-bottom: 4rem;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.public-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.public-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary-light);
+}
+
+.public-summary {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.badge-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.badge-label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.badge.public-total-time {
+    font-size: 1.5rem;
+    padding: 0.8rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.public-footer {
+    margin-top: 4rem;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+    .public-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+}

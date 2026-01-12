@@ -180,7 +180,9 @@ let state = {
         condition: '◯',
         comment: '',
         location: ''
-    }
+    },
+    isPublicView: false,
+    publicUserName: null
 };
 
 // 最後に使用した設定のキー
@@ -191,7 +193,14 @@ state.viewDate = getLogicalDate();
 
 let charts = {
     category: null,
-    timeline: null
+    timeline: null,
+    timelineY: null,
+    timelineToday: null
+};
+
+let publicCharts = {
+    timeline: null,
+    timelineY: null
 };
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyDuTx4maV_7EgT9o1Ce6IR-S1br4Oz5Vfj6TtY2N1XoCx1EPLff3p56zH2ybVtwC9T/exec';
@@ -209,6 +218,12 @@ const elements = {
     startTimeInput: document.getElementById('start-time'),
     endTimeInput: document.getElementById('end-time'),
     recordDateInput: document.getElementById('record-date'),
+    recordsSearch: document.getElementById('records-search'),
+    // Public View Elements
+    publicViewScreen: document.getElementById('public-view-screen'),
+    publicUserTitle: document.getElementById('public-user-title'),
+    publicTotalTime: document.getElementById('public-total-time'),
+    publicVolumePeriodTabs: document.getElementById('public-volume-period-tabs'),
     minHoursInput: document.getElementById('min-hours-input'),
     targetHoursInput: document.getElementById('target-hours-input'),
     startStudyBtn: document.getElementById('start-study-btn'),
@@ -258,7 +273,7 @@ const elements = {
 
 // 期間切り替えイベントの初期化
 function setupPeriodSwitchers() {
-    const switcherIds = ['balance-period-tabs', 'volume-period-tabs', 'detail-period-tabs'];
+    const switcherIds = ['balance-period-tabs', 'volume-period-tabs', 'detail-period-tabs', 'public-volume-period-tabs'];
     switcherIds.forEach(id => {
         const container = document.getElementById(id);
         if (!container) return;
@@ -270,12 +285,16 @@ function setupPeriodSwitchers() {
                 e.target.classList.add('active');
 
                 // チャート更新
-                updateCharts();
+                if (state.isPublicView) {
+                    renderPublicView();
+                } else {
+                    updateCharts();
+                }
 
                 // 学習量推移グラフを右端（最新）までスクロールさせる
-                if (id === 'volume-period-tabs') {
+                if (id === 'volume-period-tabs' || id === 'public-volume-period-tabs') {
                     setTimeout(() => {
-                        const scrollingElement = document.querySelector('.chart-scroll-wrapper');
+                        const scrollingElement = document.querySelector(state.isPublicView ? '#public-view-screen .chart-scroll-wrapper' : '.chart-scroll-wrapper');
                         if (scrollingElement) {
                             scrollingElement.scrollLeft = scrollingElement.scrollWidth;
                         }
@@ -300,25 +319,51 @@ async function init() {
     state.isInitializing = true;
     state.viewDate = getLogicalDate();
 
-    // 1. 同期的な復元 (User, LocalSettings)
-    loadUser();         // ユーザー名復元
-    loadLocalRecords(); // 目標・テーマ復元 & updateUserDisplay実行
+    // Public View の判定
+    const params = new URLSearchParams(window.location.search);
+    const userParam = params.get('user');
+    // URLが /public で終わるか、view=public パラメータがある場合を Public View とみなす
+    if (userParam && (window.location.pathname.endsWith('/public') || window.location.pathname.endsWith('/public/') || params.get('view') === 'public')) {
+        state.isPublicView = true;
+        state.publicUserName = userParam;
 
+        // メインUIを隠し、Public View を表示
+        if (elements.overlay) elements.overlay.classList.add('hidden');
+        if (document.getElementById('main-content')) {
+            // main-content 内の通常要素を隠す
+            const children = document.getElementById('main-content').children;
+            for (let child of children) {
+                if (child.id !== 'public-view-screen' && child.id !== 'gantt-tooltip') {
+                    child.classList.add('hidden');
+                }
+            }
+        }
+        elements.publicViewScreen.classList.remove('hidden');
+        elements.publicUserTitle.textContent = `${state.publicUserName}さんの学習記録`;
+    }
+
+    if (!state.isPublicView) {
+        // 1. 同期的な復元 (User, LocalSettings)
+        loadUser();         // ユーザー名復元
+        loadLocalRecords(); // 目標・テーマ復元 & updateUserDisplay実行
+    }
     // 2. UI基本設定
     setupEventListeners();
     setupPeriodSwitchers();
     setCurrentTimeInputs();
     updateViewDateUI();
 
-    // 復元したユーザーに基づいた設定の読み込み
-    const savedSettings = localStorage.getItem(LAST_SETTINGS_KEY);
-    if (savedSettings) {
-        state.lastSettings = JSON.parse(savedSettings);
-        const targetTimeEl = document.getElementById('target-time');
-        if (targetTimeEl) targetTimeEl.value = state.lastSettings.targetTime || '60';
-        if (elements.conditionInput) elements.conditionInput.value = state.lastSettings.condition || '◯';
-        if (elements.commentInput) elements.commentInput.value = state.lastSettings.comment || '';
-        if (elements.locationInput) elements.locationInput.value = state.lastSettings.location || '';
+    if (!state.isPublicView) {
+        // 復元したユーザーに基づいた設定の読み込み
+        const savedSettings = localStorage.getItem(LAST_SETTINGS_KEY);
+        if (savedSettings) {
+            state.lastSettings = JSON.parse(savedSettings);
+            const targetTimeEl = document.getElementById('target-time');
+            if (targetTimeEl) targetTimeEl.value = state.lastSettings.targetTime || '60';
+            if (elements.conditionInput) elements.conditionInput.value = state.lastSettings.condition || '◯';
+            if (elements.commentInput) elements.commentInput.value = state.lastSettings.comment || '';
+            if (elements.locationInput) elements.locationInput.value = state.lastSettings.location || '';
+        }
     }
 
     // タイマー補正用イベント
@@ -330,11 +375,15 @@ async function init() {
         if (document.visibilityState === 'visible') adjustTimerPosition();
     });
 
-    // 3. 非同期データ取得の前にセッション復元 (モバイルでの再開を最優先)
-    resumeStudySession();
+    if (!state.isPublicView) {
+        // 3. 非同期データ取得の前にセッション復元 (モバイルでの再開を最優先)
+        resumeStudySession();
+    }
 
     setupMasterData();
-    updateGoalDisplay();
+    if (!state.isPublicView) {
+        updateGoalDisplay();
+    }
     await loadRecordsFromGAS();
 
     state.isInitializing = false;
@@ -1348,9 +1397,11 @@ function saveLocalRecords() {
 
 async function loadRecordsFromGAS() {
     if (state.isLoadingRecords) return;
-    const userName = localStorage.getItem(USER_KEY);
+    const userName = state.isPublicView ? state.publicUserName : localStorage.getItem(USER_KEY);
     if (!userName) {
-        console.warn('ユーザー名が設定されていないため、GASからの入力をスキップします。');
+        if (!state.isPublicView) {
+            console.warn('ユーザー名が設定されていないため、GASからの入力をスキップします。');
+        }
         return;
     }
 
@@ -1372,10 +1423,9 @@ async function loadRecordsFromGAS() {
 
         const recordsData = result.records;
         if (Array.isArray(recordsData)) {
-            state.records = recordsData.map(record => {
+            let processedRecords = recordsData.map(record => {
                 let datePart = record.date;
-
-                // ISOString（UTC）をローカル日付に変換
+                // ... (date conversion logic remains same)
                 if (datePart && typeof datePart === 'string' && datePart.includes('T')) {
                     const d = new Date(datePart);
                     if (!isNaN(d.getTime())) {
@@ -1411,19 +1461,47 @@ async function loadRecordsFromGAS() {
                     endTime: formatTime(record.endTime)
                 };
             });
-            console.log(`GASから ${state.records.length} 件の記録を正常に読み込みました。`);
+
+            // Public View 時の厳格なフィルタリングとマスキング
+            if (state.isPublicView) {
+                processedRecords = processedRecords
+                    .filter(r => r.visibility === 'public' || r.timeline_visibility === 'public')
+                    .map(r => ({
+                        date: r.date,
+                        startTime: r.startTime,
+                        endTime: r.endTime,
+                        duration: r.duration,
+                        userName: r.userName,
+                        id: r.id,
+                        visibility: r.visibility === 'public' ? 'public' : 'private',
+                        timeline_visibility: r.timeline_visibility === 'public' ? 'public' : 'private',
+                        // 重要項目を匿名化
+                        category: '学習',
+                        content: '',
+                        enthusiasm: '',
+                        comment: '',
+                        location: '',
+                        condition: ''
+                    }));
+            }
+
+            state.records = processedRecords;
+            console.log(`${state.isPublicView ? 'Public View' : 'GAS'}から ${state.records.length} 件の記録を正常に読み込みました。`);
         }
     } catch (error) {
         console.error('GASからの記録読み込みに失敗しました:', error);
-        // 失敗してもローカルの記録のみで動作を継続
     } finally {
         state.isLoadingRecords = false;
-        updateHistoryUI();
-        updateGoalDisplay();
-        updateCharts();
-        setupMasterData();
-        updateLocationSuggestions();
-        updateUserDisplay();
+        if (state.isPublicView) {
+            renderPublicView();
+        } else {
+            updateHistoryUI();
+            updateGoalDisplay();
+            updateCharts();
+            setupMasterData();
+            updateLocationSuggestions();
+            updateUserDisplay();
+        }
     }
 }
 
@@ -2140,11 +2218,18 @@ function showGanttTooltip(e, rec) {
     const tooltip = document.getElementById('gantt-tooltip');
     if (!tooltip) return;
 
-    tooltip.innerHTML = `
-        <div class="tooltip-title" style="font-weight: bold; margin-bottom: 4px;">${rec.category} - ${rec.content}</div>
-        <div class="tooltip-time" style="font-size: 0.8em; opacity: 0.8;">${rec.startTime} 〜 ${rec.endTime} (${rec.duration}分)</div>
-        ${rec.comment ? `<div class="tooltip-comment" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 2px;">${rec.comment}</div>` : ''}
-    `;
+    if (state.isPublicView) {
+        tooltip.innerHTML = `
+            <div class="tooltip-title" style="font-weight: bold; margin-bottom: 4px;">学習記録 (Public)</div>
+            <div class="tooltip-time" style="font-size: 0.8em; opacity: 0.8;">${rec.startTime} 〜 ${rec.endTime} (${rec.duration}分)</div>
+        `;
+    } else {
+        tooltip.innerHTML = `
+            <div class="tooltip-title" style="font-weight: bold; margin-bottom: 4px;">${rec.category} - ${rec.content}</div>
+            <div class="tooltip-time" style="font-size: 0.8em; opacity: 0.8;">${rec.startTime} 〜 ${rec.endTime} (${rec.duration}分)</div>
+            ${rec.comment ? `<div class="tooltip-comment" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 2px;">${rec.comment}</div>` : ''}
+        `;
+    }
 
     tooltip.style.left = `${e.pageX + 10}px`;
     tooltip.style.top = `${e.pageY + 10}px`;
@@ -2781,3 +2866,176 @@ function adjustTimerPosition() {
 
 // 実行: 初期化シーケンスを集約
 init();
+
+// --- Public View Rendering ---
+
+function renderPublicView() {
+    if (!state.isPublicView) return;
+
+    // A) 学習時間（合計）- 公開設定分のみ
+    const publicRecords = state.records.filter(r => r.visibility === 'public');
+    const totalMinutes = publicRecords.reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (elements.publicTotalTime) {
+        elements.publicTotalTime.textContent = `${h}h ${m}m`;
+    }
+
+    // B) 学習量推移グラフ
+    const activeBtn = elements.publicVolumePeriodTabs.querySelector('.period-btn.active');
+    const period = activeBtn ? activeBtn.dataset.period : 'day';
+    updatePublicVolumeChart(period);
+
+    // C) タイムライン (timeline_visibility: public のみ)
+    renderPublicTimeline();
+}
+
+function updatePublicVolumeChart(period = 'day') {
+    const yAxisEl = document.getElementById('publicTimelineYAxis');
+    const mainChartEl = document.getElementById('publicTimelineChart');
+    if (!yAxisEl || !mainChartEl) return;
+
+    const yAxisCtx = yAxisEl.getContext('2d');
+    const mainCtx = mainChartEl.getContext('2d');
+
+    // 公開レコードのみ集計
+    const publicRecords = state.records.filter(r => r.visibility === 'public');
+    const expandedRecords = getExpandedRecords(publicRecords);
+    const groupedData = aggregateByPeriod(expandedRecords, period);
+
+    const labels = groupedData.labels;
+    const datasets = groupedData.datasets;
+
+    // 最大値の計算
+    let maxTotal = 60;
+    labels.forEach((_, i) => {
+        let dailyTotal = 0;
+        datasets.forEach(ds => dailyTotal += (ds.data[i] || 0));
+        if (dailyTotal > maxTotal) maxTotal = dailyTotal;
+    });
+    const suggestedMax = Math.ceil(maxTotal / 60) * 60;
+
+    if (publicCharts.timelineY) publicCharts.timelineY.destroy();
+    if (publicCharts.timeline) publicCharts.timeline.destroy();
+
+    const baseOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: {
+                stacked: true,
+                grid: { display: false },
+                ticks: { color: '#94a3b8', font: { size: 10 } }
+            },
+            y: {
+                stacked: true,
+                beginAtZero: true,
+                min: 0,
+                max: suggestedMax,
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { display: false, stepSize: 60 }
+            }
+        }
+    };
+
+    // 縦軸のみ
+    publicCharts.timelineY = new Chart(yAxisCtx, {
+        type: 'bar',
+        data: { labels: labels, datasets: datasets },
+        options: {
+            ...baseOptions,
+            scales: {
+                ...baseOptions.scales,
+                x: { display: false },
+                y: { ...baseOptions.scales.y, ticks: { display: true, color: '#94a3b8', stepSize: 60 } }
+            }
+        }
+    });
+
+    // メイングラフ
+    const chartWidth = Math.max(mainChartEl.parentElement.clientWidth, labels.length * 40);
+    mainChartEl.parentElement.style.width = `${chartWidth}px`;
+
+    publicCharts.timeline = new Chart(mainCtx, {
+        type: 'bar',
+        data: { labels: labels, datasets: datasets },
+        options: baseOptions
+    });
+}
+
+function renderPublicTimeline() {
+    const container = document.getElementById('public-timeline-past-days');
+    const legend = document.getElementById('public-timeline-legend');
+    if (!container || !legend) return;
+
+    // 1. 目盛り生成
+    legend.innerHTML = '';
+    for (let i = 0; i <= 24; i++) {
+        const hour = (4 + i) % 24;
+        const span = document.createElement('span');
+        span.textContent = hour;
+        span.style.position = 'absolute';
+        span.style.left = `${(i / 24) * 100}%`;
+        span.style.transform = 'translateX(-50%)';
+        legend.appendChild(span);
+    }
+
+    // 2. 直近30日間の日付
+    const dates = [];
+    const logicalToday = getLogicalDate();
+    const [yT, mT, dT] = logicalToday.split('/').map(Number);
+    const baseDate = new Date(yT, mT - 1, dT);
+    for (let i = 0; i < 30; i++) {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() - i);
+        const y = d.getFullYear();
+        const m = ('0' + (d.getMonth() + 1)).slice(-2);
+        const day = ('0' + d.getDate()).slice(-2);
+        dates.push(`${y}/${m}/${day}`);
+    }
+
+    container.innerHTML = '';
+    const timelinePublicRecords = state.records.filter(r => r.timeline_visibility === 'public');
+    const expandedRecords = getExpandedRecords(timelinePublicRecords);
+
+    dates.forEach(dateStr => {
+        const recordsOnDate = expandedRecords.filter(r => getBelongingDate(r.date, r.startTime) === dateStr);
+        if (recordsOnDate.length === 0) return; // 公開分がない日は非表示
+
+        const dayRow = document.createElement('div');
+        dayRow.className = 'timeline-day-row';
+
+        const dateLabel = document.createElement('div');
+        dateLabel.className = 'timeline-date-label';
+        const d = new Date(dateStr);
+        const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+        dateLabel.textContent = `${dateStr.slice(5)}(${dayNames[d.getDay()]})`;
+        dayRow.appendChild(dateLabel);
+
+        const track = document.createElement('div');
+        track.className = 'timeline-track';
+
+        recordsOnDate.forEach(rec => {
+            const block = document.createElement('div');
+            block.className = 'time-block';
+            const startMin = getMinutesFrom4AM(rec.startTime);
+            const duration = rec.duration;
+            block.style.left = `${(startMin / (24 * 60)) * 100}%`;
+            block.style.width = `${(duration / (24 * 60)) * 100}%`;
+
+            block.addEventListener('mouseenter', (e) => showGanttTooltip(e, rec));
+            block.addEventListener('mouseleave', hideGanttTooltip);
+            block.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showGanttTooltip(e, rec);
+            });
+
+            block.style.backgroundColor = 'var(--primary)'; // 一律プライマリカラーに固定（プライバシー）
+            track.appendChild(block);
+        });
+
+        dayRow.appendChild(track);
+        container.appendChild(dayRow);
+    });
+}

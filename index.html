@@ -31,6 +31,60 @@
 
         <!-- メインコンテンツ -->
         <main id="main-content" class="container">
+            <!-- Public View Screen (閲覧専用公開ページ) -->
+            <div id="public-view-screen" class="hidden">
+                <header class="public-header">
+                    <div class="logo">Study<span>Recorder</span></div>
+                    <div id="public-user-title" class="public-title">--さんの学習記録</div>
+                </header>
+
+                <div class="public-summary">
+                    <div class="goal-badges">
+                        <div class="badge-item">
+                            <span class="badge-label">累計学習時間</span>
+                            <span class="badge public-total-time" id="public-total-time">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 学習量推移グラフ -->
+                <div class="glass-card compact-card">
+                    <div class="header-flex">
+                        <h3>学習量推移</h3>
+                        <div class="period-switcher mini-tabs" id="public-volume-period-tabs">
+                            <button class="period-btn active" data-period="day">日</button>
+                            <button class="period-btn" data-period="week">週</button>
+                            <button class="period-btn" data-period="month">月</button>
+                        </div>
+                    </div>
+                    <div class="chart-with-sticky-axis">
+                        <div class="y-axis-container"><canvas id="publicTimelineYAxis"></canvas></div>
+                        <div class="chart-scroll-wrapper">
+                            <div class="chart-resizable-content">
+                                <canvas id="publicTimelineChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- タイムライン -->
+                <div class="glass-card timeline-analysis compact-card" style="margin-top: 2rem;">
+                    <div class="header-flex">
+                        <h3>学習タイムライン (公開分)</h3>
+                        <div class="timeline-legend-full" id="public-timeline-legend">
+                            <!-- JSで目盛りを生成 -->
+                        </div>
+                    </div>
+                    <div id="public-timeline-past-days" class="timeline-visual">
+                        <!-- JSで動的に追加 -->
+                    </div>
+                </div>
+
+                <footer class="public-footer">
+                    <p>© 2026 StudyRecorder - 努力を可視化する</p>
+                </footer>
+            </div>
+
             <div id="gantt-tooltip" class="chart-tooltip hidden"></div>
             <header>
                 <div class="logo">Study<span>Recorder</span></div>
