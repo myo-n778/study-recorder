@@ -42,23 +42,23 @@
                     <div class="public-stats-grid">
                         <div class="stat-badge">
                             <span class="stat-label">総合計</span>
-                            <span class="badge" id="public-total-time">--</span>
+                            <span class="badge public-stat" id="public-total-time">--</span>
                         </div>
                         <div class="stat-badge">
                             <span class="stat-label">年合計</span>
-                            <span class="badge" id="public-year-time">--</span>
+                            <span class="badge public-stat" id="public-year-time">--</span>
                         </div>
                         <div class="stat-badge">
                             <span class="stat-label">月合計</span>
-                            <span class="badge" id="public-month-time">--</span>
+                            <span class="badge public-stat" id="public-month-time">--</span>
                         </div>
                         <div class="stat-badge">
                             <span class="stat-label">週合計</span>
-                            <span class="badge" id="public-week-time">--</span>
+                            <span class="badge public-stat" id="public-week-time">--</span>
                         </div>
                         <div class="stat-badge">
                             <span class="stat-label">日合計</span>
-                            <span class="badge" id="public-day-time">--</span>
+                            <span class="badge public-stat" id="public-day-time">--</span>
                         </div>
                     </div>
                 </div>
@@ -101,7 +101,14 @@
                 <!-- カテゴリ別集計 -->
                 <div class="glass-card compact-card" style="margin-top: 2rem;">
                     <div class="header-flex">
-                        <h3>カテゴリー別集計 (全公開分)</h3>
+                        <h3>カテゴリー別集計</h3>
+                        <div class="period-switcher mini-tabs" id="public-cat-period-tabs">
+                            <button class="period-btn" data-period="all">全期間</button>
+                            <button class="period-btn" data-period="year">年</button>
+                            <button class="period-btn" data-period="month">月</button>
+                            <button class="period-btn" data-period="week">週</button>
+                            <button class="period-btn active" data-period="day">日</button>
+                        </div>
                     </div>
                     <div id="public-category-summary" class="public-category-list">
                         <!-- JSで動的に追加 -->
@@ -121,6 +128,7 @@
                         <span class="badge min-hours" id="display-min-hours">--</span>
                         <span class="badge target-hours" id="display-target-hours">--</span>
                     </div>
+                    <div id="user-status-display" class="user-status-badge"></div>
                     <button id="header-settings-btn" class="icon-btn">⚙️</button>
                     <div id="user-display" class="user-info"></div>
                 </div>
@@ -144,6 +152,14 @@
                                 <div id="category-history-popup" class="history-popup hidden"></div>
                             </div>
                             <datalist id="category-list"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>ステータス</label>
+                            <div class="input-with-action">
+                                <input type="text" id="status-input" list="status-list" placeholder="今の気分や状態を入力">
+                                <datalist id="status-list"></datalist>
+                                <button id="update-status-btn" class="mini-btn">更新</button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>学習内容</label>

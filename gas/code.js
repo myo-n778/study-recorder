@@ -61,7 +61,7 @@ function doPost(e) {
   }
 
   // 3. e.parameter による最終補完
-  const fields = ['id', 'action', 'userName', 'date', 'startTime', 'endTime', 'duration', 'content', 'enthusiasm', 'condition', 'comment', 'category', 'location', 'visibility', 'timeline_visibility'];
+  const fields = ['id', 'action', 'userName', 'date', 'startTime', 'endTime', 'duration', 'content', 'enthusiasm', 'condition', 'comment', 'category', 'location', 'visibility', 'timeline_visibility', 'status'];
   fields.forEach(field => {
     if (e.parameter[field] !== undefined) {
       data[field] = e.parameter[field];
@@ -130,6 +130,30 @@ function doPost(e) {
 
         return successResponse({ status: 'created', id: newId });
       }
+    }
+    if (action === 'updateStatus') {
+      let statusSheet = ss.getSheetByName('Status');
+      if (!statusSheet) {
+        statusSheet = ss.insertSheet('Status');
+        statusSheet.appendRow(['ユーザー名', 'ステータス', '更新日時']);
+        statusSheet.setFrozenRows(1);
+      }
+      const statusValues = statusSheet.getDataRange().getValues();
+      let userRow = -1;
+      for (let i = 1; i < statusValues.length; i++) {
+        if (statusValues[i][0] === userName) {
+          userRow = i + 1;
+          break;
+        }
+      }
+      const now = new Date();
+      if (userRow !== -1) {
+        statusSheet.getRange(userRow, 2).setValue(data.status || '');
+        statusSheet.getRange(userRow, 3).setValue(now);
+      } else {
+        statusSheet.appendRow([userName, data.status || '', now]);
+      }
+      return successResponse({ status: 'status_updated', userName: userName });
     }
   } catch (e) {
     return errorResponse(`Server Error: ${e.message}`);
@@ -206,10 +230,24 @@ function doGet(e) {
     };
   });
 
+  // 最新ステータスの取得
+  let userStatus = '';
+  const statusSheet = ss.getSheetByName('Status');
+  if (statusSheet) {
+    const statusValues = statusSheet.getDataRange().getValues();
+    for (let i = 1; i < statusValues.length; i++) {
+      if (statusValues[i][0] === userName) {
+        userStatus = statusValues[i][1];
+        break;
+      }
+    }
+  }
+
   const baseData = getBaseData(ss);
 
   return successResponse({
     records: records,
+    userStatus: userStatus,
     masterData: baseData
   });
 }
@@ -226,6 +264,7 @@ function getBaseData(ss) {
   const locations = [];
   const supportMessages = [];
   const finishMessages = [];
+  const statusPresets = [];
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] && data[i][0].toString().trim()) categories.push(data[i][0].toString().trim());
@@ -235,6 +274,7 @@ function getBaseData(ss) {
     if (data[i][4] && data[i][4].toString().trim()) locations.push(data[i][4].toString().trim());
     if (data[i][5] && data[i][5].toString().trim()) supportMessages.push(data[i][5].toString().trim());
     if (data[i][6] && data[i][6].toString().trim()) finishMessages.push(data[i][6].toString().trim());
+    if (data[i][7] && data[i][7].toString().trim()) statusPresets.push(data[i][7].toString().trim());
   }
 
   return {
@@ -244,7 +284,8 @@ function getBaseData(ss) {
     comments: [...new Set(comments)],
     locations: [...new Set(locations)],
     supportMessages: [...new Set(supportMessages)],
-    finishMessages: [...new Set(finishMessages)]
+    finishMessages: [...new Set(finishMessages)],
+    statusPresets: [...new Set(statusPresets)]
   };
 }
 

@@ -167,8 +167,10 @@ let state = {
         enthusiasms: [],
         comments: [],
         locations: [],
-        supportMessages: []
+        supportMessages: [],
+        statusPresets: []
     },
+    userStatus: '', // 現在のステータス
     sessionSupportMessages: [], // 今のタイマーセッション中だけ使い回すメッセージ
     accumulatedPausedMs: 0,
     lastPauseTime: null,
@@ -268,7 +270,13 @@ const elements = {
     locationCandidatesPopup: document.getElementById('location-candidates-popup'),
     // Timer Layout Correction
     timerStage: document.getElementById('timer-stage'),
-    timerRings: document.querySelector('.timer-rings')
+    timerRings: document.querySelector('.timer-rings'),
+    // Status Elements
+    statusInput: document.getElementById('status-input'),
+    statusList: document.getElementById('status-list'),
+    updateStatusBtn: document.getElementById('update-status-btn'),
+    userStatusDisplay: document.getElementById('user-status-display'),
+    publicCatPeriodTabs: document.getElementById('public-cat-period-tabs')
 };
 
 // 期間切り替えイベントの初期化
@@ -409,6 +417,18 @@ async function init() {
     document.getElementById('timeline-public-only-toggle')?.addEventListener('change', () => {
         updateTimelineAnalysis();
     });
+
+    // ステータス更新イベント
+    elements.updateStatusBtn?.addEventListener('click', updateStatus);
+
+    // 公開用カテゴリ集計の期間切り替えイベント
+    elements.publicCatPeriodTabs?.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            elements.publicCatPeriodTabs.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            updatePublicCategorySummary(e.target.dataset.period);
+        });
+    });
 }
 
 function resumeStudySession() {
@@ -496,6 +516,11 @@ function updateUserDisplay() {
     if (userName && elements.userDisplay) {
         elements.userDisplay.textContent = `User: ${userName}`;
         state.userName = userName;
+    }
+    // ステータス表示の更新
+    if (elements.userStatusDisplay) {
+        elements.userStatusDisplay.textContent = state.userStatus || '';
+        elements.userStatusDisplay.classList.toggle('hidden', !state.userStatus);
     }
 }
 
@@ -1419,6 +1444,12 @@ async function loadRecordsFromGAS() {
         // マスタデータの更新 (応援メッセージ等に使用)
         if (result.masterData) {
             state.gasMasterData = result.masterData;
+            updateDatalists();
+        }
+
+        if (result.userStatus !== undefined) {
+            state.userStatus = result.userStatus;
+            updateUserDisplay();
         }
 
         const recordsData = result.records;
@@ -1501,9 +1532,68 @@ async function loadRecordsFromGAS() {
             setupMasterData();
             updateLocationSuggestions();
             updateUserDisplay();
+            updateDatalists();
         }
     }
 }
+
+// データリストの更新 (マスタデータを反映)
+function updateDatalists() {
+    if (elements.categoryList && state.gasMasterData.categories) {
+        elements.categoryList.innerHTML = state.gasMasterData.categories.map(item => `<option value="${item}">`).join('');
+    }
+    if (elements.contentList && state.gasMasterData.contents) {
+        elements.contentList.innerHTML = state.gasMasterData.contents.map(item => `<option value="${item}">`).join('');
+    }
+    if (elements.enthusiasmList && state.gasMasterData.enthusiasms) {
+        elements.enthusiasmList.innerHTML = state.gasMasterData.enthusiasms.map(item => `<option value="${item}">`).join('');
+    }
+    if (elements.commentList && state.gasMasterData.comments) {
+        elements.commentList.innerHTML = state.gasMasterData.comments.map(item => `<option value="${item}">`).join('');
+    }
+    if (elements.locationList && state.gasMasterData.locations) {
+        elements.locationList.innerHTML = state.gasMasterData.locations.map(item => `<option value="${item}">`).join('');
+    }
+    if (elements.statusList && state.gasMasterData.statusPresets) {
+        elements.statusList.innerHTML = state.gasMasterData.statusPresets.map(item => `<option value="${item}">`).join('');
+    }
+}
+
+// ステータスの更新送信
+async function updateStatus() {
+    const status = elements.statusInput.value.trim();
+    if (!status) return;
+
+    elements.updateStatusBtn.textContent = '...';
+    elements.updateStatusBtn.disabled = true;
+
+    try {
+        const userName = state.userName || localStorage.getItem(USER_KEY);
+        const params = new URLSearchParams({
+            action: 'updateStatus',
+            userName: userName,
+            status: status
+        });
+
+        await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+        });
+
+        state.userStatus = status;
+        updateUserDisplay();
+        showFeedback('ステータスを更新しました');
+    } catch (e) {
+        console.error('Status update failed:', e);
+        showFeedback('更新に失敗しました');
+    } finally {
+        elements.updateStatusBtn.textContent = '更新';
+        elements.updateStatusBtn.disabled = false;
+    }
+}
+
 
 // ② カテゴリ・学習内容の初期値（初期起動時かつ学習中でない場合のみセット）
 if (!state.isStudying && state.records.length > 0 && !elements.categoryInput.value && !elements.contentInput.value) {
@@ -2940,7 +3030,45 @@ function renderPublicView() {
     // C) タイムライン (timeline_visibility: public のみ)
     renderPublicTimeline();
 
-    // D) カテゴリ別内訳の描画
+    // D) カテゴリー別内訳の初期表示
+    const activeCatBtn = elements.publicCatPeriodTabs?.querySelector('.period-btn.active');
+    updatePublicCategorySummary(activeCatBtn ? activeCatBtn.dataset.period : 'day');
+}
+
+// 公開ページ用：カテゴリー別集計の動的表示
+function updatePublicCategorySummary(period = 'day') {
+    const publicRecords = state.records.filter(r => r.visibility === 'public');
+    const expandedRecords = getExpandedRecords(publicRecords);
+    const logicalToday = getLogicalDate();
+    const todayDate = new Date(logicalToday);
+    const currentYear = todayDate.getFullYear();
+    const currentMonth = todayDate.getMonth();
+    const currentWeek = getWeekNumber(todayDate);
+
+    const categorySummary = {};
+    expandedRecords.forEach(r => {
+        const dur = parseInt(r.duration) || 0;
+        const bDateStr = getBelongingDate(r.date, r.startTime);
+        const bDate = new Date(bDateStr);
+        let match = false;
+
+        if (period === 'all') match = true;
+        else if (period === 'year') match = bDate.getFullYear() === currentYear;
+        else if (period === 'month') match = bDate.getFullYear() === currentYear && bDate.getMonth() === currentMonth;
+        else if (period === 'week') match = bDate.getFullYear() === currentYear && getWeekNumber(bDate) === currentWeek;
+        else if (period === 'day') match = bDateStr === logicalToday;
+
+        if (match) {
+            categorySummary[r.category] = (categorySummary[r.category] || 0) + dur;
+        }
+    });
+
+    const formatH = (min) => {
+        const h = Math.floor(min / 60);
+        const m = min % 60;
+        return `${h}h ${m}m`;
+    };
+
     const catContainer = document.getElementById('public-category-summary');
     if (catContainer) {
         catContainer.innerHTML = '';
@@ -2967,6 +3095,7 @@ function renderPublicView() {
         }
     }
 }
+
 
 function updatePublicVolumeChart(period = 'day') {
     const yAxisEl = document.getElementById('publicTimelineYAxis');
