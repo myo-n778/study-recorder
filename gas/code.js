@@ -39,6 +39,82 @@ function getSheetForUser(ss, userName) {
   return sheet;
 }
 
+/**
+ * ユーザーの公開設定を取得 (baseシートから)
+ */
+function getUserVisibility(ss, userName) {
+  const baseSheet = ss.getSheetByName(STUDY_REC_SHEET_NAME_BASE);
+  if (!baseSheet) return 'private';
+
+  const lastRow = baseSheet.getLastRow();
+  if (lastRow < 2) return 'private';
+
+  const headers = baseSheet.getRange(1, 1, 1, baseSheet.getLastColumn()).getValues()[0];
+  const userColIdx = headers.indexOf('ユーザー名(設定)');
+  const visibilityColIdx = headers.indexOf('ユーザー公開設定');
+
+  if (userColIdx === -1 || visibilityColIdx === -1) return 'private';
+
+  const data = baseSheet.getRange(2, 1, lastRow - 1, baseSheet.getLastColumn()).getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][userColIdx] === userName) {
+      return data[i][visibilityColIdx] || 'private';
+    }
+  }
+  return 'private';
+}
+
+/**
+ * ユーザーの公開設定を更新 (baseシートへ)
+ */
+function updateUserVisibility(ss, userName, visibility) {
+  let baseSheet = ss.getSheetByName(STUDY_REC_SHEET_NAME_BASE);
+  if (!baseSheet) {
+    baseSheet = ss.insertSheet(STUDY_REC_SHEET_NAME_BASE);
+  }
+
+  const lastCol = baseSheet.getLastColumn();
+  let headers = [];
+  if (lastCol > 0) {
+    headers = baseSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  }
+
+  let userColIdx = headers.indexOf('ユーザー名(設定)');
+  let visibilityColIdx = headers.indexOf('ユーザー公開設定');
+
+  // 列がない場合は追加
+  if (userColIdx === -1) {
+    userColIdx = lastCol;
+    baseSheet.getRange(1, userColIdx + 1).setValue('ユーザー名(設定)');
+    headers[userColIdx] = 'ユーザー名(設定)';
+  }
+  if (visibilityColIdx === -1) {
+    visibilityColIdx = baseSheet.getLastColumn();
+    baseSheet.getRange(1, visibilityColIdx + 1).setValue('ユーザー公開設定');
+    headers[visibilityColIdx] = 'ユーザー公開設定';
+  }
+
+  const lastRow = baseSheet.getLastRow();
+  let targetRow = -1;
+  if (lastRow > 1) {
+    const userData = baseSheet.getRange(2, userColIdx + 1, lastRow - 1, 1).getValues();
+    for (let i = 0; i < userData.length; i++) {
+      if (userData[i][0] === userName) {
+        targetRow = i + 2;
+        break;
+      }
+    }
+  }
+
+  if (targetRow === -1) {
+    targetRow = lastRow + 1;
+    baseSheet.getRange(targetRow, userColIdx + 1).setValue(userName);
+  }
+
+  baseSheet.getRange(targetRow, visibilityColIdx + 1).setValue(visibility === 'public' ? 'public' : 'private');
+  return true;
+}
+
 function doPost(e) {
   const ss = SpreadsheetApp.openById(STUDY_REC_SS_ID);
   let data = {};
@@ -143,6 +219,11 @@ function doPost(e) {
       sheet.getRange(2, 15).setValue(data.status || '');
       return successResponse({ status: 'status_updated_init', userName: userName });
     }
+
+    if (action === 'updateUserVisibility') {
+      updateUserVisibility(ss, userName, data.visibility);
+      return successResponse({ status: 'visibility_updated', userName: userName, visibility: data.visibility });
+    }
   } catch (e) {
     return errorResponse(`Server Error: ${e.message}`);
   }
@@ -194,6 +275,23 @@ function getFirstEmptyRowInColumn(sheet, column) {
 function doGet(e) {
   const ss = SpreadsheetApp.openById(STUDY_REC_SS_ID);
   const userName = e.parameter.userName;
+  const action = e.parameter.action || 'get';
+
+  // Public View データの取得
+  if (action === 'getPublicData') {
+    const userVisibility = getUserVisibility(ss, userName);
+    if (userVisibility !== 'public') {
+      // ユーザーが非公開(private)の場合は何も返さない
+      return successResponse({
+        records: [],
+        userStatus: '',
+        masterData: {},
+        userVisibility: 'private',
+        accessDenied: true
+      });
+    }
+  }
+
   const sheet = getSheetForUser(ss, userName);
 
   const values = sheet.getDataRange().getValues();
@@ -242,11 +340,13 @@ function doGet(e) {
   }
 
   const baseData = getBaseData(ss);
+  const userVisibility = getUserVisibility(ss, userName);
 
   return successResponse({
     records: records,
     userStatus: userStatus,
-    masterData: baseData
+    masterData: baseData,
+    userVisibility: userVisibility
   });
 }
 

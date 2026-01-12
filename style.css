@@ -1818,6 +1818,57 @@ h3 {
     }
 }
 
+/* ユーザー公開設定ラベル */
+.user-visibility-container {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.visibility-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-dim);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.visibility-badge.public {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border-color: #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.visibility-badge.private {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-dim);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ユーザー公開時の控えめなグロー */
+.user-info.user-public-glow {
+    color: #fff;
+    text-shadow: 0 0 8px rgba(var(--primary-color-rgb), 0.6);
+    animation: user-name-glow 2s infinite alternate ease-in-out;
+}
+
+@keyframes user-name-glow {
+    0% {
+        text-shadow: 0 0 5px rgba(var(--primary-color-rgb), 0.4);
+    }
+
+    100% {
+        text-shadow: 0 0 12px rgba(var(--primary-color-rgb), 0.8), 0 0 20px rgba(var(--primary-color-rgb), 0.3);
+    }
+}
+
 .filter-label {
     font-size: 0.8rem;
     color: var(--text-dim);

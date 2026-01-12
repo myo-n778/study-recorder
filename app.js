@@ -184,7 +184,8 @@ let state = {
         location: ''
     },
     isPublicView: false,
-    publicUserName: null
+    publicUserName: null,
+    userVisibility: 'private' // ユーザー単位の公開設定
 };
 
 // 最後に使用した設定のキー
@@ -285,7 +286,9 @@ const elements = {
     statusList: document.getElementById('status-list'),
     updateStatusBtn: document.getElementById('update-status-btn'),
     userStatusDisplay: document.getElementById('user-status-display'),
-    publicCatPeriodTabs: document.getElementById('public-cat-period-tabs')
+    publicCatPeriodTabs: document.getElementById('public-cat-period-tabs'),
+    userVisibilityToggle: document.getElementById('user-visibility-toggle'),
+    userVisibilityLabel: document.getElementById('user-visibility-label')
 };
 
 // 期間切り替えイベントの初期化
@@ -582,13 +585,31 @@ function loadUser() {
 // ユーザー名表示の更新（不具合防止のため関数化）
 function updateUserDisplay() {
     const userName = state.userName || localStorage.getItem(USER_KEY);
+    const visBadge = elements.userVisibilityLabel;
+
     if (userName) {
         elements.userDisplay.textContent = userName;
-        // Instruction: Main view glowing effect removed as per request
-        elements.userDisplay.classList.remove('glowing');
+
+        // 公開設定ラベルの更新
+        if (visBadge) {
+            const vis = state.userVisibility || 'private';
+            visBadge.textContent = vis.charAt(0).toUpperCase() + vis.slice(1);
+            visBadge.className = `visibility-badge ${vis}`;
+
+            // 公開中なら名前を光らせる
+            if (vis === 'public') {
+                elements.userDisplay.classList.add('user-public-glow');
+            } else {
+                elements.userDisplay.classList.remove('user-public-glow');
+            }
+        }
     } else {
         elements.userDisplay.textContent = 'GUEST';
-        elements.userDisplay.classList.remove('glowing');
+        if (visBadge) {
+            visBadge.textContent = 'Private';
+            visBadge.className = 'visibility-badge private';
+        }
+        elements.userDisplay.classList.remove('user-public-glow');
     }
 
     // ヘッダーのステータス入力欄に反映
@@ -994,11 +1015,24 @@ function setupEventListeners() {
     });
 
     // ヘッダー設定・単位切り替え
-    elements.settingsBtn.addEventListener('click', () => elements.settingsModal.classList.remove('hidden'));
+    elements.settingsBtn.addEventListener('click', () => {
+        if (elements.userVisibilityToggle) {
+            elements.userVisibilityToggle.checked = (state.userVisibility === 'public');
+        }
+        elements.settingsModal.classList.remove('hidden');
+    });
+
     elements.closeSettingsBtn.addEventListener('click', () => {
         elements.settingsModal.classList.add('hidden');
         updateGoalDisplay();
     });
+
+    if (elements.userVisibilityToggle) {
+        elements.userVisibilityToggle.addEventListener('change', (e) => {
+            const newVisibility = e.target.checked ? 'public' : 'private';
+            saveUserVisibility(newVisibility);
+        });
+    }
 
     const msgIntervalInput = document.getElementById('message-interval-input');
     if (msgIntervalInput) {
@@ -1563,6 +1597,29 @@ async function loadRecordsFromGAS() {
             updateDatalists();
         }
 
+        if (result.userVisibility !== undefined) {
+            state.userVisibility = result.userVisibility;
+
+            // 設定トグルの状態を更新
+            if (elements.userVisibilityToggle) {
+                elements.userVisibilityToggle.checked = (state.userVisibility === 'public');
+            }
+            updateUserDisplay();
+        }
+
+        if (result.accessDenied) {
+            if (state.isPublicView) {
+                document.body.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:#fff; font-family:sans-serif; background:#0f172a; padding: 20px; text-align:center;">
+                    <h1 style="color:var(--primary-color);">ACCESS DENIED</h1>
+                    <p>このユーザーの学習記録は現在非公開に設定されています。</p>
+                    <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.3); color:#fff; border-radius:5px; cursor:pointer;">再試行</button>
+                    <p style="margin-top: 40px; font-size: 0.8rem; color: #64748b;">StudyRecorder</p>
+                </div>
+            `;
+                return;
+            }
+        }
         if (result.userStatus !== undefined) {
             state.userStatus = result.userStatus;
             updateUserDisplay();
@@ -3576,4 +3633,31 @@ function applyRandomStatusColor(element) {
     const pick = colors[Math.floor(Math.random() * colors.length)];
     element.style.setProperty('--badge-color', pick.main);
     element.style.setProperty('--badge-glow-rgb', pick.rgb);
+}
+
+// ユーザー単位の公開設定をGASに保存
+async function saveUserVisibility(visibility) {
+    state.userVisibility = visibility;
+    updateUserDisplay();
+
+    try {
+        const userName = state.userName || localStorage.getItem(USER_KEY);
+        const params = new URLSearchParams({
+            action: 'updateUserVisibility',
+            userName: userName,
+            visibility: visibility
+        });
+
+        await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+        });
+
+        showFeedback(`公開設定を${visibility === 'public' ? '公開' : '非公開'}に変更しました`);
+    } catch (e) {
+        console.error('Failed to save user visibility:', e);
+        showFeedback('設定の保存に失敗しました');
+    }
 }

@@ -193,6 +193,9 @@
                             <div id="status-presets-popup" class="history-popup hidden"></div>
                         </div>
                         <datalist id="header-status-list"></datalist>
+                        <div id="user-visibility-container" class="user-visibility-container">
+                            <span id="user-visibility-label" class="visibility-badge">Private</span>
+                        </div>
                         <div id="user-display" class="user-info"></div>
                     </div>
                 </div>
@@ -480,6 +483,19 @@
                         <span class="color-dot" data-theme="pink" style="background: #ec4899;" title="ピンク"></span>
                         <span class="color-dot" data-theme="emerald" style="background: #10b981;" title="エメラルド"></span>
                     </div>
+                </div>
+
+                <!-- ユーザー単位の公開設定トグル -->
+                <div class="form-group"
+                    style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="user-visibility-toggle">
+                        <span class="toggle-switch"></span>
+                        <span class="toggle-text">自分を公開する (Public)</span>
+                    </label>
+                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 5px;">
+                        ONにすると、あなたのPublic Viewページが他人から閲覧可能になります。
+                    </p>
                 </div>
                 <div class="modal-actions">
                     <button id="close-settings-btn" class="primary-btn">保存して閉じる</button>
