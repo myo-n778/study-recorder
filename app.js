@@ -261,6 +261,7 @@ const elements = {
     settingsBtn: document.getElementById('header-settings-btn'),
     settingsModal: document.getElementById('settings-modal'),
     closeSettingsBtn: document.getElementById('close-settings-btn'),
+    logoutBtn: document.getElementById('logout-btn'),
     displayMinHours: document.getElementById('display-min-hours'),
     displayTargetHours: document.getElementById('display-target-hours'),
     // New Date Nav Elements
@@ -577,6 +578,31 @@ function startTimerInterval() {
 // 重複防止のためこの位置の updateSupportMessage は削除。末尾の定義を使用。
 
 // ユーザー情報のロード
+function handleLogout() {
+    if (!confirm('ログアウトして別のユーザーとしてログインしますか？\n（現在の記録データはブラウザに残ります）')) {
+        return;
+    }
+
+    // ユーザー情報のクリア
+    localStorage.removeItem(USER_KEY);
+    state.userName = null;
+
+    // UIの更新とオーバーレイの表示
+    updateUserDisplay();
+    elements.settingsModal.classList.add('hidden');
+
+    // 名前入力を再び表示
+    elements.userNameInput.value = '';
+    elements.userSetup.classList.remove('hidden');
+    elements.overlay.classList.remove('hidden');
+    elements.overlay.style.opacity = '1';
+
+    // もし学習中なら終了させる（オプションだが安全のため）
+    if (state.isStudying) {
+        finishStudy();
+    }
+}
+
 function loadUser() {
     const userName = localStorage.getItem(USER_KEY);
     if (!userName) {
@@ -1103,6 +1129,11 @@ function setupEventListeners() {
         elements.closePublicUsersBtn.addEventListener('click', () => {
             elements.publicUsersModal.classList.add('hidden');
         });
+    }
+
+    // ログアウト
+    if (elements.logoutBtn) {
+        elements.logoutBtn.addEventListener('click', handleLogout);
     }
 }
 
