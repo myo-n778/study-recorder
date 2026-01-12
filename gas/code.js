@@ -139,8 +139,8 @@ function doPost(e) {
         sheet.getRange(lastRow, 15).setValue(data.status || '');
         return successResponse({ status: 'status_updated', userName: userName });
       }
-      // まだデータがない場合はO1(暫定)に保存
-      sheet.getRange(1, 15).setValue(data.status || '');
+      // データがない場合は、2行目（データ開始行）の15列目に暫定保存
+      sheet.getRange(2, 15).setValue(data.status || '');
       return successResponse({ status: 'status_updated_init', userName: userName });
     }
   } catch (e) {

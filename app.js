@@ -1721,29 +1721,8 @@ function showStatusPresetsPopup() {
         });
     }
 
-    // 2. GASのマスタプリセットを表示
-    if (state.gasMasterData?.statusPresets && state.gasMasterData.statusPresets.length > 0) {
-        const title = document.createElement('div');
-        title.className = 'history-item-header';
-        if (history.length > 0) title.style.marginTop = '8px';
-        title.textContent = 'プリセット (共通)';
-        popup.appendChild(title);
-
-        state.gasMasterData.statusPresets.forEach(preset => {
-            const item = document.createElement('div');
-            item.className = 'history-item';
-            item.textContent = preset;
-            item.addEventListener('click', () => {
-                input.value = preset;
-                popup.classList.add('hidden');
-                updateStatus(preset); // 即座に更新
-            });
-            popup.appendChild(item);
-        });
-    }
-
     if (popup.innerHTML === '') {
-        popup.innerHTML = '<div class="history-empty">候補がありません</div>';
+        popup.innerHTML = '<div class="history-empty">履歴がありません</div>';
     }
 
     popup.classList.remove('hidden');
