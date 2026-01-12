@@ -2921,7 +2921,18 @@ function updatePublicVolumeChart(period = 'day') {
     const baseOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const val = context.raw;
+                        const h = (val / 60).toFixed(1);
+                        return `${context.dataset.label}: ${val}分（${h}h）`;
+                    }
+                }
+            }
+        },
         scales: {
             x: {
                 stacked: true,
@@ -2948,7 +2959,16 @@ function updatePublicVolumeChart(period = 'day') {
             scales: {
                 ...baseOptions.scales,
                 x: { display: false },
-                y: { ...baseOptions.scales.y, ticks: { display: true, color: '#94a3b8', stepSize: 60 } }
+                y: {
+                    ...baseOptions.scales.y,
+                    ticks: {
+                        display: true,
+                        color: '#94a3b8',
+                        stepSize: 60,
+                        callback: function (value) { return (value / 60) + 'h'; }
+                    },
+                    afterFit: (axis) => { axis.width = 35; }
+                }
             }
         }
     });
