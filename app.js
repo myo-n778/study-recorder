@@ -832,12 +832,12 @@ function setupMasterData() {
             }
         });
     }
-}
 
-// 初期実行
-updateContentList();
-updateEnthusiasmList();
-updateCommentSuggestions();
+
+    // 初期実行
+    updateContentList();
+    updateEnthusiasmList();
+    updateCommentSuggestions();
 }
 
 function updateCommentSuggestions() {
