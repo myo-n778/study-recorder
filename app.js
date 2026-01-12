@@ -1746,6 +1746,14 @@ async function updateStatus(newStatusValue = null) {
     state.userStatus = status;
     updateUserDisplay();
 
+    // Public View も同期
+    const pubStatus = document.getElementById('public-user-status');
+    if (pubStatus) {
+        pubStatus.textContent = status || '';
+        pubStatus.classList.toggle('hidden', !status);
+        if (status) applyRandomStatusColor(pubStatus);
+    }
+
     try {
         const userName = state.userName || localStorage.getItem(USER_KEY);
         const params = new URLSearchParams({
@@ -3551,4 +3559,21 @@ function renderPublicTimeline() {
         dayRow.appendChild(track);
         container.appendChild(dayRow);
     });
+}
+
+// 公開ステータスに鮮やかなランダムカラーを適用
+function applyRandomStatusColor(element) {
+    if (!element) return;
+    const colors = [
+        { main: '#FF007A', rgb: '255, 0, 122' },   // ピンク
+        { main: '#00FFCC', rgb: '0, 255, 204' },   // シアン
+        { main: '#B026FF', rgb: '176, 38, 255' },  // 紫
+        { main: '#FFEB00', rgb: '255, 235, 0' },   // イエロー
+        { main: '#FF5E00', rgb: '255, 94, 0' },    // オレンジ
+        { main: '#52FF00', rgb: '82, 255, 0' },    // ライトグリーン
+        { main: '#0070FF', rgb: '0, 112, 255' }    // ブルー
+    ];
+    const pick = colors[Math.floor(Math.random() * colors.length)];
+    element.style.setProperty('--badge-color', pick.main);
+    element.style.setProperty('--badge-glow-rgb', pick.rgb);
 }
