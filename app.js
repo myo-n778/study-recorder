@@ -245,6 +245,7 @@ const elements = {
     enthusiasmList: document.getElementById('enthusiasm-list'),
     manualRecordBtn: document.getElementById('manual-record-btn'),
     locationInput: document.getElementById('location-input'),
+    locationInput: document.getElementById('location-input'),
     locationList: document.getElementById('location-list'),
     conditionInput: document.getElementById('condition-input'),
     commentInput: document.getElementById('comment-input'),
@@ -427,10 +428,7 @@ async function init() {
         });
     }
 
-    // 既存の更新ボタン（レコード入力フォーム内）
-    if (elements.updateStatusBtn) {
-        elements.updateStatusBtn.addEventListener('click', () => updateStatus());
-    } // 公開用カテゴリ集計の期間切り替えイベント
+    // 公開用カテゴリ集計の期間切り替えイベント
     elements.publicCatPeriodTabs?.querySelectorAll('.period-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             elements.publicCatPeriodTabs.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -1610,9 +1608,8 @@ function updateDatalists() {
     if (elements.locationList && state.gasMasterData.locations) {
         elements.locationList.innerHTML = state.gasMasterData.locations.map(item => `<option value="${item}">`).join('');
     }
-    if (elements.statusList && state.gasMasterData.statusPresets) {
+    if (state.gasMasterData.statusPresets) {
         const options = state.gasMasterData.statusPresets.map(item => `<option value="${item}">`).join('');
-        elements.statusList.innerHTML = options;
         // ヘッダー用datalistにも反映
         const headerStatusList = document.getElementById('header-status-list');
         if (headerStatusList) headerStatusList.innerHTML = options;
@@ -1622,8 +1619,14 @@ function updateDatalists() {
 // ステータスの更新送信
 // ステータスの更新送信
 async function updateStatus(newStatusValue = null) {
-    const status = newStatusValue !== null ? newStatusValue : elements.statusInput.value.trim();
-    // 空文字も許容する（ステータス消去の場合もあるため）
+    let status = newStatusValue;
+
+    // 引数がない場合はヘッダーの入力値を参照
+    if (status === null) {
+        const headerInput = document.getElementById('header-status-input');
+        if (headerInput) status = headerInput.value.trim();
+    }
+    status = status || ''; // null/undefined対策
 
     // UI反映（即時）
     state.userStatus = status;
