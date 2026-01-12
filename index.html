@@ -35,7 +35,15 @@
             <div id="public-view-screen" class="hidden">
                 <header class="public-header">
                     <div class="logo">Study<span>Recorder</span></div>
-                    <div id="public-user-title" class="public-title">--さんの学習記録</div>
+                    <div class="public-user-info-container">
+                        <div class="public-header-row">
+                            <span id="public-user-status" class="public-status-badge hidden">--</span>
+                            <div id="public-user-title" class="public-title">--さんの学習記録</div>
+                        </div>
+                        <button id="public-details-btn" class="icon-btn" title="詳細を表示">
+                            <span class="material-icons-outlined">info</span>
+                        </button>
+                    </div>
                 </header>
 
                 <div class="public-summary">
@@ -59,6 +67,50 @@
                         <div class="stat-badge">
                             <span class="stat-label">日合計</span>
                             <span class="badge public-stat" id="public-day-time">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 公開詳細モーダル -->
+                <div id="public-details-modal" class="modal hidden">
+                    <div class="modal-content glass-card public-details-content">
+                        <div class="modal-header-flex">
+                            <h3>学習詳細データ</h3>
+                            <button id="close-public-details-btn" class="icon-btn"><span
+                                    class="material-icons-outlined">close</span></button>
+                        </div>
+
+                        <div class="details-section">
+                            <h4>学習量推移</h4>
+                            <div class="chart-container compact-card" style="height: 200px;">
+                                <canvas id="publicPopupChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="details-section">
+                            <h4>合計時間詳細</h4>
+                            <div class="public-stats-list-vertical">
+                                <div class="stat-row">
+                                    <span class="stat-label">総合計</span>
+                                    <span class="stat-val" id="popup-total-time">--</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">年合計</span>
+                                    <span class="stat-val" id="popup-year-time">--</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">月合計</span>
+                                    <span class="stat-val" id="popup-month-time">--</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">週合計</span>
+                                    <span class="stat-val" id="popup-week-time">--</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">日合計</span>
+                                    <span class="stat-val" id="popup-day-time">--</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -124,13 +176,19 @@
             <header>
                 <div class="logo">Study<span>Recorder</span></div>
                 <div class="header-controls">
-                    <div id="goal-display" class="goal-badges">
-                        <span class="badge min-hours" id="display-min-hours">--</span>
-                        <span class="badge target-hours" id="display-target-hours">--</span>
+                    <div class="header-top-row">
+                        <div id="goal-display" class="goal-badges">
+                            <span class="badge min-hours" id="display-min-hours">--</span>
+                            <span class="badge target-hours" id="display-target-hours">--</span>
+                        </div>
+                        <button id="header-settings-btn" class="icon-btn">⚙️</button>
                     </div>
-                    <div id="user-status-display" class="user-status-badge"></div>
-                    <button id="header-settings-btn" class="icon-btn">⚙️</button>
-                    <div id="user-display" class="user-info"></div>
+                    <div class="header-bottom-row">
+                        <input type="text" id="header-status-input" list="header-status-list" placeholder="Status"
+                            class="header-status-input">
+                        <datalist id="header-status-list"></datalist>
+                        <div id="user-display" class="user-info"></div>
+                    </div>
                 </div>
             </header>
 

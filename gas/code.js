@@ -212,11 +212,26 @@ function doGet(e) {
   const records = values.length <= 1 ? [] : values.slice(1).map(row => {
     // 互換性フォールバック: L列(index 11)にIDがなければK列(index 10)をID、場所を空とする
     const hasIdInL = row[11] && row[11].toString().length > 10;
+
+    const formatDate = (val) => {
+      if (val instanceof Date) {
+        return Utilities.formatDate(val, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+      }
+      return val;
+    };
+
+    const formatTime = (val) => {
+      if (val instanceof Date) {
+        return Utilities.formatDate(val, Session.getScriptTimeZone(), 'HH:mm');
+      }
+      return val;
+    };
+
     return {
-      date: row[0],
+      date: formatDate(row[0]),
       userName: row[1],
-      startTime: row[2],
-      endTime: row[3],
+      startTime: formatTime(row[2]),
+      endTime: formatTime(row[3]),
       duration: row[4],
       category: row[5],
       content: row[6],

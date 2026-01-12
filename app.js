@@ -202,7 +202,8 @@ let charts = {
 
 let publicCharts = {
     timeline: null,
-    timelineY: null
+    timelineY: null,
+    popupTimeline: null
 };
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyDuTx4maV_7EgT9o1Ce6IR-S1br4Oz5Vfj6TtY2N1XoCx1EPLff3p56zH2ybVtwC9T/exec';
@@ -418,10 +419,18 @@ async function init() {
         updateTimelineAnalysis();
     });
 
-    // ステータス更新イベント
-    elements.updateStatusBtn?.addEventListener('click', updateStatus);
+    // ヘッダーのステータス入力イベント
+    const headerStatusInput = document.getElementById('header-status-input');
+    if (headerStatusInput) {
+        headerStatusInput.addEventListener('change', (e) => {
+            updateStatus(e.target.value);
+        });
+    }
 
-    // 公開用カテゴリ集計の期間切り替えイベント
+    // 既存の更新ボタン（レコード入力フォーム内）
+    if (elements.updateStatusBtn) {
+        elements.updateStatusBtn.addEventListener('click', () => updateStatus());
+    } // 公開用カテゴリ集計の期間切り替えイベント
     elements.publicCatPeriodTabs?.querySelectorAll('.period-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             elements.publicCatPeriodTabs.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -429,6 +438,31 @@ async function init() {
             updatePublicCategorySummary(e.target.dataset.period);
         });
     });
+
+    // 公開詳細モーダルのイベントリスナー
+    const publicDetailsBtn = document.getElementById('public-details-btn');
+    const closePublicDetailsBtn = document.getElementById('close-public-details-btn');
+    const publicDetailsModal = document.getElementById('public-details-modal');
+
+    if (publicDetailsBtn && publicDetailsModal) {
+        publicDetailsBtn.addEventListener('click', () => {
+            openPublicDetailsModal();
+        });
+    }
+
+    if (closePublicDetailsBtn && publicDetailsModal) {
+        closePublicDetailsBtn.addEventListener('click', () => {
+            publicDetailsModal.classList.add('hidden');
+        });
+    }
+
+    if (publicDetailsModal) {
+        publicDetailsModal.addEventListener('click', (e) => {
+            if (e.target === publicDetailsModal) {
+                publicDetailsModal.classList.add('hidden');
+            }
+        });
+    }
 }
 
 function resumeStudySession() {
@@ -513,14 +547,26 @@ function loadUser() {
 // ユーザー名表示の更新（不具合防止のため関数化）
 function updateUserDisplay() {
     const userName = state.userName || localStorage.getItem(USER_KEY);
-    if (userName && elements.userDisplay) {
-        elements.userDisplay.textContent = `User: ${userName}`;
-        state.userName = userName;
+    if (userName) {
+        elements.userDisplay.textContent = userName;
+        // Instruction: Main view glowing effect removed as per request
+        elements.userDisplay.classList.remove('glowing');
+    } else {
+        elements.userDisplay.textContent = 'GUEST';
+        elements.userDisplay.classList.remove('glowing');
     }
-    // ステータス表示の更新
-    if (elements.userStatusDisplay) {
-        elements.userStatusDisplay.textContent = state.userStatus || '';
-        elements.userStatusDisplay.classList.toggle('hidden', !state.userStatus);
+
+    // ヘッダーのステータス入力欄に反映
+    const headerStatusInput = document.getElementById('header-status-input');
+    if (headerStatusInput) {
+        headerStatusInput.value = state.userStatus || '';
+    }
+
+    // 既存のステータスバッジ（もし残っていれば更新、なければ無視）
+    const badge = document.getElementById('user-status-display');
+    if (badge) {
+        badge.textContent = state.userStatus || '';
+        badge.style.display = state.userStatus ? 'inline-block' : 'none';
     }
 }
 
@@ -1450,6 +1496,12 @@ async function loadRecordsFromGAS() {
         if (result.userStatus !== undefined) {
             state.userStatus = result.userStatus;
             updateUserDisplay();
+            // Public View Status Update
+            const pubStatus = document.getElementById('public-user-status');
+            if (pubStatus) {
+                pubStatus.textContent = state.userStatus || '';
+                pubStatus.classList.toggle('hidden', !state.userStatus);
+            }
         }
 
         const recordsData = result.records;
@@ -1508,7 +1560,7 @@ async function loadRecordsFromGAS() {
                         timeline_visibility: r.timeline_visibility === 'public' ? 'public' : 'private',
                         // カテゴリは表示を許可し、それ以外を匿名化
                         category: r.category || '学習',
-                        content: '',
+                        content: r.content || '',
                         enthusiasm: '',
                         comment: '',
                         location: '',
@@ -1525,6 +1577,10 @@ async function loadRecordsFromGAS() {
         state.isLoadingRecords = false;
         if (state.isPublicView) {
             renderPublicView();
+            // 公開ビュー完了後、ユーザー名を光らせる
+            if (elements.publicUserTitle) {
+                elements.publicUserTitle.classList.add('glowing');
+            }
         } else {
             updateHistoryUI();
             updateGoalDisplay();
@@ -1555,17 +1611,23 @@ function updateDatalists() {
         elements.locationList.innerHTML = state.gasMasterData.locations.map(item => `<option value="${item}">`).join('');
     }
     if (elements.statusList && state.gasMasterData.statusPresets) {
-        elements.statusList.innerHTML = state.gasMasterData.statusPresets.map(item => `<option value="${item}">`).join('');
+        const options = state.gasMasterData.statusPresets.map(item => `<option value="${item}">`).join('');
+        elements.statusList.innerHTML = options;
+        // ヘッダー用datalistにも反映
+        const headerStatusList = document.getElementById('header-status-list');
+        if (headerStatusList) headerStatusList.innerHTML = options;
     }
 }
 
 // ステータスの更新送信
-async function updateStatus() {
-    const status = elements.statusInput.value.trim();
-    if (!status) return;
+// ステータスの更新送信
+async function updateStatus(newStatusValue = null) {
+    const status = newStatusValue !== null ? newStatusValue : elements.statusInput.value.trim();
+    // 空文字も許容する（ステータス消去の場合もあるため）
 
-    elements.updateStatusBtn.textContent = '...';
-    elements.updateStatusBtn.disabled = true;
+    // UI反映（即時）
+    state.userStatus = status;
+    updateUserDisplay();
 
     try {
         const userName = state.userName || localStorage.getItem(USER_KEY);
@@ -1582,15 +1644,10 @@ async function updateStatus() {
             body: params.toString()
         });
 
-        state.userStatus = status;
-        updateUserDisplay();
         showFeedback('ステータスを更新しました');
     } catch (e) {
         console.error('Status update failed:', e);
         showFeedback('更新に失敗しました');
-    } finally {
-        elements.updateStatusBtn.textContent = '更新';
-        elements.updateStatusBtn.disabled = false;
     }
 }
 
@@ -3035,7 +3092,9 @@ function renderPublicView() {
     updatePublicCategorySummary(activeCatBtn ? activeCatBtn.dataset.period : 'day');
 }
 
-// 公開ページ用：カテゴリー別集計の動的表示
+
+
+// 公開ページ用：カテゴリー別集計 (内容内訳付き)
 function updatePublicCategorySummary(period = 'day') {
     const publicRecords = state.records.filter(r => r.visibility === 'public');
     const expandedRecords = getExpandedRecords(publicRecords);
@@ -3045,7 +3104,9 @@ function updatePublicCategorySummary(period = 'day') {
     const currentMonth = todayDate.getMonth();
     const currentWeek = getWeekNumber(todayDate);
 
+    // 集計: カテゴリ -> { total: 分, contents: { contentName: 分 } }
     const categorySummary = {};
+
     expandedRecords.forEach(r => {
         const dur = parseInt(r.duration) || 0;
         const bDateStr = getBelongingDate(r.date, r.startTime);
@@ -3059,7 +3120,20 @@ function updatePublicCategorySummary(period = 'day') {
         else if (period === 'day') match = bDateStr === logicalToday;
 
         if (match) {
-            categorySummary[r.category] = (categorySummary[r.category] || 0) + dur;
+            if (!categorySummary[r.category]) {
+                categorySummary[r.category] = { total: 0, contents: {} };
+            }
+            categorySummary[r.category].total += dur;
+
+            // 内容集計 (内容はPublicViewではマスクされている可能性があるが、もしあれば集計)
+            // r.content は loadRecordsFromGAS で空文字にされている場合があるが、
+            // 要望では「内容ごとの時間も書いてほしい」とのことなので、
+            // もしデータがあれば表示する方針。
+            // ただし loadRecordsFromGAS では現在 content: '' にしているので、
+            // 内容を表示するには loadRecordsFromGAS のマスキングロジックも修正が必要。
+            // ここでは一旦 r.content を使う前提で書く。(後で loadRecordsFromGAS も修正する)
+            const contentName = r.content || '詳細なし';
+            categorySummary[r.category].contents[contentName] = (categorySummary[r.category].contents[contentName] || 0) + dur;
         }
     });
 
@@ -3072,28 +3146,121 @@ function updatePublicCategorySummary(period = 'day') {
     const catContainer = document.getElementById('public-category-summary');
     if (catContainer) {
         catContainer.innerHTML = '';
-        const sortedCats = Object.entries(categorySummary).sort((a, b) => b[1] - a[1]);
+        const sortedCats = Object.entries(categorySummary).sort((a, b) => b[1].total - a[1].total);
 
         if (sortedCats.length === 0) {
             catContainer.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding: 1rem;">表示できるデータがありません</p>';
         } else {
-            sortedCats.forEach(([cat, min]) => {
+            sortedCats.forEach(([cat, data]) => {
                 const item = document.createElement('div');
                 item.className = 'category-item';
 
-                // 色分け（本人用と同じロジック）
+                // 色分け
                 const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6'];
                 const colorIdx = Math.abs(cat.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
-                item.style.borderLeftColor = colors[colorIdx];
+                const color = colors[colorIdx];
+                item.style.borderColor = color; // 全周ボーダー
 
-                item.innerHTML = `
+                // ヘッダー行
+                const header = document.createElement('div');
+                header.className = 'category-header-row';
+                header.innerHTML = `
                     <span class="category-name">${cat}</span>
-                    <span class="category-time">${formatH(min)}</span>
+                    <span class="category-time">${formatH(data.total)}</span>
                 `;
+                item.appendChild(header);
+
+                // 内容スクロール行
+                const scrollRow = document.createElement('div');
+                scrollRow.className = 'category-content-scroll';
+
+                // 内容を並び替え（時間順）
+                const sortedContents = Object.entries(data.contents).sort((a, b) => b[1] - a[1]);
+                sortedContents.forEach(([cont, min]) => {
+                    const pill = document.createElement('div');
+                    pill.className = 'content-item-pill';
+                    pill.innerHTML = `<span>${cont}</span><span>${formatH(min)}</span>`;
+                    scrollRow.appendChild(pill);
+                });
+
+                item.appendChild(scrollRow);
                 catContainer.appendChild(item);
             });
         }
     }
+}
+
+// 公開詳細モーダルを開く
+function openPublicDetailsModal() {
+    const modal = document.getElementById('public-details-modal');
+    if (!modal) return;
+
+    // 最新の合計時間を反映
+    const ids = ['popup-total-time', 'popup-year-time', 'popup-month-time', 'popup-week-time', 'popup-day-time'];
+    const sources = ['public-total-time', 'public-year-time', 'public-month-time', 'public-week-time', 'public-day-time'];
+
+    ids.forEach((id, idx) => {
+        const srcEl = document.getElementById(sources[idx]);
+        const destEl = document.getElementById(id);
+        if (srcEl && destEl) {
+            destEl.textContent = srcEl.textContent;
+        }
+    });
+
+    modal.classList.remove('hidden');
+
+    // グラフ描画 (少し遅延させてモーダル表示後に描画)
+    setTimeout(() => {
+        renderPublicPopupChart();
+    }, 100);
+}
+
+// ポップアップ用チャート描画 (過去30日の日別推移)
+function renderPublicPopupChart() {
+    const ctx = document.getElementById('publicPopupChart')?.getContext('2d');
+    if (!ctx) return;
+
+    // 公開レコードのみ集計 (過去30日)
+    const publicRecords = state.records.filter(r => r.visibility === 'public');
+    const expandedRecords = getExpandedRecords(publicRecords);
+    const groupedData = aggregateByPeriod(expandedRecords, 'day'); // 過去30日
+
+    const labels = groupedData.labels; // 日付
+    const datasets = groupedData.datasets;
+
+    if (publicCharts.popupTimeline) publicCharts.popupTimeline.destroy();
+
+    publicCharts.popupTimeline = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.map(l => l.slice(5)), // MM/DD形式に短縮
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    grid: { display: false },
+                    ticks: { color: '#94a3b8', font: { size: 9 }, maxRotation: 0 }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { display: false } // 目盛り数値は省略
+                }
+            }
+        }
+    });
 }
 
 
