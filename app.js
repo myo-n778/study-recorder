@@ -3411,14 +3411,25 @@ function renderPublicView() {
     updatePublicCategorySummary(activeCatBtn ? activeCatBtn.dataset.period : 'day');
 }
 
-// 公開ページ用：平均学習時間を計算・表示
+// 公開ページ用：平均学習時間を計算・表示（年/月/週すべて常時表示）
 function updatePublicAverages(period, expandedRecords) {
-    const avgAllEl = document.getElementById('public-avg-all');
-    const avgActiveEl = document.getElementById('public-avg-active');
-    if (!avgAllEl || !avgActiveEl) return;
+    // 各DOM要素
+    const elements = {
+        yearAll: document.getElementById('public-avg-year-all'),
+        yearActive: document.getElementById('public-avg-year-active'),
+        monthAll: document.getElementById('public-avg-month-all'),
+        monthActive: document.getElementById('public-avg-month-active'),
+        weekAll: document.getElementById('public-avg-week-all'),
+        weekActive: document.getElementById('public-avg-week-active')
+    };
+
+    // 要素が存在しない場合は終了
+    if (!elements.yearAll) return;
 
     // 期間ごとにグループ化して集計
-    const periodMap = {}; // key -> 分
+    const yearMap = {};  // YYYY -> 分
+    const monthMap = {}; // YYYY-MM -> 分
+    const weekMap = {};  // YYYY-WXX -> 分
     let totalMin = 0;
 
     expandedRecords.forEach(r => {
@@ -3427,49 +3438,55 @@ function updatePublicAverages(period, expandedRecords) {
 
         const bDateStr = getBelongingDate(r.date, r.startTime);
         const bDate = new Date(bDateStr);
-        let key;
 
-        if (period === 'day') {
-            key = bDateStr;
-        } else if (period === 'week') {
-            // ISO週番号 + 年をキーに
-            key = `${bDate.getFullYear()}-W${getWeekNumber(bDate)}`;
-        } else if (period === 'month') {
-            key = `${bDate.getFullYear()}-${bDate.getMonth() + 1}`;
-        } else {
-            key = bDateStr; // デフォルトは日
-        }
+        // 年キー
+        const yearKey = String(bDate.getFullYear());
+        yearMap[yearKey] = (yearMap[yearKey] || 0) + dur;
 
-        periodMap[key] = (periodMap[key] || 0) + dur;
+        // 月キー
+        const monthKey = `${bDate.getFullYear()}-${String(bDate.getMonth() + 1).padStart(2, '0')}`;
+        monthMap[monthKey] = (monthMap[monthKey] || 0) + dur;
+
+        // 週キー（既存のgetWeekNumber関数を使用）
+        const weekKey = `${bDate.getFullYear()}-W${String(getWeekNumber(bDate)).padStart(2, '0')}`;
+        weekMap[weekKey] = (weekMap[weekKey] || 0) + dur;
     });
 
-    const allPeriodKeys = Object.keys(periodMap);
-    const activePeriodKeys = allPeriodKeys.filter(k => periodMap[k] > 0);
+    // 各期間の統計を計算
+    const totalHours = totalMin / 60;
 
-    // 全期間数の計算（最初の日付から最後の日付までの日/週/月数）
-    let totalPeriodCount = allPeriodKeys.length;
-    if (allPeriodKeys.length > 0) {
-        // 日の場合は、最初の日から今日までの日数
-        if (period === 'day') {
-            const sortedDates = allPeriodKeys.sort();
-            const firstDate = new Date(sortedDates[0]);
-            const today = new Date(getLogicalDate());
-            const diffDays = Math.floor((today - firstDate) / (1000 * 60 * 60 * 24)) + 1;
-            totalPeriodCount = Math.max(diffDays, allPeriodKeys.length);
-        }
-    }
+    // 年の計算
+    const yearAllKeys = Object.keys(yearMap);
+    const yearActiveKeys = yearAllKeys.filter(k => yearMap[k] > 0);
+    const yearAllCount = yearAllKeys.length;
+    const yearActiveCount = yearActiveKeys.length;
 
-    const activePeriodCount = activePeriodKeys.length;
+    // 月の計算
+    const monthAllKeys = Object.keys(monthMap);
+    const monthActiveKeys = monthAllKeys.filter(k => monthMap[k] > 0);
+    const monthAllCount = monthAllKeys.length;
+    const monthActiveCount = monthActiveKeys.length;
 
-    // 平均計算
-    const avgAll = totalPeriodCount > 0 ? (totalMin / 60) / totalPeriodCount : 0;
-    const avgActive = activePeriodCount > 0 ? (totalMin / 60) / activePeriodCount : 0;
+    // 週の計算
+    const weekAllKeys = Object.keys(weekMap);
+    const weekActiveKeys = weekAllKeys.filter(k => weekMap[k] > 0);
+    const weekAllCount = weekAllKeys.length;
+    const weekActiveCount = weekActiveKeys.length;
 
-    // 単位ラベル
-    const unitLabel = period === 'day' ? '/日' : period === 'week' ? '/週' : period === 'month' ? '/月' : '/日';
+    // 平均計算とフォーマット
+    const formatAvg = (hours, count, unit) => {
+        if (count === 0) return '—';
+        const avg = hours / count;
+        return `${avg.toFixed(1)}h/${unit}`;
+    };
 
-    avgAllEl.textContent = `${avgAll.toFixed(1)}h${unitLabel}`;
-    avgActiveEl.textContent = `${avgActive.toFixed(1)}h${unitLabel}`;
+    // DOM更新
+    if (elements.yearAll) elements.yearAll.textContent = formatAvg(totalHours, yearAllCount, '年');
+    if (elements.yearActive) elements.yearActive.textContent = formatAvg(totalHours, yearActiveCount, '年');
+    if (elements.monthAll) elements.monthAll.textContent = formatAvg(totalHours, monthAllCount, '月');
+    if (elements.monthActive) elements.monthActive.textContent = formatAvg(totalHours, monthActiveCount, '月');
+    if (elements.weekAll) elements.weekAll.textContent = formatAvg(totalHours, weekAllCount, '週');
+    if (elements.weekActive) elements.weekActive.textContent = formatAvg(totalHours, weekActiveCount, '週');
 }
 
 
