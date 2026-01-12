@@ -1768,27 +1768,34 @@ h3 {
 }
 
 .public-status-badge {
-    background: rgba(var(--primary-color-rgb), 0.15);
-    border: 1px solid var(--primary-color);
+    background: rgba(var(--primary-color-rgb), 0.25);
+    border: 2px solid var(--primary-color);
     color: var(--text-main);
-    padding: 2px 12px;
-    border-radius: 14px;
-    font-size: 0.8rem;
+    padding: 3px 14px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
     white-space: nowrap;
-    box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5), 0 0 20px rgba(var(--primary-color-rgb), 0.2);
-    text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
-    animation: status-glow 1.5s infinite alternate ease-in-out;
+    /* 強力な多重グロー */
+    box-shadow:
+        0 0 15px rgba(var(--primary-color-rgb), 0.6),
+        0 0 30px rgba(var(--primary-color-rgb), 0.3),
+        inset 0 0 8px rgba(255, 255, 255, 0.2);
+    text-shadow: 0 0 8px rgba(var(--primary-color-rgb), 0.8);
+    animation: status-glow-strong 1.2s infinite alternate ease-in-out;
 }
 
-@keyframes status-glow {
+@keyframes status-glow-strong {
     from {
-        box-shadow: 0 0 8px rgba(var(--primary-color-rgb), 0.4), 0 0 15px rgba(var(--primary-color-rgb), 0.1);
+        box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5), 0 0 20px rgba(var(--primary-color-rgb), 0.2);
         transform: scale(1.0);
+        filter: brightness(1.0);
     }
 
     to {
-        box-shadow: 0 0 18px rgba(var(--primary-color-rgb), 0.7), 0 0 30px rgba(var(--primary-color-rgb), 0.3);
-        transform: scale(1.02);
+        box-shadow: 0 0 25px rgba(var(--primary-color-rgb), 0.8), 0 0 45px rgba(var(--primary-color-rgb), 0.4);
+        transform: scale(1.08);
+        filter: brightness(1.2);
     }
 }
 
