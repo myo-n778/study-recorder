@@ -1768,45 +1768,41 @@ h3 {
 }
 
 .public-status-badge {
-    background: rgba(var(--primary-color-rgb), 0.25);
-    border: 2px solid var(--primary-color);
-    color: var(--text-main);
+    background: var(--primary-color);
+    border: 2px solid var(--primary-glow);
+    color: #fff;
     padding: 3px 14px;
     border-radius: 16px;
     font-size: 0.85rem;
-    font-weight: 700;
+    font-weight: 800;
     white-space: nowrap;
-    /* 極めて強力な多重グロー */
+    /* 強烈な外部発光とシャドウ */
     box-shadow:
-        0 0 15px rgba(var(--primary-color-rgb), 0.7),
-        0 0 30px rgba(var(--primary-color-rgb), 0.4),
-        inset 0 0 10px rgba(255, 255, 255, 0.3);
-    text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.9);
+        0 0 20px rgba(var(--primary-color-rgb), 0.8),
+        0 0 40px rgba(var(--primary-color-rgb), 0.5),
+        inset 0 0 10px rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
     /* 高速に点滅（ピカピカ）させるためのアニメーション */
-    animation: status-flash 0.8s infinite alternate ease-in-out, status-pulse 2s infinite ease-in-out;
+    animation: status-flash-filled 0.7s infinite alternate ease-in-out, status-pulse 2s infinite ease-in-out;
 }
 
-@keyframes status-flash {
+@keyframes status-flash-filled {
     0% {
-        box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.4), 0 0 20px rgba(var(--primary-color-rgb), 0.2);
+        box-shadow: 0 0 15px rgba(var(--primary-color-rgb), 0.6), 0 0 30px rgba(var(--primary-color-rgb), 0.3);
+        background: var(--primary-color);
         filter: brightness(1.0);
     }
 
-    33% {
-        box-shadow: 0 0 25px rgba(var(--primary-color-rgb), 0.9), 0 0 50px rgba(var(--primary-color-rgb), 0.5);
-        filter: brightness(1.6);
-        /* ピカッと光る */
-    }
-
-    66% {
-        box-shadow: 0 0 15px rgba(var(--primary-color-rgb), 0.6), 0 0 30px rgba(var(--primary-color-rgb), 0.3);
-        filter: brightness(1.2);
+    50% {
+        box-shadow: 0 0 30px rgba(var(--primary-color-rgb), 1.0), 0 0 60px rgba(var(--primary-color-rgb), 0.7);
+        filter: brightness(1.4);
     }
 
     100% {
-        box-shadow: 0 0 35px rgba(var(--primary-color-rgb), 1.0), 0 0 70px rgba(var(--primary-color-rgb), 0.7);
-        filter: brightness(2.0);
-        /* 強烈なフラッシュ */
+        box-shadow: 0 0 45px rgba(var(--primary-color-rgb), 1.0), 0 0 90px rgba(var(--primary-color-rgb), 0.9);
+        background: var(--primary-glow);
+        filter: brightness(1.8);
+        /* 強烈な明滅 */
     }
 }
 
