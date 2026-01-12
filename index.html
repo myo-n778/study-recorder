@@ -234,7 +234,14 @@
                         </div>
                         <div class="form-group">
                             <label>今の意気込み</label>
-                            <input type="text" id="enthusiasm-input" list="enthusiasm-list" placeholder="例：集中して取り組む！">
+                            <div class="input-with-action">
+                                <input type="text" id="enthusiasm-input" list="enthusiasm-list"
+                                    placeholder="例：集中して取り組む！">
+                                <button id="show-enthusiasm-history-btn" class="icon-btn" title="意気込み履歴">
+                                    <span class="material-icons-outlined">history</span>
+                                </button>
+                                <div id="enthusiasm-history-popup" class="history-popup hidden"></div>
+                            </div>
                             <datalist id="enthusiasm-list">
                                 <option value="集中して取り組む！">
                                 <option value="まずは15分頑張る">

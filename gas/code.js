@@ -132,27 +132,9 @@ function doPost(e) {
       }
     }
     if (action === 'updateStatus') {
-      let statusSheet = ss.getSheetByName('Status');
-      if (!statusSheet) {
-        statusSheet = ss.insertSheet('Status');
-        statusSheet.appendRow(['ユーザー名', 'ステータス', '更新日時']);
-        statusSheet.setFrozenRows(1);
-      }
-      const statusValues = statusSheet.getDataRange().getValues();
-      let userRow = -1;
-      for (let i = 1; i < statusValues.length; i++) {
-        if (statusValues[i][0] === userName) {
-          userRow = i + 1;
-          break;
-        }
-      }
       const now = new Date();
-      if (userRow !== -1) {
-        statusSheet.getRange(userRow, 2).setValue(data.status || '');
-        statusSheet.getRange(userRow, 3).setValue(now);
-      } else {
-        statusSheet.appendRow([userName, data.status || '', now]);
-      }
+      // ユーザー別シートのO1セル (1行目, 15列目) にステータスを保存
+      sheet.getRange(1, 15).setValue(data.status || '');
       return successResponse({ status: 'status_updated', userName: userName });
     }
   } catch (e) {
@@ -245,18 +227,8 @@ function doGet(e) {
     };
   });
 
-  // 最新ステータスの取得
-  let userStatus = '';
-  const statusSheet = ss.getSheetByName('Status');
-  if (statusSheet) {
-    const statusValues = statusSheet.getDataRange().getValues();
-    for (let i = 1; i < statusValues.length; i++) {
-      if (statusValues[i][0] === userName) {
-        userStatus = statusValues[i][1];
-        break;
-      }
-    }
-  }
+  // 最新ステータスの取得 (ユーザー別シートのO1セルから取得)
+  let userStatus = sheet.getRange(1, 15).getValue() || '';
 
   const baseData = getBaseData(ss);
 

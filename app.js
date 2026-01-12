@@ -239,17 +239,21 @@ const elements = {
     takeRestBtn: document.getElementById('take-rest-btn'),
     categoryInput: document.getElementById('category-input'),
     contentInput: document.getElementById('content-input'),
+    enthusiasmInput: document.getElementById('enthusiasm-input'),
     categoryList: document.getElementById('category-list'),
     contentList: document.getElementById('content-list'),
-    enthusiasmInput: document.getElementById('enthusiasm-input'),
     enthusiasmList: document.getElementById('enthusiasm-list'),
+    showEnthusiasmHistoryBtn: document.getElementById('show-enthusiasm-history-btn'),
+    enthusiasmHistoryPopup: document.getElementById('enthusiasm-history-popup'),
     manualRecordBtn: document.getElementById('manual-record-btn'),
-    locationInput: document.getElementById('location-input'),
     locationInput: document.getElementById('location-input'),
     locationList: document.getElementById('location-list'),
     conditionInput: document.getElementById('condition-input'),
     commentInput: document.getElementById('comment-input'),
     commentList: document.getElementById('comment-list'),
+    statusInput: document.getElementById('status-input'),
+    statusList: document.getElementById('status-list'),
+    updateStatusBtn: document.getElementById('update-status-btn'),
     periodBtns: document.querySelectorAll('.period-btn'),
     supportMessage: document.getElementById('support-message'),
     // New Header & Settings Elements
@@ -374,6 +378,15 @@ async function init() {
             if (elements.commentInput) elements.commentInput.value = state.lastSettings.comment || '';
             if (elements.locationInput) elements.locationInput.value = state.lastSettings.location || '';
         }
+
+        // 前回値の復元 (カテゴリー、内容、意気込み)
+        const lastInputs = localStorage.getItem('study_recorder_last_inputs');
+        if (lastInputs) {
+            const inputs = JSON.parse(lastInputs);
+            if (elements.categoryInput) elements.categoryInput.value = inputs.category || '';
+            if (elements.contentInput) elements.contentInput.value = inputs.content || '';
+            if (elements.enthusiasmInput) elements.enthusiasmInput.value = inputs.enthusiasm || '';
+        }
     }
 
     // タイマー補正用イベント
@@ -461,6 +474,7 @@ async function init() {
             }
         });
     }
+}
 }
 
 function resumeStudySession() {
@@ -722,24 +736,24 @@ function setupMasterData() {
             });
         }
 
-        // メインコメント履歴ボタン
-        const mainCommentBtn = document.getElementById('show-main-comment-history-btn');
-        const mainCommentPopup = document.getElementById('main-comment-history-popup');
-        if (mainCommentBtn && mainCommentPopup) {
-            mainCommentBtn.addEventListener('click', (e) => {
+        // 意気込み履歴ボタン
+        if (elements.showEnthusiasmHistoryBtn && elements.enthusiasmHistoryPopup) {
+            elements.showEnthusiasmHistoryBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (!mainCommentPopup.classList.contains('hidden')) {
-                    mainCommentPopup.classList.add('hidden');
+                if (!elements.enthusiasmHistoryPopup.classList.contains('hidden')) {
+                    elements.enthusiasmHistoryPopup.classList.add('hidden');
                     return;
                 }
-                showHistoryTypePopup(mainCommentPopup, elements.commentInput, 'comment');
+                showHistoryTypePopup(elements.enthusiasmHistoryPopup, elements.enthusiasmInput, 'enthusiasm');
             });
             document.addEventListener('click', (e) => {
-                if (!mainCommentBtn.contains(e.target) && !mainCommentPopup.contains(e.target)) {
-                    mainCommentPopup.classList.add('hidden');
+                if (!elements.showEnthusiasmHistoryBtn.contains(e.target) && !elements.enthusiasmHistoryPopup.contains(e.target)) {
+                    elements.enthusiasmHistoryPopup.classList.add('hidden');
                 }
             });
         }
+
+        // メインコメント履歴ボタン
 
         // サマリーモーダルの履歴ボタン
         const historyBtn = document.getElementById('show-comment-history-btn');
@@ -1321,6 +1335,15 @@ async function saveSummaryRecord() {
     localStorage.setItem(LAST_SETTINGS_KEY, JSON.stringify(state.lastSettings));
 
     state.records.push(record);
+
+    // 次回のために前回値を保存
+    const lastInputs = {
+        category: elements.categoryInput.value.trim(),
+        content: elements.contentInput.value.trim(),
+        enthusiasm: elements.enthusiasmInput.value.trim()
+    };
+    localStorage.setItem('study_recorder_last_inputs', JSON.stringify(lastInputs));
+
     saveLocalRecords();
     updateHistoryUI();
     updateCharts();
@@ -1396,17 +1419,17 @@ async function manualRecord() {
         timeline_visibility: document.getElementById('timeline-visibility-toggle')?.checked ? 'public' : 'private'
     };
 
-    state.records.push(record);
-
-    // 設定を保存
-    state.lastSettings = {
-        targetTime: document.getElementById('target-time').value,
-        condition: condition,
-        comment: comment,
-        location: location
-    };
     localStorage.setItem(LAST_SETTINGS_KEY, JSON.stringify(state.lastSettings));
 
+    // 次回のために前回値を保存
+    const lastInputs = {
+        category: category,
+        content: content,
+        enthusiasm: elements.enthusiasmInput.value.trim()
+    };
+    localStorage.setItem('study_recorder_last_inputs', JSON.stringify(lastInputs));
+
+    state.records.push(record);
     saveLocalRecords();
     updateHistoryUI();
     updateCharts();
