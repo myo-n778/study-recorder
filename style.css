@@ -1987,6 +1987,37 @@ h3 {
     gap: 1rem;
 }
 
+/* 平均学習時間表示 */
+.public-avg-stats {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.avg-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.3rem 0;
+}
+
+.avg-stat-row+.avg-stat-row {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.avg-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.avg-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
 .stat-badge {
     display: flex;
     flex-direction: column;

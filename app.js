@@ -3399,6 +3399,8 @@ function renderPublicView() {
         const activeBtn = elements.publicVolumePeriodTabs.querySelector('.period-btn.active');
         const period = activeBtn ? activeBtn.dataset.period : 'day';
         updatePublicVolumeChart(period);
+        // 平均も同じ期間単位で計算・表示
+        updatePublicAverages(period, expandedRecords);
     }
 
     // C) タイムライン (timeline_visibility: public のみ)
@@ -3409,9 +3411,70 @@ function renderPublicView() {
     updatePublicCategorySummary(activeCatBtn ? activeCatBtn.dataset.period : 'day');
 }
 
+// 公開ページ用：平均学習時間を計算・表示
+function updatePublicAverages(period, expandedRecords) {
+    const avgAllEl = document.getElementById('public-avg-all');
+    const avgActiveEl = document.getElementById('public-avg-active');
+    if (!avgAllEl || !avgActiveEl) return;
+
+    // 期間ごとにグループ化して集計
+    const periodMap = {}; // key -> 分
+    let totalMin = 0;
+
+    expandedRecords.forEach(r => {
+        const dur = parseInt(r.duration) || 0;
+        totalMin += dur;
+
+        const bDateStr = getBelongingDate(r.date, r.startTime);
+        const bDate = new Date(bDateStr);
+        let key;
+
+        if (period === 'day') {
+            key = bDateStr;
+        } else if (period === 'week') {
+            // ISO週番号 + 年をキーに
+            key = `${bDate.getFullYear()}-W${getWeekNumber(bDate)}`;
+        } else if (period === 'month') {
+            key = `${bDate.getFullYear()}-${bDate.getMonth() + 1}`;
+        } else {
+            key = bDateStr; // デフォルトは日
+        }
+
+        periodMap[key] = (periodMap[key] || 0) + dur;
+    });
+
+    const allPeriodKeys = Object.keys(periodMap);
+    const activePeriodKeys = allPeriodKeys.filter(k => periodMap[k] > 0);
+
+    // 全期間数の計算（最初の日付から最後の日付までの日/週/月数）
+    let totalPeriodCount = allPeriodKeys.length;
+    if (allPeriodKeys.length > 0) {
+        // 日の場合は、最初の日から今日までの日数
+        if (period === 'day') {
+            const sortedDates = allPeriodKeys.sort();
+            const firstDate = new Date(sortedDates[0]);
+            const today = new Date(getLogicalDate());
+            const diffDays = Math.floor((today - firstDate) / (1000 * 60 * 60 * 24)) + 1;
+            totalPeriodCount = Math.max(diffDays, allPeriodKeys.length);
+        }
+    }
+
+    const activePeriodCount = activePeriodKeys.length;
+
+    // 平均計算
+    const avgAll = totalPeriodCount > 0 ? (totalMin / 60) / totalPeriodCount : 0;
+    const avgActive = activePeriodCount > 0 ? (totalMin / 60) / activePeriodCount : 0;
+
+    // 単位ラベル
+    const unitLabel = period === 'day' ? '/日' : period === 'week' ? '/週' : period === 'month' ? '/月' : '/日';
+
+    avgAllEl.textContent = `${avgAll.toFixed(1)}h${unitLabel}`;
+    avgActiveEl.textContent = `${avgActive.toFixed(1)}h${unitLabel}`;
+}
 
 
 // 公開ページ用：カテゴリー別集計 (内容内訳付き)
+
 function updatePublicCategorySummary(period = 'day') {
     const publicRecords = state.records.filter(r => r.visibility === 'public');
     const expandedRecords = getExpandedRecords(publicRecords);
