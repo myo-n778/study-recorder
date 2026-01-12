@@ -1744,13 +1744,26 @@ h3 {
 }
 
 .public-status-badge {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--glass-border);
+    background: rgba(var(--primary-color-rgb), 0.15);
+    border: 1px solid var(--primary-color);
     color: var(--text-main);
-    padding: 2px 10px;
-    border-radius: 12px;
+    padding: 2px 12px;
+    border-radius: 14px;
     font-size: 0.8rem;
     white-space: nowrap;
+    box-shadow: 0 0 8px rgba(var(--primary-color-rgb), 0.4);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+    animation: status-glow 2s infinite alternate;
+}
+
+@keyframes status-glow {
+    from {
+        box-shadow: 0 0 5px rgba(var(--primary-color-rgb), 0.3);
+    }
+
+    to {
+        box-shadow: 0 0 12px rgba(var(--primary-color-rgb), 0.6);
+    }
 }
 
 .filter-label {

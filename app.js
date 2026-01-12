@@ -266,6 +266,9 @@ const elements = {
     prevDateBtn: document.getElementById('prev-date-btn'),
     nextDateBtn: document.getElementById('next-date-btn'),
     todayBtn: document.getElementById('today-btn'),
+    headerStatusInput: document.getElementById('header-status-input'),
+    showStatusPresetsBtn: document.getElementById('show-status-presets-btn'),
+    statusPresetsPopup: document.getElementById('status-presets-popup'),
     currentViewDateDisplay: document.getElementById('current-view-date'),
     // Summary Location Elements
     summaryLocation: document.getElementById('summary-location'),
@@ -735,6 +738,23 @@ function setupMasterData() {
             });
         }
 
+        // ステータス履歴・プリセットボタン
+        if (elements.showStatusPresetsBtn && elements.statusPresetsPopup) {
+            elements.showStatusPresetsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!elements.statusPresetsPopup.classList.contains('hidden')) {
+                    elements.statusPresetsPopup.classList.add('hidden');
+                    return;
+                }
+                showStatusPresetsPopup();
+            });
+            document.addEventListener('click', (e) => {
+                if (!elements.showStatusPresetsBtn.contains(e.target) && !elements.statusPresetsPopup.contains(e.target)) {
+                    elements.statusPresetsPopup.classList.add('hidden');
+                }
+            });
+        }
+
         // 意気込み履歴ボタン
         if (elements.showEnthusiasmHistoryBtn && elements.enthusiasmHistoryPopup) {
             elements.showEnthusiasmHistoryBtn.addEventListener('click', (e) => {
@@ -751,72 +771,73 @@ function setupMasterData() {
                 }
             });
         }
-
-        // メインコメント履歴ボタン
-
-        // サマリーモーダルの履歴ボタン
-        const historyBtn = document.getElementById('show-comment-history-btn');
-        const historyPopup = document.getElementById('comment-history-popup');
-        if (historyBtn && historyPopup) {
-            historyBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (!historyPopup.classList.contains('hidden')) {
-                    historyPopup.classList.add('hidden');
-                    return;
-                }
-                showHistoryTypePopup(historyPopup, document.getElementById('summary-comment'), 'comment');
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!historyBtn.contains(e.target) && !historyPopup.contains(e.target)) {
-                    historyPopup.classList.add('hidden');
-                }
-            });
-        }
-
-        // 場所の履歴/候補ボタン (サマリーモーダル)
-        const summaryLocBtn = document.getElementById('show-summary-location-history-btn');
-        const summaryLocPopup = document.getElementById('summary-location-history-popup');
-        if (summaryLocBtn && summaryLocPopup) {
-            summaryLocBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (!summaryLocPopup.classList.contains('hidden')) {
-                    summaryLocPopup.classList.add('hidden');
-                    return;
-                }
-                showHistoryTypePopup(summaryLocPopup, document.getElementById('summary-location'), 'location');
-            });
-            document.addEventListener('click', (e) => {
-                if (!summaryLocBtn.contains(e.target) && !summaryLocPopup.contains(e.target)) {
-                    summaryLocPopup.classList.add('hidden');
-                }
-            });
-        }
-
-        // 場所の履歴/候補ボタン (手動記録フォーム)
-        const manualLocBtn = document.getElementById('show-location-candidates-btn');
-        const manualLocPopup = document.getElementById('location-candidates-popup');
-        if (manualLocBtn && manualLocPopup) {
-            manualLocBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (!manualLocPopup.classList.contains('hidden')) {
-                    manualLocPopup.classList.add('hidden');
-                    return;
-                }
-                showHistoryTypePopup(manualLocPopup, document.getElementById('location-input'), 'location');
-            });
-            document.addEventListener('click', (e) => {
-                if (!manualLocBtn.contains(e.target) && !manualLocPopup.contains(e.target)) {
-                    manualLocPopup.classList.add('hidden');
-                }
-            });
-        }
     }
 
-    // 初期実行
-    updateContentList();
-    updateEnthusiasmList();
-    updateCommentSuggestions();
+    // メインコメント履歴ボタン
+
+    // サマリーモーダルの履歴ボタン
+    const historyBtn = document.getElementById('show-comment-history-btn');
+    const historyPopup = document.getElementById('comment-history-popup');
+    if (historyBtn && historyPopup) {
+        historyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!historyPopup.classList.contains('hidden')) {
+                historyPopup.classList.add('hidden');
+                return;
+            }
+            showHistoryTypePopup(historyPopup, document.getElementById('summary-comment'), 'comment');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!historyBtn.contains(e.target) && !historyPopup.contains(e.target)) {
+                historyPopup.classList.add('hidden');
+            }
+        });
+    }
+
+    // 場所の履歴/候補ボタン (サマリーモーダル)
+    const summaryLocBtn = document.getElementById('show-summary-location-history-btn');
+    const summaryLocPopup = document.getElementById('summary-location-history-popup');
+    if (summaryLocBtn && summaryLocPopup) {
+        summaryLocBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!summaryLocPopup.classList.contains('hidden')) {
+                summaryLocPopup.classList.add('hidden');
+                return;
+            }
+            showHistoryTypePopup(summaryLocPopup, document.getElementById('summary-location'), 'location');
+        });
+        document.addEventListener('click', (e) => {
+            if (!summaryLocBtn.contains(e.target) && !summaryLocPopup.contains(e.target)) {
+                summaryLocPopup.classList.add('hidden');
+            }
+        });
+    }
+
+    // 場所の履歴/候補ボタン (手動記録フォーム)
+    const manualLocBtn = document.getElementById('show-location-candidates-btn');
+    const manualLocPopup = document.getElementById('location-candidates-popup');
+    if (manualLocBtn && manualLocPopup) {
+        manualLocBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!manualLocPopup.classList.contains('hidden')) {
+                manualLocPopup.classList.add('hidden');
+                return;
+            }
+            showHistoryTypePopup(manualLocPopup, document.getElementById('location-input'), 'location');
+        });
+        document.addEventListener('click', (e) => {
+            if (!manualLocBtn.contains(e.target) && !manualLocPopup.contains(e.target)) {
+                manualLocPopup.classList.add('hidden');
+            }
+        });
+    }
+}
+
+// 初期実行
+updateContentList();
+updateEnthusiasmList();
+updateCommentSuggestions();
 }
 
 function updateCommentSuggestions() {
@@ -1644,7 +1665,67 @@ function updateDatalists() {
     }
 }
 
-// ステータスの更新送信
+// ステータス用のプリセット・履歴ポップアップを表示
+function showStatusPresetsPopup() {
+    const popup = elements.statusPresetsPopup;
+    const input = elements.headerStatusInput;
+    if (!popup || !input) return;
+
+    popup.innerHTML = '';
+
+    // 1. GASのマスタプリセットを表示
+    if (state.gasMasterData?.statusPresets && state.gasMasterData.statusPresets.length > 0) {
+        const title = document.createElement('div');
+        title.className = 'history-item-header';
+        title.textContent = 'プリセット (共通)';
+        popup.appendChild(title);
+
+        state.gasMasterData.statusPresets.forEach(preset => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.textContent = preset;
+            item.addEventListener('click', () => {
+                input.value = preset;
+                popup.classList.add('hidden');
+                updateStatus(preset); // 即座に更新
+            });
+            popup.appendChild(item);
+        });
+    }
+
+    // 2. 自分の過去の履歴を表示
+    const history = state.records
+        .map(r => r.status) // ※ status フィールドを記録時に保存するように拡張が必要かもしれないが、現状はO列から読み書き
+        .filter((v, i, a) => v && a.indexOf(v) === i)
+        .slice(0, 5);
+
+    if (history.length > 0) {
+        const title = document.createElement('div');
+        title.className = 'history-item-header';
+        title.style.marginTop = '8px';
+        title.textContent = '最近の履歴';
+        popup.appendChild(title);
+
+        history.forEach(val => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.textContent = val;
+            item.addEventListener('click', () => {
+                input.value = val;
+                popup.classList.add('hidden');
+                updateStatus(val);
+            });
+            popup.appendChild(item);
+        });
+    }
+
+    if (popup.innerHTML === '') {
+        popup.innerHTML = '<div class="history-empty">候補がありません</div>';
+    }
+
+    popup.classList.remove('hidden');
+}
+
 // ステータスの更新送信
 async function updateStatus(newStatusValue = null) {
     let status = newStatusValue;

@@ -184,8 +184,14 @@
                         <button id="header-settings-btn" class="icon-btn">⚙️</button>
                     </div>
                     <div class="header-bottom-row">
-                        <input type="text" id="header-status-input" list="header-status-list" placeholder="Status"
-                            class="header-status-input">
+                        <div class="input-with-action status-input-wrapper">
+                            <input type="text" id="header-status-input" list="header-status-list" placeholder="Status"
+                                class="header-status-input">
+                            <button id="show-status-presets-btn" class="icon-btn" title="ステータス履歴・プリセット">
+                                <span class="material-icons-outlined">history</span>
+                            </button>
+                            <div id="status-presets-popup" class="history-popup hidden"></div>
+                        </div>
                         <datalist id="header-status-list"></datalist>
                         <div id="user-display" class="user-info"></div>
                     </div>
