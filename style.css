@@ -169,6 +169,11 @@ header {
     gap: 0.5rem;
 }
 
+.status-input-wrapper {
+    width: auto;
+    gap: 0.2rem;
+}
+
 .header-status-input {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
@@ -177,18 +182,37 @@ header {
     font-size: 0.75rem;
     color: var(--text-main);
     width: 60px;
-    /* Default width */
     transition: all 0.3s ease;
     text-align: center;
 }
 
 .header-status-input:focus,
 .header-status-input:not(:placeholder-shown) {
-    width: 140px;
-    /* Expanded width */
+    width: 120px;
+    /* 少し縮小してボタンのスペースを確保 */
     border-color: var(--primary-glow);
     background: rgba(255, 255, 255, 0.1);
     text-align: left;
+}
+
+#show-status-presets-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--text-main);
+}
+
+#show-status-presets-btn .material-icons-outlined {
+    font-size: 18px;
+}
+
+#status-presets-popup {
+    width: 180px;
+    right: 0;
+    top: 110%;
 }
 
 .goal-badges {

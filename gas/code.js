@@ -121,7 +121,8 @@ function doPost(e) {
           data.location || '',
           newId,
           visibility,
-          timelineVisibility
+          timelineVisibility,
+          data.status || '' // 15列目 (O列) にステータスを保存
         ];
         sheet.appendRow(rowData);
 
@@ -132,10 +133,15 @@ function doPost(e) {
       }
     }
     if (action === 'updateStatus') {
-      const now = new Date();
-      // ユーザー別シートのO1セル (1行目, 15列目) にステータスを保存
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        // 最終記録行のO列 (15列目) にステータスを保存
+        sheet.getRange(lastRow, 15).setValue(data.status || '');
+        return successResponse({ status: 'status_updated', userName: userName });
+      }
+      // まだデータがない場合はO1(暫定)に保存
       sheet.getRange(1, 15).setValue(data.status || '');
-      return successResponse({ status: 'status_updated', userName: userName });
+      return successResponse({ status: 'status_updated_init', userName: userName });
     }
   } catch (e) {
     return errorResponse(`Server Error: ${e.message}`);
@@ -227,8 +233,12 @@ function doGet(e) {
     };
   });
 
-  // 最新ステータスの取得 (ユーザー別シートのO1セルから取得)
-  let userStatus = sheet.getRange(1, 15).getValue() || '';
+  // 最新ステータスの取得 (ユーザー別シートの最終行O列から取得)
+  const lastRow = sheet.getLastRow();
+  let userStatus = '';
+  if (lastRow > 0) {
+    userStatus = sheet.getRange(lastRow, 15).getValue() || '';
+  }
 
   const baseData = getBaseData(ss);
 

@@ -1338,6 +1338,7 @@ async function saveSummaryRecord() {
         condition: condition,
         comment: comment,
         location: location,
+        status: elements.headerStatusInput ? elements.headerStatusInput.value.trim() : '',
         visibility: document.getElementById('summary-visibility-toggle')?.checked ? 'public' : 'private',
         timeline_visibility: document.getElementById('summary-timeline-visibility-toggle')?.checked ? 'public' : 'private'
     };
@@ -1432,6 +1433,7 @@ async function manualRecord() {
         category: category,
         content: content,
         enthusiasm: document.getElementById('enthusiasm-input').value,
+        status: elements.headerStatusInput ? elements.headerStatusInput.value.trim() : '',
         condition: condition,
         location: location,
         comment: comment,
