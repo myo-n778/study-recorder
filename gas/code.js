@@ -229,7 +229,8 @@ function doGet(e) {
       location: hasIdInL ? (row[10] || '') : '',
       id: hasIdInL ? row[11] : row[10],
       visibility: row[12] || 'private',
-      timeline_visibility: row[13] || 'private'
+      timeline_visibility: row[13] || 'private',
+      status: row[14] || ''
     };
   });
 

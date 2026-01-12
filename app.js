@@ -1697,8 +1697,8 @@ function showStatusPresetsPopup() {
 
     // 2. 自分の過去の履歴を表示
     const history = state.records
-        .map(r => r.status) // ※ status フィールドを記録時に保存するように拡張が必要かもしれないが、現状はO列から読み書き
-        .filter((v, i, a) => v && a.indexOf(v) === i)
+        .map(r => r.status)
+        .filter((v, i, a) => v && v.trim() !== '' && a.indexOf(v) === i)
         .slice(0, 5);
 
     if (history.length > 0) {
