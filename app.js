@@ -475,7 +475,6 @@ async function init() {
         });
     }
 }
-}
 
 function resumeStudySession() {
     const saved = localStorage.getItem(STATE_STUDY_KEY);
