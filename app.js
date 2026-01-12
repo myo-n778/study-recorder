@@ -1571,6 +1571,9 @@ async function loadRecordsFromGAS() {
             if (pubStatus) {
                 pubStatus.textContent = state.userStatus || '';
                 pubStatus.classList.toggle('hidden', !state.userStatus);
+                if (state.userStatus) {
+                    applyRandomStatusColor(pubStatus);
+                }
             }
         }
 
