@@ -2251,18 +2251,6 @@ function updateStickyTimelineChart(period = 'day') {
             });
             const totalHours = (totalMin / 60).toFixed(1);
 
-            // 期間に応じた日数を計算
-            let dayCount = 1;
-            if (period === 'week') dayCount = 7;
-            else if (period === 'month') dayCount = 30; // 概算
-            else if (period === 'year') dayCount = 365; // 概算
-
-            // 平均を計算（全日数）
-            const avgAll = dayCount > 0 ? (totalMin / 60 / dayCount).toFixed(1) : '0.0';
-            // 学習日数（合計>0なら1日）
-            const studyDays = totalMin > 0 ? 1 : 0;
-            const avgActive = studyDays > 0 ? (totalMin / 60 / studyDays).toFixed(1) : '—';
-
             let innerHtml = '<div style="font-weight:600; font-size:12px; margin-bottom:6px;">' + titleLines.join('<br>') + '</div>';
 
             bodyLines.forEach((body, i) => {
@@ -2274,11 +2262,60 @@ function updateStickyTimelineChart(period = 'day') {
                 innerHtml += '<div style="display:flex; align-items:center; margin-bottom:4px; font-size:12px;">' + span + body + '</div>';
             });
 
-            // 合計と平均を追加
+            // 合計を追加
             innerHtml += '<div style="border-top:1px solid rgba(255,255,255,0.2); margin-top:6px; padding-top:6px; font-size:11px;">';
             innerHtml += '<div style="margin-bottom:3px;"><strong>合計:</strong> ' + totalHours + 'h</div>';
-            innerHtml += '<div style="margin-bottom:2px; color:#aaa;">平均(全日数): ' + avgAll + 'h/日</div>';
-            innerHtml += '<div style="color:#aaa;">平均(学習日): ' + avgActive + 'h/日</div>';
+
+            // 日表示以外の場合のみ平均を表示
+            if (period !== 'day') {
+                // 経過日数を計算（その期間の開始から今日まで）
+                const today = new Date(getLogicalDate());
+                let elapsedDays = 1;
+
+                if (period === 'week') {
+                    // 週の場合、7日固定ではなく経過日数を使う
+                    // ただしツールチップは各バーに対応するので、今週かどうかで判断
+                    // 簡略化：今週の場合は経過日数、過去週は7日
+                    const label = titleLines[0] || '';
+                    const currentWeekLabel = 'W' + getWeekNumber(today);
+                    if (label.includes(currentWeekLabel) || label === currentWeekLabel) {
+                        const dayOfWeek = today.getDay();
+                        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                        elapsedDays = diffToMonday + 1;
+                    } else {
+                        elapsedDays = 7; // 過去週は7日
+                    }
+                } else if (period === 'month') {
+                    // 今月かどうかで判断
+                    const label = titleLines[0] || '';
+                    const currentMonthLabel = (today.getMonth() + 1) + '月';
+                    if (label.includes(currentMonthLabel)) {
+                        elapsedDays = today.getDate();
+                    } else {
+                        elapsedDays = 30; // 過去月は概算30日
+                    }
+                } else if (period === 'year') {
+                    // 今年かどうかで判断
+                    const label = titleLines[0] || '';
+                    const currentYearLabel = today.getFullYear() + '年';
+                    if (label.includes(String(today.getFullYear()))) {
+                        const yearStart = new Date(today.getFullYear(), 0, 1);
+                        elapsedDays = Math.floor((today - yearStart) / (1000 * 60 * 60 * 24)) + 1;
+                    } else {
+                        elapsedDays = 365; // 過去年は365日
+                    }
+                }
+
+                // 学習日数（簡易計算：1日単位のバーでは合計>0なら1日）
+                const studyDays = totalMin > 0 ? 1 : 0;
+
+                const avgAll = elapsedDays > 0 ? (totalMin / 60 / elapsedDays).toFixed(1) : '0.0';
+                const avgActive = studyDays > 0 ? (totalMin / 60 / studyDays).toFixed(1) : '—';
+
+                innerHtml += '<div style="margin-bottom:2px; color:#aaa;">平均(全日数): ' + avgAll + 'h/日</div>';
+                innerHtml += '<div style="color:#aaa;">平均(学習日): ' + avgActive + 'h/日</div>';
+            }
+
             innerHtml += '</div>';
 
             tooltipEl.innerHTML = innerHtml;
@@ -2387,35 +2424,101 @@ function updateStickyTimelineChart(period = 'day') {
     }
 }
 
-// 学習量推移の見出し横に1日平均を表示
+// 学習量推移の見出し横に1日平均を表示（週/月/年のみ、2種類併記）
 function updateVolumeDailyAvg(period, groupedData) {
     const badge = document.getElementById('volume-daily-avg');
     if (!badge) return;
 
+    // 日粒度では平均を表示しない
+    if (period === 'day') {
+        badge.textContent = '';
+        return;
+    }
+
     const labels = groupedData.labels;
     const datasets = groupedData.datasets;
 
-    // 全期間の合計を計算
-    let totalMin = 0;
-    labels.forEach((_, i) => {
-        datasets.forEach(ds => {
-            totalMin += (ds.data[i] || 0);
-        });
-    });
-
-    // 期間に応じた総日数を計算
-    let totalDays = labels.length;
-    if (period === 'week') {
-        totalDays = labels.length * 7;
-    } else if (period === 'month') {
-        totalDays = labels.length * 30; // 概算
-    } else if (period === 'year') {
-        totalDays = labels.length * 365; // 概算
+    // 現在表示されている期間（最新=当日/今週/今月/今年）の合計と学習日数を計算
+    // グラフの最後の要素が現在の期間
+    const currentIdx = labels.length - 1;
+    if (currentIdx < 0) {
+        badge.textContent = '';
+        return;
     }
 
-    // 1日平均（全日数）を計算
-    const avgHours = totalDays > 0 ? (totalMin / 60) / totalDays : 0;
-    badge.textContent = `1日平均 ${avgHours.toFixed(1)}h`;
+    // 現在期間の合計時間（分）
+    let currentTotalMin = 0;
+    datasets.forEach(ds => {
+        currentTotalMin += (ds.data[currentIdx] || 0);
+    });
+
+    // 経過日数を計算（週開始/月初/年初から今日まで）
+    const today = new Date(getLogicalDate());
+    let elapsedDays = 1;
+    let studyDays = 0;
+
+    if (period === 'week') {
+        // ISO週（月曜開始）の経過日数
+        const dayOfWeek = today.getDay(); // 0=日曜
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        elapsedDays = diffToMonday + 1;
+    } else if (period === 'month') {
+        // 月初から今日までの日数
+        elapsedDays = today.getDate();
+    } else if (period === 'year') {
+        // 年初から今日までの日数
+        const yearStart = new Date(today.getFullYear(), 0, 1);
+        elapsedDays = Math.floor((today - yearStart) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    // 学習日数を計算（その期間内で学習があった日の数）
+    // 簡略化：現在の期間のポップアップ用に全記録から計算
+    const records = getExpandedRecords(getFilteredRecords());
+    const studyDaySet = new Set();
+
+    records.forEach(r => {
+        const bDateStr = getBelongingDate(r.date, r.startTime);
+        const bDate = new Date(bDateStr);
+        const dur = parseInt(r.duration) || 0;
+        if (dur <= 0) return;
+
+        let inPeriod = false;
+        if (period === 'week') {
+            // 今週判定
+            const dayOfWeek = today.getDay();
+            const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - diffToMonday);
+            weekStart.setHours(0, 0, 0, 0);
+            const bDateOnly = new Date(bDate);
+            bDateOnly.setHours(0, 0, 0, 0);
+            if (bDateOnly >= weekStart && bDateOnly <= today) {
+                inPeriod = true;
+            }
+        } else if (period === 'month') {
+            if (bDate.getFullYear() === today.getFullYear() && bDate.getMonth() === today.getMonth()) {
+                inPeriod = true;
+            }
+        } else if (period === 'year') {
+            if (bDate.getFullYear() === today.getFullYear()) {
+                inPeriod = true;
+            }
+        }
+
+        if (inPeriod) {
+            studyDaySet.add(bDateStr);
+        }
+    });
+
+    studyDays = studyDaySet.size;
+
+    // 平均計算
+    const avgAll = elapsedDays > 0 ? (currentTotalMin / 60) / elapsedDays : 0;
+    const avgActive = studyDays > 0 ? (currentTotalMin / 60) / studyDays : 0;
+
+    // 表示
+    const avgActiveText = studyDays > 0 ? avgActive.toFixed(1) : '—';
+    badge.textContent = `（全）${avgAll.toFixed(1)}h/日　（学）${avgActiveText}h/日`;
 }
 
 // 期間別詳細分析チャートの描画（カテゴリ/内容別・縦棒グラフ）
