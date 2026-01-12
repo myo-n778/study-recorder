@@ -1475,8 +1475,8 @@ async function loadRecordsFromGAS() {
                         id: r.id,
                         visibility: r.visibility === 'public' ? 'public' : 'private',
                         timeline_visibility: r.timeline_visibility === 'public' ? 'public' : 'private',
-                        // 重要項目を匿名化
-                        category: '学習',
+                        // カテゴリは表示を許可し、それ以外を匿名化
+                        category: r.category || '学習',
                         content: '',
                         enthusiasm: '',
                         comment: '',
@@ -3031,7 +3031,9 @@ function renderPublicTimeline() {
                 showGanttTooltip(e, rec);
             });
 
-            block.style.backgroundColor = 'var(--primary)'; // 一律プライマリカラーに固定（プライバシー）
+            const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6'];
+            const colorIdx = Math.abs(rec.category.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+            block.style.backgroundColor = colors[colorIdx];
             track.appendChild(block);
         });
 
