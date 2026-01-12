@@ -3411,82 +3411,94 @@ function renderPublicView() {
     updatePublicCategorySummary(activeCatBtn ? activeCatBtn.dataset.period : 'day');
 }
 
-// 公開ページ用：平均学習時間を計算・表示（年/月/週すべて常時表示）
+// 公開ページ用：1日あたり平均学習時間を計算・表示（今週/今月/今年）
 function updatePublicAverages(period, expandedRecords) {
     // 各DOM要素
-    const elements = {
-        yearAll: document.getElementById('public-avg-year-all'),
-        yearActive: document.getElementById('public-avg-year-active'),
+    const els = {
+        weekAll: document.getElementById('public-avg-week-all'),
+        weekActive: document.getElementById('public-avg-week-active'),
         monthAll: document.getElementById('public-avg-month-all'),
         monthActive: document.getElementById('public-avg-month-active'),
-        weekAll: document.getElementById('public-avg-week-all'),
-        weekActive: document.getElementById('public-avg-week-active')
+        yearAll: document.getElementById('public-avg-year-all'),
+        yearActive: document.getElementById('public-avg-year-active')
     };
 
     // 要素が存在しない場合は終了
-    if (!elements.yearAll) return;
+    if (!els.weekAll) return;
 
-    // 期間ごとにグループ化して集計
-    const yearMap = {};  // YYYY -> 分
-    const monthMap = {}; // YYYY-MM -> 分
-    const weekMap = {};  // YYYY-WXX -> 分
-    let totalMin = 0;
+    const today = new Date(getLogicalDate());
+    const todayYear = today.getFullYear();
+    const todayMonth = today.getMonth();
+    const todayDate = today.getDate();
+
+    // ISO週の開始日（月曜日）を計算
+    const dayOfWeek = today.getDay(); // 0=日曜
+    const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 月曜までの日数
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - diffToMonday);
+    weekStart.setHours(0, 0, 0, 0);
+
+    // 今年・今月・今週の経過日数を計算
+    const yearStart = new Date(todayYear, 0, 1);
+    const monthStart = new Date(todayYear, todayMonth, 1);
+
+    const yearElapsedDays = Math.floor((today - yearStart) / (1000 * 60 * 60 * 24)) + 1;
+    const monthElapsedDays = todayDate;
+    const weekElapsedDays = diffToMonday + 1; // 月曜から今日まで
+
+    // 日ごとにグループ化して集計（今週/今月/今年それぞれ）
+    const weekDayMap = {};  // 今週の日 -> 分
+    const monthDayMap = {}; // 今月の日 -> 分
+    const yearDayMap = {};  // 今年の日 -> 分
+
+    let weekTotal = 0;
+    let monthTotal = 0;
+    let yearTotal = 0;
 
     expandedRecords.forEach(r => {
         const dur = parseInt(r.duration) || 0;
-        totalMin += dur;
-
         const bDateStr = getBelongingDate(r.date, r.startTime);
         const bDate = new Date(bDateStr);
+        bDate.setHours(0, 0, 0, 0);
 
-        // 年キー
-        const yearKey = String(bDate.getFullYear());
-        yearMap[yearKey] = (yearMap[yearKey] || 0) + dur;
+        // 今年判定
+        if (bDate.getFullYear() === todayYear) {
+            yearTotal += dur;
+            yearDayMap[bDateStr] = (yearDayMap[bDateStr] || 0) + dur;
+        }
 
-        // 月キー
-        const monthKey = `${bDate.getFullYear()}-${String(bDate.getMonth() + 1).padStart(2, '0')}`;
-        monthMap[monthKey] = (monthMap[monthKey] || 0) + dur;
+        // 今月判定
+        if (bDate.getFullYear() === todayYear && bDate.getMonth() === todayMonth) {
+            monthTotal += dur;
+            monthDayMap[bDateStr] = (monthDayMap[bDateStr] || 0) + dur;
+        }
 
-        // 週キー（既存のgetWeekNumber関数を使用）
-        const weekKey = `${bDate.getFullYear()}-W${String(getWeekNumber(bDate)).padStart(2, '0')}`;
-        weekMap[weekKey] = (weekMap[weekKey] || 0) + dur;
+        // 今週判定（週開始日から今日まで）
+        if (bDate >= weekStart && bDate <= today) {
+            weekTotal += dur;
+            weekDayMap[bDateStr] = (weekDayMap[bDateStr] || 0) + dur;
+        }
     });
 
-    // 各期間の統計を計算
-    const totalHours = totalMin / 60;
-
-    // 年の計算
-    const yearAllKeys = Object.keys(yearMap);
-    const yearActiveKeys = yearAllKeys.filter(k => yearMap[k] > 0);
-    const yearAllCount = yearAllKeys.length;
-    const yearActiveCount = yearActiveKeys.length;
-
-    // 月の計算
-    const monthAllKeys = Object.keys(monthMap);
-    const monthActiveKeys = monthAllKeys.filter(k => monthMap[k] > 0);
-    const monthAllCount = monthAllKeys.length;
-    const monthActiveCount = monthActiveKeys.length;
-
-    // 週の計算
-    const weekAllKeys = Object.keys(weekMap);
-    const weekActiveKeys = weekAllKeys.filter(k => weekMap[k] > 0);
-    const weekAllCount = weekAllKeys.length;
-    const weekActiveCount = weekActiveKeys.length;
+    // 学習日数（学習時間 > 0 の日）をカウント
+    const weekActiveDays = Object.keys(weekDayMap).filter(k => weekDayMap[k] > 0).length;
+    const monthActiveDays = Object.keys(monthDayMap).filter(k => monthDayMap[k] > 0).length;
+    const yearActiveDays = Object.keys(yearDayMap).filter(k => yearDayMap[k] > 0).length;
 
     // 平均計算とフォーマット
-    const formatAvg = (hours, count, unit) => {
-        if (count === 0) return '—';
-        const avg = hours / count;
-        return `${avg.toFixed(1)}h/${unit}`;
+    const formatAvg = (totalMin, dayCount) => {
+        if (dayCount === 0) return '—';
+        const avgHours = (totalMin / 60) / dayCount;
+        return `${avgHours.toFixed(1)}h/日`;
     };
 
     // DOM更新
-    if (elements.yearAll) elements.yearAll.textContent = formatAvg(totalHours, yearAllCount, '年');
-    if (elements.yearActive) elements.yearActive.textContent = formatAvg(totalHours, yearActiveCount, '年');
-    if (elements.monthAll) elements.monthAll.textContent = formatAvg(totalHours, monthAllCount, '月');
-    if (elements.monthActive) elements.monthActive.textContent = formatAvg(totalHours, monthActiveCount, '月');
-    if (elements.weekAll) elements.weekAll.textContent = formatAvg(totalHours, weekAllCount, '週');
-    if (elements.weekActive) elements.weekActive.textContent = formatAvg(totalHours, weekActiveCount, '週');
+    els.weekAll.textContent = formatAvg(weekTotal, weekElapsedDays);
+    els.weekActive.textContent = formatAvg(weekTotal, weekActiveDays);
+    els.monthAll.textContent = formatAvg(monthTotal, monthElapsedDays);
+    els.monthActive.textContent = formatAvg(monthTotal, monthActiveDays);
+    els.yearAll.textContent = formatAvg(yearTotal, yearElapsedDays);
+    els.yearActive.textContent = formatAvg(yearTotal, yearActiveDays);
 }
 
 
