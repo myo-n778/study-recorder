@@ -2160,6 +2160,9 @@ function updateStickyTimelineChart(period = 'day') {
     const allLabels = groupedData.labels;
     const allDatasets = groupedData.datasets;
 
+    // 見出し横に1日平均を表示
+    updateVolumeDailyAvg(period, groupedData);
+
     // 分離
     const pastLabels = allLabels.slice(0, -1);
     const todayLabel = allLabels.slice(-1);
@@ -2241,6 +2244,25 @@ function updateStickyTimelineChart(period = 'day') {
             const titleLines = tooltip.title || [];
             const bodyLines = tooltip.body.map(b => b.lines);
 
+            // 合計を計算
+            let totalMin = 0;
+            tooltip.dataPoints.forEach(dp => {
+                totalMin += dp.raw || 0;
+            });
+            const totalHours = (totalMin / 60).toFixed(1);
+
+            // 期間に応じた日数を計算
+            let dayCount = 1;
+            if (period === 'week') dayCount = 7;
+            else if (period === 'month') dayCount = 30; // 概算
+            else if (period === 'year') dayCount = 365; // 概算
+
+            // 平均を計算（全日数）
+            const avgAll = dayCount > 0 ? (totalMin / 60 / dayCount).toFixed(1) : '0.0';
+            // 学習日数（合計>0なら1日）
+            const studyDays = totalMin > 0 ? 1 : 0;
+            const avgActive = studyDays > 0 ? (totalMin / 60 / studyDays).toFixed(1) : '—';
+
             let innerHtml = '<div style="font-weight:600; font-size:12px; margin-bottom:6px;">' + titleLines.join('<br>') + '</div>';
 
             bodyLines.forEach((body, i) => {
@@ -2251,6 +2273,13 @@ function updateStickyTimelineChart(period = 'day') {
                 const span = '<span style="display:inline-block; width:10px; height:10px; margin-right:6px; border-radius:2px; vertical-align:middle; ' + style + '"></span>';
                 innerHtml += '<div style="display:flex; align-items:center; margin-bottom:4px; font-size:12px;">' + span + body + '</div>';
             });
+
+            // 合計と平均を追加
+            innerHtml += '<div style="border-top:1px solid rgba(255,255,255,0.2); margin-top:6px; padding-top:6px; font-size:11px;">';
+            innerHtml += '<div style="margin-bottom:3px;"><strong>合計:</strong> ' + totalHours + 'h</div>';
+            innerHtml += '<div style="margin-bottom:2px; color:#aaa;">平均(全日数): ' + avgAll + 'h/日</div>';
+            innerHtml += '<div style="color:#aaa;">平均(学習日): ' + avgActive + 'h/日</div>';
+            innerHtml += '</div>';
 
             tooltipEl.innerHTML = innerHtml;
         }
@@ -2356,6 +2385,37 @@ function updateStickyTimelineChart(period = 'day') {
         content.style.width = Math.max(wrapper.clientWidth, pastLabels.length * barWidth) + 'px';
         setTimeout(() => { wrapper.scrollLeft = wrapper.scrollWidth; }, 150);
     }
+}
+
+// 学習量推移の見出し横に1日平均を表示
+function updateVolumeDailyAvg(period, groupedData) {
+    const badge = document.getElementById('volume-daily-avg');
+    if (!badge) return;
+
+    const labels = groupedData.labels;
+    const datasets = groupedData.datasets;
+
+    // 全期間の合計を計算
+    let totalMin = 0;
+    labels.forEach((_, i) => {
+        datasets.forEach(ds => {
+            totalMin += (ds.data[i] || 0);
+        });
+    });
+
+    // 期間に応じた総日数を計算
+    let totalDays = labels.length;
+    if (period === 'week') {
+        totalDays = labels.length * 7;
+    } else if (period === 'month') {
+        totalDays = labels.length * 30; // 概算
+    } else if (period === 'year') {
+        totalDays = labels.length * 365; // 概算
+    }
+
+    // 1日平均（全日数）を計算
+    const avgHours = totalDays > 0 ? (totalMin / 60) / totalDays : 0;
+    badge.textContent = `1日平均 ${avgHours.toFixed(1)}h`;
 }
 
 // 期間別詳細分析チャートの描画（カテゴリ/内容別・縦棒グラフ）

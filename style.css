@@ -2036,6 +2036,22 @@ h3 {
     color: var(--primary-color);
 }
 
+/* 見出し横の1日平均バッジ */
+.daily-avg-badge {
+    margin-left: 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--text-dim);
+    padding: 0.2rem 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+.daily-avg-badge:empty {
+    display: none;
+}
+
 .stat-badge {
     display: flex;
     flex-direction: column;
