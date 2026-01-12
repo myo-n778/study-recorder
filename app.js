@@ -3775,7 +3775,7 @@ async function fetchPublicUsers() {
     try {
         const response = await fetch(`${GAS_URL}?action=getPublicUsers`);
         const result = await response.json();
-        if (result.success) {
+        if (result.success || result.users) {
             return result.users || [];
         }
         return [];

@@ -534,7 +534,8 @@ function findRowIndexById(sheet, id) {
 }
 
 function successResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+  const response = { success: true, ...data };
+  return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function errorResponse(msg) {
