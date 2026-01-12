@@ -415,6 +415,17 @@ async function init() {
         if (document.visibilityState === 'visible') adjustTimerPosition();
     });
 
+    // スマホキーボード表示時に入力欄が隠れないようにする
+    const scrollInputIntoView = (e) => {
+        const target = e.target;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        }
+    };
+    document.addEventListener('focusin', scrollInputIntoView);
+
     if (!state.isPublicView) {
         // 3. 非同期データ取得の前にセッション復元 (モバイルでの再開を最優先)
         resumeStudySession();
@@ -1790,6 +1801,14 @@ async function loadRecordsFromGAS() {
             updateLocationSuggestions();
             updateUserDisplay();
             updateDatalists();
+
+            // 直近記録から意気込みを初期値として設定（空欄の場合のみ）
+            if (elements.enthusiasmInput && !elements.enthusiasmInput.value.trim() && state.records.length > 0) {
+                const latestRecord = state.records[state.records.length - 1];
+                if (latestRecord.enthusiasm) {
+                    elements.enthusiasmInput.value = latestRecord.enthusiasm;
+                }
+            }
         }
     }
 }
@@ -3289,16 +3308,32 @@ function renderPublicView() {
             closeBtn.className = 'icon-btn';
             closeBtn.innerHTML = '<span class="material-icons-outlined">close</span>';
             closeBtn.onclick = () => {
-                // 元の画面に戻る。state.isPublicView を戻した上でUIを切り替える
+                // Public VewをCompetitorsモーダルから開いた場合は一覧に戻る
                 state.isPublicView = false;
                 state.publicUserName = null;
                 elements.publicViewScreen.classList.add('hidden');
-                // メインコンテンツを再表示
-                if (document.getElementById('main-content')) {
-                    const children = document.getElementById('main-content').children;
-                    for (let child of children) {
-                        if (child.id !== 'public-view-screen' && child.id !== 'gantt-tooltip' && !child.classList.contains('modal')) {
-                            child.classList.remove('hidden');
+
+                // Competitorsモーダルが存在し、非表示だった場合は再表示して一覧に戻る
+                if (elements.publicUsersModal && elements.publicUsersModal.style.display === 'none') {
+                    elements.publicUsersModal.style.display = '';
+                    elements.publicUsersModal.classList.remove('hidden');
+                    // メインコンテンツを再表示
+                    if (document.getElementById('main-content')) {
+                        const children = document.getElementById('main-content').children;
+                        for (let child of children) {
+                            if (child.id !== 'public-view-screen' && child.id !== 'gantt-tooltip' && !child.classList.contains('modal')) {
+                                child.classList.remove('hidden');
+                            }
+                        }
+                    }
+                } else {
+                    // 通常の閉じる（直接アクセス時など）
+                    if (document.getElementById('main-content')) {
+                        const children = document.getElementById('main-content').children;
+                        for (let child of children) {
+                            if (child.id !== 'public-view-screen' && child.id !== 'gantt-tooltip' && !child.classList.contains('modal')) {
+                                child.classList.remove('hidden');
+                            }
                         }
                     }
                 }
@@ -3830,7 +3865,8 @@ function renderPublicUserList(users) {
         card.appendChild(arrow);
 
         card.addEventListener('click', () => {
-            elements.publicUsersModal.classList.add('hidden');
+            // 一覧モーダルは閉じずに非表示のまま維持（戻るときに再表示するため）
+            elements.publicUsersModal.style.display = 'none';
             openUserPublicView(user.userName);
         });
 

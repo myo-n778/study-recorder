@@ -2277,3 +2277,35 @@ h3 {
         padding: 0 10px;
     }
 }
+
+/* スマホ版: 横見切れ防止 - 左右マージン確保と全体縮小 */
+@media (max-width: 480px) {
+    body {
+        padding: 0 8px;
+        box-sizing: border-box;
+    }
+
+    .container {
+        max-width: 100%;
+        padding: 0.25rem 4px;
+        box-sizing: border-box;
+    }
+
+    /* カード類の横幅制御 */
+    .glass-card,
+    .history-item,
+    .form-group,
+    .modal-content {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* ヘッダーの縮小 */
+    header {
+        padding: 0 4px;
+    }
+
+    .logo {
+        font-size: 1rem;
+    }
+}
