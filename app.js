@@ -2112,7 +2112,7 @@ function getWeekNumber(d) {
 function updateTimelineAnalysis() {
     const todayContainer = document.getElementById('timeline-today-row');
     const pastContainer = document.getElementById('timeline-past-days');
-    const legend = document.querySelector('.timeline-legend-full');
+    const legend = document.getElementById('main-timeline-legend');
     if (!todayContainer || !pastContainer || !legend) return;
 
     // 1. 時間目盛り生成 (1時間おき)
