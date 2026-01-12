@@ -2136,30 +2136,36 @@ h3 {
     .public-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-}/* Competitors Button & User Explorer Styles */
+}
+
+/* Competitors Button & User Explorer Styles */
+/* Competitors Button (Header version) */
 .competitors-btn {
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    font-size: 0.7rem;
-    background: rgba(var(--primary-color-rgb), 0.1);
-    color: var(--primary-color);
-    border: 1px solid var(--primary-glow);
-    padding: 0.2rem 0.6rem;
-    border-radius: 6px;
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.08);
+    /* ヘッダーのicon-btnに合わせる */
+    color: var(--text-dim);
+    border: 1px solid var(--glass-border);
+    padding: 2px 8px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-weight: 700;
+    font-weight: 600;
+    height: 32px;
 }
 
 .competitors-btn:hover {
-    background: var(--primary-color);
-    color: white;
-    box-shadow: 0 0 12px var(--primary-glow);
+    background: rgba(var(--primary-color-rgb), 0.2);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.3);
 }
 
 .competitors-btn .material-icons-outlined {
-    font-size: 1rem;
+    font-size: 18px;
 }
 
 .public-users-content {
@@ -2185,10 +2191,13 @@ h3 {
     align-items: center;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 10px;
-    padding: 0.8rem 1.2rem;
+    padding: 0.8rem 1rem;
     border: 1px solid rgba(255, 255, 255, 0.08);
     cursor: pointer;
     transition: all 0.2s ease;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .public-user-card:hover {
@@ -2198,25 +2207,52 @@ h3 {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.card-main-info {
+    flex: 1;
+    min-width: 0;
+    /* ellipsisを効かせるため重要 */
+    display: flex;
+    flex-direction: column;
+}
+
 .public-user-card .user-name {
     font-weight: 700;
     font-size: 1rem;
     color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
 }
 
 .public-user-card .last-activity {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text-dim);
+    margin-top: 2px;
+}
+
+.card-badge-container {
+    flex-shrink: 0;
+}
+
+.card-arrow {
+    flex-shrink: 0;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+}
+
+.card-arrow .material-icons-outlined {
+    font-size: 18px;
 }
 
 @media (max-width: 600px) {
-    .date-navigation {
-        flex-wrap: wrap;
-        gap: 0.5rem;
+    .competitors-btn span:not(.material-icons-outlined) {
+        display: none;
+        /* スマホではアイコンのみにしてスペースを節約 */
     }
 
-    .date-navigation h2 {
-        width: 100%;
-        order: -1;
+    .competitors-btn {
+        padding: 0 10px;
     }
 }

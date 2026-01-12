@@ -3766,7 +3766,9 @@ function renderPublicUserList(users) {
         const card = document.createElement('div');
         card.className = 'public-user-card';
 
-        const info = document.createElement('div');
+        const mainInfo = document.createElement('div');
+        mainInfo.className = 'card-main-info';
+
         const name = document.createElement('div');
         name.className = 'user-name';
         name.textContent = user.userName;
@@ -3775,19 +3777,24 @@ function renderPublicUserList(users) {
         activity.className = 'last-activity';
         if (user.lastActivity > 0) {
             const d = new Date(user.lastActivity);
-            activity.textContent = `最終活動: ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            activity.textContent = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         } else {
-            activity.textContent = '最終活動: なし';
+            activity.textContent = 'なし';
         }
 
-        info.appendChild(name);
-        info.appendChild(activity);
+        mainInfo.appendChild(name);
+        mainInfo.appendChild(activity);
+
+        const badgeContainer = document.createElement('div');
+        badgeContainer.className = 'card-badge-container';
+        badgeContainer.innerHTML = '<span class="visibility-badge public">PUBLIC</span>';
 
         const arrow = document.createElement('div');
+        arrow.className = 'card-arrow';
         arrow.innerHTML = '<span class="material-icons-outlined">chevron_right</span>';
-        arrow.style.color = 'var(--text-dim)';
 
-        card.appendChild(info);
+        card.appendChild(mainInfo);
+        card.appendChild(badgeContainer);
         card.appendChild(arrow);
 
         card.addEventListener('click', () => {

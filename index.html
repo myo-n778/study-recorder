@@ -181,6 +181,10 @@
                             <span class="badge min-hours" id="display-min-hours">--</span>
                             <span class="badge target-hours" id="display-target-hours">--</span>
                         </div>
+                        <button id="show-competitors-btn" class="competitors-btn" title="公開ユーザー一覧">
+                            <span class="material-icons-outlined">people</span>
+                            <span>competitors</span>
+                        </button>
                         <button id="header-settings-btn" class="icon-btn">⚙️</button>
                     </div>
                     <div class="header-bottom-row">
@@ -334,30 +338,8 @@
                     <h2 id="current-view-date">2026/01/01(木)</h2>
                     <button id="next-date-btn" class="nav-btn">▶</button>
                     <button id="today-btn" class="today-shortcut">今日</button>
-                    <button id="show-competitors-btn" class="competitors-btn" title="公開ユーザー一覧">
-                        <span class="material-icons-outlined">people</span>
-                        <span>competitors</span>
-                    </button>
                 </div>
 
-                <!-- 表示対象フィルタ -->
-                <div class="visibility-filter-bar">
-                    <div class="filter-group">
-                        <span class="filter-label">表示対象:</span>
-                        <select id="visibility-filter">
-                            <option value="all" selected>すべて</option>
-                            <option value="public">publicのみ</option>
-                            <option value="private">privateのみ</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label class="toggle-label-inline">
-                            <input type="checkbox" id="timeline-public-only-toggle">
-                            <span class="toggle-switch-small"></span>
-                            <span>タイムライン公開分のみ</span>
-                        </label>
-                    </div>
-                </div>
 
                 <div class="glass-card timeline-analysis compact-card">
                     <div class="header-flex">
