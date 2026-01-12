@@ -383,12 +383,17 @@ async function init() {
         }
 
         // 前回値の復元 (カテゴリー、内容、意気込み)
-        const lastInputs = localStorage.getItem('study_recorder_last_inputs');
-        if (lastInputs) {
-            const inputs = JSON.parse(lastInputs);
-            if (elements.categoryInput) elements.categoryInput.value = inputs.category || '';
-            if (elements.contentInput) elements.contentInput.value = inputs.content || '';
-            if (elements.enthusiasmInput) elements.enthusiasmInput.value = inputs.enthusiasm || '';
+        const lastInputsStr = localStorage.getItem('study_recorder_last_inputs');
+        if (lastInputsStr) {
+            try {
+                const inputs = JSON.parse(lastInputsStr);
+                if (elements.categoryInput && inputs.category) elements.categoryInput.value = inputs.category;
+                if (elements.contentInput && inputs.content) elements.contentInput.value = inputs.content;
+                if (elements.enthusiasmInput && inputs.enthusiasm) elements.enthusiasmInput.value = inputs.enthusiasm;
+                console.log('前回値を復元しました:', inputs);
+            } catch (e) {
+                console.error('前回値のパースに失敗しました:', e);
+            }
         }
     }
 
@@ -491,9 +496,25 @@ function resumeStudySession() {
             state.lastPauseTime = session.lastPauseTime ? new Date(session.lastPauseTime) : null;
 
             // ⑤ 記録モードの「カテゴリ」「学習内容」の復元（入力欄へのセット）
-            elements.categoryInput.value = session.category || '';
-            elements.contentInput.value = session.content || '';
-            if (elements.locationInput) elements.locationInput.value = session.location || '';
+            const cat = session.category || '';
+            const cnt = session.content || '';
+            const loc = session.location || '';
+
+            // セッションデータに不足がある場合、localStorageから最近の値を補完
+            if (!cat || !cnt) {
+                const lastIdx = localStorage.getItem('study_recorder_last_inputs');
+                if (lastIdx) {
+                    const parsed = JSON.parse(lastIdx);
+                    if (!cat) elements.categoryInput.value = parsed.category || '';
+                    else elements.categoryInput.value = cat;
+                    if (!cnt) elements.contentInput.value = parsed.content || '';
+                    else elements.contentInput.value = cnt;
+                }
+            } else {
+                elements.categoryInput.value = cat;
+                elements.contentInput.value = cnt;
+            }
+            if (elements.locationInput) elements.locationInput.value = loc || '';
 
             document.getElementById('study-current-category').textContent = session.category || '-';
             document.getElementById('study-current-content').textContent = session.content || '-';
