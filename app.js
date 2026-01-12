@@ -207,7 +207,7 @@ let publicCharts = {
     popupTimeline: null
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwgXAbUTIPFhg5DMEKhv7DLMrNv9mXjn4keb5JAYxfje8aX3stvUWnkggxpUWH0A8VHkQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz8PNl3xhnp8jfATKx7_wk8CFQCwIX9IOM2Dn24c00-qiLs1ocEKeAUeF5bXSN8xHHQOQ/exec';
 
 // DOM Elements
 const elements = {
