@@ -16,24 +16,33 @@ function getSheetForUser(ss, userName) {
 
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-    const headers = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', '意欲', '場所', 'ID', 'visibility', 'timeline_visibility'];
+  }
+
+  // 常に最新のヘッダー構成を維持（全カラムチェック）
+  const headers = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', '意欲', '場所', 'ID', 'visibility', 'timeline_visibility', 'status'];
+  const currentHeadersCount = sheet.getLastColumn();
+
+  if (currentHeadersCount < headers.length) {
+    // 既存のカラムが少ない場合は不足分を補完
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(1, 100);
     sheet.setColumnWidth(7, 150);
     sheet.setColumnWidth(11, 150);
     sheet.setColumnWidth(12, 250);
-  }
-
-  // 既存シートに新列がない場合はヘッダーを追加
-  if (sheet.getLastColumn() < 12) {
-    sheet.getRange(1, 12).setValue('ID');
-  }
-  if (sheet.getLastColumn() < 13) {
-    sheet.getRange(1, 13).setValue('visibility');
-  }
-  if (sheet.getLastColumn() < 14) {
-    sheet.getRange(1, 14).setValue('timeline_visibility');
+  } else {
+    // 既存のカラムが多い場合も、ヘッダーが正しいか簡易チェックして必要なら上書き
+    const existingHeaders = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+    let needsUpdate = false;
+    for (let i = 0; i < headers.length; i++) {
+      if (existingHeaders[i] !== headers[i]) {
+        needsUpdate = true;
+        break;
+      }
+    }
+    if (needsUpdate) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
   }
 
   return sheet;
@@ -224,6 +233,10 @@ function doPost(e) {
       updateUserVisibility(ss, userName, data.visibility);
       return successResponse({ status: 'visibility_updated', userName: userName, visibility: data.visibility });
     }
+
+    if (action === 'getPublicUsers') {
+      return successResponse({ users: getPublicUsers(ss) });
+    }
   } catch (e) {
     return errorResponse(`Server Error: ${e.message}`);
   }
@@ -234,11 +247,14 @@ function syncToBaseSheet(ss, data) {
   let baseSheet = ss.getSheetByName(STUDY_REC_SHEET_NAME_BASE);
   if (!baseSheet) {
     baseSheet = ss.insertSheet(STUDY_REC_SHEET_NAME_BASE);
-    baseSheet.appendRow(['カテゴリ', '内容', '意気込み', 'コメント', '場所', '応援メッセージ', '終了メッセージ']);
+    baseSheet.appendRow(['カテゴリ', '内容', '意気込み', 'コメント', '場所', '応援メッセージ', '終了メッセージ', 'ステータス候補']);
     const defaultSupport = ["素晴らしい集中力です！", "一歩ずつ、着実に進んでいますね。", "休憩も大切ですよ。無理せず頑張りましょう。", "その調子です！未来の自分が感謝します。", "今はきつくても、必ず力になります。"];
     const defaultFinish = ["お疲れ様でした！", "今日も一歩前進ですね。"];
     defaultSupport.forEach((m, i) => baseSheet.getRange(i + 2, 6).setValue(m));
     defaultFinish.forEach((m, i) => baseSheet.getRange(i + 2, 7).setValue(m));
+  } else if (baseSheet.getLastColumn() < 8) {
+    // 列が足りない場合は追加
+    baseSheet.getRange(1, 8).setValue('ステータス候補');
   }
 
   const syncFields = [
@@ -292,13 +308,30 @@ function doGet(e) {
     }
   }
 
+  if (action === 'getPublicUsers') {
+    return successResponse({ users: getPublicUsers(ss) });
+  }
+
   const sheet = getSheetForUser(ss, userName);
 
   const values = sheet.getDataRange().getValues();
-  const records = values.length <= 1 ? [] : values.slice(1).map(row => {
-    // 互換性フォールバック: L列(index 11)にIDがなければK列(index 10)をID、場所を空とする
-    const hasIdInL = row[11] && row[11].toString().length > 10;
+  if (values.length <= 1) {
+    return successResponse({
+      records: [],
+      userStatus: '',
+      masterData: getBaseData(ss),
+      userVisibility: getUserVisibility(ss, userName)
+    });
+  }
 
+  const userHeaders = values[0];
+  const colMap = {};
+  const expectedFields = ['日付', 'ユーザー名', '開始時刻', '終了時刻', '学習時間', 'カテゴリ', '内容', '意気込み', 'コメント', '意欲', '場所', 'ID', 'visibility', 'timeline_visibility', 'status'];
+  expectedFields.forEach(f => {
+    colMap[f] = userHeaders.indexOf(f);
+  });
+
+  const records = values.slice(1).map(row => {
     const formatDate = (val) => {
       if (val instanceof Date) {
         return Utilities.formatDate(val, Session.getScriptTimeZone(), 'yyyy/MM/dd');
@@ -313,30 +346,59 @@ function doGet(e) {
       return val;
     };
 
+    // ID列判定ロジックをより柔軟にする
+    // IDが見つからない場合や異常な場合は、旧来の構成も考慮してフォールバック
+    const getVal = (fieldName, fallbackCol = -1) => {
+      const idx = colMap[fieldName];
+      if (idx !== -1 && idx < row.length) return row[idx];
+      if (fallbackCol !== -1 && fallbackCol < row.length) return row[fallbackCol];
+      return '';
+    };
+
+    // location と ID の特殊抽出 (移行期間対応)
+    let locationVal = getVal('場所');
+    let idVal = getVal('ID');
+
+    // IDが短すぎる場合は場所とIDが逆転しているか、古い構成である可能性を疑う
+    if (idVal && idVal.toString().length < 10) {
+      // もし ID 列に短い値があり、場所列が UUID のような長い値なら入れ替える
+      if (locationVal && locationVal.toString().length > 10) {
+        const tmp = idVal;
+        idVal = locationVal;
+        locationVal = tmp;
+      }
+    }
+
     return {
-      date: formatDate(row[0]),
-      userName: row[1],
-      startTime: formatTime(row[2]),
-      endTime: formatTime(row[3]),
-      duration: row[4],
-      category: row[5],
-      content: row[6],
-      enthusiasm: row[7],
-      comment: row[8],
-      condition: row[9],
-      location: hasIdInL ? (row[10] || '') : '',
-      id: hasIdInL ? row[11] : row[10],
-      visibility: row[12] || 'private',
-      timeline_visibility: row[13] || 'private',
-      status: row[14] || ''
+      date: formatDate(getVal('日付', 0)),
+      userName: getVal('ユーザー名', 1),
+      startTime: formatTime(getVal('開始時刻', 2)),
+      endTime: formatTime(getVal('終了時刻', 3)),
+      duration: getVal('学習時間', 4),
+      category: getVal('カテゴリ', 5),
+      content: getVal('内容', 6),
+      enthusiasm: getVal('意気込み', 7),
+      comment: getVal('コメント', 8),
+      condition: getVal('意欲', 9),
+      location: locationVal || '',
+      id: idVal,
+      visibility: getVal('visibility') || 'private',
+      timeline_visibility: getVal('timeline_visibility') || 'private',
+      status: getVal('status') || ''
     };
   });
 
-  // 最新ステータスの取得 (ユーザー別シートの最終行O列から取得)
+  // 最新ステータスの取得
   const lastRow = sheet.getLastRow();
   let userStatus = '';
   if (lastRow > 0) {
-    userStatus = sheet.getRange(lastRow, 15).getValue() || '';
+    const statusIdx = colMap['status'];
+    if (statusIdx !== -1) {
+      userStatus = sheet.getRange(lastRow, statusIdx + 1).getValue() || '';
+    } else {
+      // フォールバック: O列(15)
+      userStatus = sheet.getRange(lastRow, 15).getValue() || '';
+    }
   }
 
   const baseData = getBaseData(ss);
@@ -385,6 +447,77 @@ function getBaseData(ss) {
     finishMessages: [...new Set(finishMessages)],
     statusPresets: [...new Set(statusPresets)]
   };
+}
+
+/**
+ * 公開設定が public のユーザー一覧を取得
+ * 最新活動（最後のレコードの日付・開始時刻）順にソートするための情報を含める
+ */
+function getPublicUsers(ss) {
+  const baseSheet = ss.getSheetByName(STUDY_REC_SHEET_NAME_BASE);
+  if (!baseSheet) return [];
+
+  const baseHeaders = baseSheet.getRange(1, 1, 1, baseSheet.getLastColumn()).getValues()[0];
+  const userColIdx = baseHeaders.indexOf('ユーザー名(設定)');
+  const visibilityColIdx = baseHeaders.indexOf('ユーザー公開設定');
+
+  if (userColIdx === -1 || visibilityColIdx === -1) return [];
+
+  const baseData = baseSheet.getRange(2, 1, Math.max(1, baseSheet.getLastRow() - 1), baseSheet.getLastColumn()).getValues();
+  const publicUserNames = [];
+
+  for (let i = 0; i < baseData.length; i++) {
+    const name = baseData[i][userColIdx];
+    const visibility = baseData[i][visibilityColIdx];
+    if (name && visibility === 'public') {
+      publicUserNames.push(name);
+    }
+  }
+
+  const results = [];
+  const allSheets = ss.getSheets();
+
+  publicUserNames.forEach(name => {
+    const sheetName = "rec" + name;
+    const userSheet = allSheets.find(s => s.getName() === sheetName);
+    let lastActivityTime = 0;
+
+    if (userSheet && userSheet.getLastRow() > 1) {
+      const lastRow = userSheet.getLastRow();
+      // ヘッダーから日付(A)と開始時刻(C)を取得 (1列目, 3列目)
+      // より正確には colMap を使うべきだが、パフォーマンス重視で固定列(A, C)を参照
+      const dateVal = userSheet.getRange(lastRow, 1).getValue();
+      const timeVal = userSheet.getRange(lastRow, 3).getValue();
+
+      try {
+        let dateObj;
+        if (dateVal instanceof Date) {
+          dateObj = new Date(dateVal);
+        } else {
+          dateObj = new Date(dateVal.toString().replace(/-/g, '/'));
+        }
+
+        if (timeVal) {
+          const tStr = timeVal instanceof Date ? Utilities.formatDate(timeVal, Session.getScriptTimeZone(), "HH:mm") : timeVal.toString();
+          const [h, m] = tStr.split(':').map(Number);
+          dateObj.setHours(h || 0, m || 0, 0, 0);
+        }
+        lastActivityTime = dateObj.getTime();
+      } catch (e) {
+        lastActivityTime = 0;
+      }
+    }
+
+    results.push({
+      userName: name,
+      lastActivity: lastActivityTime
+    });
+  });
+
+  // 最新活動順にソート
+  results.sort((a, b) => b.lastActivity - a.lastActivity);
+
+  return results;
 }
 
 function findRowIndexById(sheet, id) {

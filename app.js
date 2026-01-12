@@ -207,7 +207,7 @@ let publicCharts = {
     popupTimeline: null
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbz8PNl3xhnp8jfATKx7_wk8CFQCwIX9IOM2Dn24c00-qiLs1ocEKeAUeF5bXSN8xHHQOQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxZyFcJMoacKkhrPp80ZQlyHb9x0JEWcpRQqI_0V-S1Dllqy9qpcAuk0t1S9JriW8lX/exec';
 
 // DOM Elements
 const elements = {
@@ -288,7 +288,11 @@ const elements = {
     userStatusDisplay: document.getElementById('user-status-display'),
     publicCatPeriodTabs: document.getElementById('public-cat-period-tabs'),
     userVisibilityToggle: document.getElementById('user-visibility-toggle'),
-    userVisibilityLabel: document.getElementById('user-visibility-label')
+    userVisibilityLabel: document.getElementById('user-visibility-label'),
+    showCompetitorsBtn: document.getElementById('show-competitors-btn'),
+    publicUsersModal: document.getElementById('public-users-modal'),
+    closePublicUsersBtn: document.getElementById('close-public-users-btn'),
+    publicUserList: document.getElementById('public-user-list')
 };
 
 // 期間切り替えイベントの初期化
@@ -502,8 +506,9 @@ function resumeStudySession() {
             const cat = session.category || '';
             const cnt = session.content || '';
             const loc = session.location || '';
+            const ent = session.enthusiasm || '';
 
-            // セッションデータに不足がある場合、localStorageから最近の値を補完
+            // ⑤ 記録モードの「カテゴリ」「学習内容」「意気込み」の復元
             if (!cat || !cnt) {
                 const lastIdx = localStorage.getItem('study_recorder_last_inputs');
                 if (lastIdx) {
@@ -512,10 +517,13 @@ function resumeStudySession() {
                     else elements.categoryInput.value = cat;
                     if (!cnt) elements.contentInput.value = parsed.content || '';
                     else elements.contentInput.value = cnt;
+                    if (!ent) elements.enthusiasmInput.value = parsed.enthusiasm || '';
+                    else elements.enthusiasmInput.value = ent;
                 }
             } else {
                 elements.categoryInput.value = cat;
                 elements.contentInput.value = cnt;
+                if (ent) elements.enthusiasmInput.value = ent;
             }
             if (elements.locationInput) elements.locationInput.value = loc || '';
 
@@ -717,6 +725,19 @@ function setupMasterData() {
         handleFocus(elements.contentInput, updateContentList);
         handleFocus(elements.enthusiasmInput, updateEnthusiasmList);
 
+        elements.locationInput.addEventListener('mousedown', () => {
+            if (elements.locationInput.value) {
+                elements.locationInput.dataset.oldValue = elements.locationInput.value;
+                elements.locationInput.value = '';
+            }
+            updateLocationSuggestions();
+        });
+        elements.locationInput.addEventListener('blur', () => {
+            if (!elements.locationInput.value && elements.locationInput.dataset.oldValue) {
+                elements.locationInput.value = elements.locationInput.dataset.oldValue;
+            }
+        });
+
         elements.commentInput.addEventListener('mousedown', () => {
             if (elements.commentInput.value) {
                 elements.commentInput.dataset.oldValue = elements.commentInput.value;
@@ -724,7 +745,6 @@ function setupMasterData() {
             }
             updateCommentSuggestions();
             updateLocationSuggestions();
-            // 初期状態の表示を更新
         });
         elements.commentInput.addEventListener('blur', () => {
             if (!elements.commentInput.value && elements.commentInput.dataset.oldValue) {
@@ -1074,6 +1094,16 @@ function setupEventListeners() {
         updateViewDateUI();
         updateViewDateRecords(); // 表示を即座にリロード
     });
+
+    // 公開ユーザー一覧（Competitors）関連
+    if (elements.showCompetitorsBtn) {
+        elements.showCompetitorsBtn.addEventListener('click', openPublicUsersExplorer);
+    }
+    if (elements.closePublicUsersBtn) {
+        elements.closePublicUsersBtn.addEventListener('click', () => {
+            elements.publicUsersModal.classList.add('hidden');
+        });
+    }
 }
 
 // Assuming 'state' object is defined globally or in an outer scope.
@@ -1254,6 +1284,7 @@ function saveStudyState() {
             lastPauseTime: state.lastPauseTime ? state.lastPauseTime.toISOString() : null,
             category: elements.categoryInput.value.trim(),
             content: elements.contentInput.value.trim(),
+            enthusiasm: elements.enthusiasmInput.value.trim(),
             location: elements.locationInput.value.trim(),
             theme: state.goals.theme || 'default'
         }));
@@ -1434,15 +1465,9 @@ async function saveSummaryRecord() {
 }
 
 function updateLocationSuggestions() {
-    // ▼ボタン（datalist）: baseシートの共通マスタから取得
-    elements.locationList.innerHTML = '';
-    if (state.gasMasterData?.locations) {
-        state.gasMasterData.locations.forEach(l => {
-            const opt = document.createElement('option');
-            opt.value = l;
-            elements.locationList.appendChild(opt);
-        });
-    }
+    if (!elements.locationList) return;
+    elements.locationList.innerHTML = (state.gasMasterData?.locations || [])
+        .map(l => `<option value="${l}">`).join('');
 }
 
 // 手動記録処理
@@ -1604,19 +1629,30 @@ async function loadRecordsFromGAS() {
             if (elements.userVisibilityToggle) {
                 elements.userVisibilityToggle.checked = (state.userVisibility === 'public');
             }
+
+            // Public設定の場合、個別記録の公開設定も初期値をONにする
+            if (state.userVisibility === 'public') {
+                const vt = document.getElementById('visibility-toggle');
+                const tvt = document.getElementById('timeline-visibility-toggle');
+                if (vt) vt.checked = true;
+                if (tvt) tvt.checked = true;
+
+                // まとめモーダル側のトグルも初期値をONに
+                const svt = document.getElementById('summary-visibility-toggle');
+                const stvt = document.getElementById('summary-timeline-visibility-toggle');
+                if (svt) svt.checked = true;
+                if (stvt) stvt.checked = true;
+            }
+
             updateUserDisplay();
         }
 
         if (result.accessDenied) {
             if (state.isPublicView) {
-                document.body.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:#fff; font-family:sans-serif; background:#0f172a; padding: 20px; text-align:center;">
-                    <h1 style="color:var(--primary-color);">ACCESS DENIED</h1>
-                    <p>このユーザーの学習記録は現在非公開に設定されています。</p>
-                    <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.3); color:#fff; border-radius:5px; cursor:pointer;">再試行</button>
-                    <p style="margin-top: 40px; font-size: 0.8rem; color: #64748b;">StudyRecorder</p>
-                </div>
-            `;
+                // ポップアップモード（他人の閲覧）でのアクセス拒否
+                alert('このユーザーの学習記録は現在非公開に設定されています。');
+                const closeBtn = document.getElementById('public-view-close-btn');
+                if (closeBtn) closeBtn.click();
                 return;
             }
         }
@@ -1636,7 +1672,10 @@ async function loadRecordsFromGAS() {
 
         const recordsData = result.records;
         if (Array.isArray(recordsData)) {
-            let processedRecords = recordsData.map(record => {
+            // 他人の閲覧時の最終フィルタ（サーバーで処理されているはずだが念のため）
+            const filteredData = state.isPublicView ? recordsData.filter(r => r.visibility === 'public') : recordsData;
+
+            let processedRecords = filteredData.map(record => {
                 let datePart = record.date;
                 // ... (date conversion logic remains same)
                 if (datePart && typeof datePart === 'string' && datePart.includes('T')) {
@@ -1737,8 +1776,8 @@ function updateDatalists() {
     if (elements.commentList && state.gasMasterData.comments) {
         elements.commentList.innerHTML = state.gasMasterData.comments.map(item => `<option value="${item}">`).join('');
     }
-    if (elements.locationList && state.gasMasterData.locations) {
-        elements.locationList.innerHTML = state.gasMasterData.locations.map(item => `<option value="${item}">`).join('');
+    if (elements.locationList) {
+        updateLocationSuggestions();
     }
     if (state.gasMasterData.statusPresets) {
         const options = state.gasMasterData.statusPresets.map(item => `<option value="${item}">`).join('');
@@ -3209,6 +3248,35 @@ function renderPublicView() {
     const currentMonth = todayDate.getMonth();
     const currentWeek = getWeekNumber(todayDate);
 
+    // --- ポップアップモード（他人の閲覧）かつ閉じるボタンがなければ追加 ---
+    if (state.isPublicView && !document.getElementById('public-view-close-btn')) {
+        const header = document.querySelector('.public-header');
+        if (header) {
+            const closeBtn = document.createElement('button');
+            closeBtn.id = 'public-view-close-btn';
+            closeBtn.className = 'icon-btn';
+            closeBtn.innerHTML = '<span class="material-icons-outlined">close</span>';
+            closeBtn.onclick = () => {
+                // 元の画面に戻る。state.isPublicView を戻した上でUIを切り替える
+                state.isPublicView = false;
+                state.publicUserName = null;
+                elements.publicViewScreen.classList.add('hidden');
+                // メインコンテンツを再表示
+                if (document.getElementById('main-content')) {
+                    const children = document.getElementById('main-content').children;
+                    for (let child of children) {
+                        if (child.id !== 'public-view-screen' && child.id !== 'gantt-tooltip' && !child.classList.contains('modal')) {
+                            child.classList.remove('hidden');
+                        }
+                    }
+                }
+                // データを自分のものにリロード
+                loadRecordsFromGAS();
+            };
+            header.appendChild(closeBtn);
+        }
+    }
+
     // A) 各種合計時間の計算
     let totalMin = 0;
     let yearMin = 0;
@@ -3660,4 +3728,96 @@ async function saveUserVisibility(visibility) {
         console.error('Failed to save user visibility:', e);
         showFeedback('設定の保存に失敗しました');
     }
+}
+
+// --- 公開ユーザー一覧（Competitors）関連ロジック ---
+
+async function openPublicUsersExplorer() {
+    elements.publicUsersModal.classList.remove('hidden');
+    elements.publicUserList.innerHTML = '<div class="loading-text" style="color:var(--text-dim); padding:1rem; text-align:center;">Loading users...</div>';
+
+    const users = await fetchPublicUsers();
+    renderPublicUserList(users);
+}
+
+async function fetchPublicUsers() {
+    try {
+        const response = await fetch(`${GAS_URL}?action=getPublicUsers`);
+        const result = await response.json();
+        if (result.success) {
+            return result.users || [];
+        }
+        return [];
+    } catch (e) {
+        console.error('Failed to fetch public users:', e);
+        return [];
+    }
+}
+
+function renderPublicUserList(users) {
+    elements.publicUserList.innerHTML = '';
+
+    if (users.length === 0) {
+        elements.publicUserList.innerHTML = '<div style="color:var(--text-dim); padding:2rem; text-align:center;">No public users found.</div>';
+        return;
+    }
+
+    users.forEach(user => {
+        const card = document.createElement('div');
+        card.className = 'public-user-card';
+
+        const info = document.createElement('div');
+        const name = document.createElement('div');
+        name.className = 'user-name';
+        name.textContent = user.userName;
+
+        const activity = document.createElement('div');
+        activity.className = 'last-activity';
+        if (user.lastActivity > 0) {
+            const d = new Date(user.lastActivity);
+            activity.textContent = `最終活動: ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        } else {
+            activity.textContent = '最終活動: なし';
+        }
+
+        info.appendChild(name);
+        info.appendChild(activity);
+
+        const arrow = document.createElement('div');
+        arrow.innerHTML = '<span class="material-icons-outlined">chevron_right</span>';
+        arrow.style.color = 'var(--text-dim)';
+
+        card.appendChild(info);
+        card.appendChild(arrow);
+
+        card.addEventListener('click', () => {
+            elements.publicUsersModal.classList.add('hidden');
+            openUserPublicView(user.userName);
+        });
+
+        elements.publicUserList.appendChild(card);
+    });
+}
+
+async function openUserPublicView(userName) {
+    // 他人のビューを表示するために状態を切り替える
+    state.isPublicView = true;
+    state.publicUserName = userName;
+    elements.publicUserTitle.textContent = `${userName}さんの学習記録`;
+
+    // メインUIを隠し、Public View を表示（initのロジックと同様）
+    if (elements.overlay) elements.overlay.classList.add('hidden');
+    if (document.getElementById('main-content')) {
+        const children = document.getElementById('main-content').children;
+        for (let child of children) {
+            if (child.id !== 'public-view-screen' && child.id !== 'gantt-tooltip' && !child.classList.contains('modal')) {
+                child.classList.add('hidden');
+            }
+        }
+    }
+    elements.publicViewScreen.classList.remove('hidden');
+
+    // データ取得と描画
+    await loadRecordsFromGAS(); // state.publicUserName に基づいてデータ取得
+    renderPublicView();
 }

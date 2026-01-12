@@ -2136,4 +2136,87 @@ h3 {
     .public-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+}/* Competitors Button & User Explorer Styles */
+.competitors-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    background: rgba(var(--primary-color-rgb), 0.1);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-glow);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 700;
+}
+
+.competitors-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: 0 0 12px var(--primary-glow);
+}
+
+.competitors-btn .material-icons-outlined {
+    font-size: 1rem;
+}
+
+.public-users-content {
+    max-width: 450px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.public-user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-top: 1rem;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.public-user-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 0.8rem 1.2rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.public-user-card:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateX(4px);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.public-user-card .user-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-main);
+}
+
+.public-user-card .last-activity {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}
+
+@media (max-width: 600px) {
+    .date-navigation {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .date-navigation h2 {
+        width: 100%;
+        order: -1;
+    }
 }

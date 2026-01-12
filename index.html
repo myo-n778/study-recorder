@@ -334,6 +334,10 @@
                     <h2 id="current-view-date">2026/01/01(木)</h2>
                     <button id="next-date-btn" class="nav-btn">▶</button>
                     <button id="today-btn" class="today-shortcut">今日</button>
+                    <button id="show-competitors-btn" class="competitors-btn" title="公開ユーザー一覧">
+                        <span class="material-icons-outlined">people</span>
+                        <span>competitors</span>
+                    </button>
                 </div>
 
                 <!-- 表示対象フィルタ -->
@@ -722,6 +726,18 @@
             <span>🗑️</span> 削除
         </div>
     </div>
+    <!-- 公開ユーザー一覧（Competitors）モーダル -->
+    <div id="public-users-modal" class="modal hidden">
+        <div class="modal-content glass-card public-users-content">
+            <div class="modal-header-flex">
+                <h3>Public User Explorer</h3>
+                <button id="close-public-users-btn" class="icon-btn"><span
+                        class="material-icons-outlined">close</span></button>
+            </div>
+            <div id="public-user-list" class="public-user-list">
+                <!-- JSで動的に追加 -->
+            </div>
+        </div>
     </div>
     <script src="app.js"></script>
 </body>
