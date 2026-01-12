@@ -1696,27 +1696,7 @@ function showStatusPresetsPopup() {
 
     popup.innerHTML = '';
 
-    // 1. GASのマスタプリセットを表示
-    if (state.gasMasterData?.statusPresets && state.gasMasterData.statusPresets.length > 0) {
-        const title = document.createElement('div');
-        title.className = 'history-item-header';
-        title.textContent = 'プリセット (共通)';
-        popup.appendChild(title);
-
-        state.gasMasterData.statusPresets.forEach(preset => {
-            const item = document.createElement('div');
-            item.className = 'history-item';
-            item.textContent = preset;
-            item.addEventListener('click', () => {
-                input.value = preset;
-                popup.classList.add('hidden');
-                updateStatus(preset); // 即座に更新
-            });
-            popup.appendChild(item);
-        });
-    }
-
-    // 2. 自分の過去の履歴を表示
+    // 1. 自分の過去の履歴を表示 (優先表示)
     const history = state.records
         .map(r => r.status)
         .filter((v, i, a) => v && v.trim() !== '' && a.indexOf(v) === i)
@@ -1725,7 +1705,6 @@ function showStatusPresetsPopup() {
     if (history.length > 0) {
         const title = document.createElement('div');
         title.className = 'history-item-header';
-        title.style.marginTop = '8px';
         title.textContent = '最近の履歴';
         popup.appendChild(title);
 
@@ -1737,6 +1716,27 @@ function showStatusPresetsPopup() {
                 input.value = val;
                 popup.classList.add('hidden');
                 updateStatus(val);
+            });
+            popup.appendChild(item);
+        });
+    }
+
+    // 2. GASのマスタプリセットを表示
+    if (state.gasMasterData?.statusPresets && state.gasMasterData.statusPresets.length > 0) {
+        const title = document.createElement('div');
+        title.className = 'history-item-header';
+        if (history.length > 0) title.style.marginTop = '8px';
+        title.textContent = 'プリセット (共通)';
+        popup.appendChild(title);
+
+        state.gasMasterData.statusPresets.forEach(preset => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.textContent = preset;
+            item.addEventListener('click', () => {
+                input.value = preset;
+                popup.classList.add('hidden');
+                updateStatus(preset); // 即座に更新
             });
             popup.appendChild(item);
         });
