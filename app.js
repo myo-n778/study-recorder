@@ -1487,6 +1487,12 @@ async function loadRecordsFromGAS() {
 
         // マスタデータの更新 (応援メッセージ等に使用)
         if (result.masterData) {
+            console.log('Received Master Data:', result.masterData);
+            if (result.masterData.statusPresets) {
+                console.log('Status Presets:', result.masterData.statusPresets);
+            } else {
+                console.warn('Status Presets missing in Master Data');
+            }
             state.gasMasterData = result.masterData;
             updateDatalists();
         }
