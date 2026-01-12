@@ -39,10 +39,26 @@
                 </header>
 
                 <div class="public-summary">
-                    <div class="goal-badges">
-                        <div class="badge-item">
-                            <span class="badge-label">累計学習時間</span>
-                            <span class="badge public-total-time" id="public-total-time">--</span>
+                    <div class="public-stats-grid">
+                        <div class="stat-badge">
+                            <span class="stat-label">総合計</span>
+                            <span class="badge" id="public-total-time">--</span>
+                        </div>
+                        <div class="stat-badge">
+                            <span class="stat-label">年合計</span>
+                            <span class="badge" id="public-year-time">--</span>
+                        </div>
+                        <div class="stat-badge">
+                            <span class="stat-label">月合計</span>
+                            <span class="badge" id="public-month-time">--</span>
+                        </div>
+                        <div class="stat-badge">
+                            <span class="stat-label">週合計</span>
+                            <span class="badge" id="public-week-time">--</span>
+                        </div>
+                        <div class="stat-badge">
+                            <span class="stat-label">日合計</span>
+                            <span class="badge" id="public-day-time">--</span>
                         </div>
                     </div>
                 </div>
@@ -82,8 +98,18 @@
                     </div>
                 </div>
 
+                <!-- カテゴリ別集計 -->
+                <div class="glass-card compact-card" style="margin-top: 2rem;">
+                    <div class="header-flex">
+                        <h3>カテゴリー別集計 (全公開分)</h3>
+                    </div>
+                    <div id="public-category-summary" class="public-category-list">
+                        <!-- JSで動的に追加 -->
+                    </div>
+                </div>
+
                 <footer class="public-footer">
-                    <p>© 2026 StudyRecorder - 努力を可視化する</p>
+                    <p>© 2026 StudyRecorder</p>
                 </footer>
             </div>
 

@@ -2872,22 +2872,100 @@ init();
 function renderPublicView() {
     if (!state.isPublicView) return;
 
-    // A) 学習時間（合計）- 公開設定分のみ
     const publicRecords = state.records.filter(r => r.visibility === 'public');
-    const totalMinutes = publicRecords.reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0);
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    if (elements.publicTotalTime) {
-        elements.publicTotalTime.textContent = `${h}h ${m}m`;
-    }
+    const expandedRecords = getExpandedRecords(publicRecords);
+    const logicalToday = getLogicalDate(); // YYYY/MM/DD
+    const todayDate = new Date(logicalToday);
+    const currentYear = todayDate.getFullYear();
+    const currentMonth = todayDate.getMonth();
+    const currentWeek = getWeekNumber(todayDate);
+
+    // A) 各種合計時間の計算
+    let totalMin = 0;
+    let yearMin = 0;
+    let monthMin = 0;
+    let weekMin = 0;
+    let dayMin = 0;
+
+    const categorySummary = {}; // category -> minutes
+
+    expandedRecords.forEach(r => {
+        const dur = parseInt(r.duration) || 0;
+        const bDateStr = getBelongingDate(r.date, r.startTime);
+        const bDate = new Date(bDateStr);
+
+        // 総合
+        totalMin += dur;
+
+        // カテゴリ別集計
+        categorySummary[r.category] = (categorySummary[r.category] || 0) + dur;
+
+        // 年
+        if (bDate.getFullYear() === currentYear) {
+            yearMin += dur;
+            // 月
+            if (bDate.getMonth() === currentMonth) {
+                monthMin += dur;
+            }
+        }
+        // 週 (ISO週番号で比較)
+        if (getWeekNumber(bDate) === currentWeek && bDate.getFullYear() === currentYear) {
+            weekMin += dur;
+        }
+        // 日
+        if (bDateStr === logicalToday) {
+            dayMin += dur;
+        }
+    });
+
+    const formatH = (min) => {
+        const h = Math.floor(min / 60);
+        const m = min % 60;
+        return `${h}h ${m}m`;
+    };
+
+    if (document.getElementById('public-total-time')) document.getElementById('public-total-time').textContent = formatH(totalMin);
+    if (document.getElementById('public-year-time')) document.getElementById('public-year-time').textContent = formatH(yearMin);
+    if (document.getElementById('public-month-time')) document.getElementById('public-month-time').textContent = formatH(monthMin);
+    if (document.getElementById('public-week-time')) document.getElementById('public-week-time').textContent = formatH(weekMin);
+    if (document.getElementById('public-day-time')) document.getElementById('public-day-time').textContent = formatH(dayMin);
 
     // B) 学習量推移グラフ
-    const activeBtn = elements.publicVolumePeriodTabs.querySelector('.period-btn.active');
-    const period = activeBtn ? activeBtn.dataset.period : 'day';
-    updatePublicVolumeChart(period);
+    if (elements.publicVolumePeriodTabs) {
+        const activeBtn = elements.publicVolumePeriodTabs.querySelector('.period-btn.active');
+        const period = activeBtn ? activeBtn.dataset.period : 'day';
+        updatePublicVolumeChart(period);
+    }
 
     // C) タイムライン (timeline_visibility: public のみ)
     renderPublicTimeline();
+
+    // D) カテゴリ別内訳の描画
+    const catContainer = document.getElementById('public-category-summary');
+    if (catContainer) {
+        catContainer.innerHTML = '';
+        const sortedCats = Object.entries(categorySummary).sort((a, b) => b[1] - a[1]);
+
+        if (sortedCats.length === 0) {
+            catContainer.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding: 1rem;">表示できるデータがありません</p>';
+        } else {
+            sortedCats.forEach(([cat, min]) => {
+                const item = document.createElement('div');
+                item.className = 'category-item';
+
+                // 色分け（本人用と同じロジック）
+                const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6'];
+                const colorIdx = Math.abs(cat.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
+                item.style.borderLeftColor = colors[colorIdx];
+
+                item.innerHTML = `
+                    <span class="category-name">${cat}</span>
+                    <span class="category-time">${formatH(min)}</span>
+                `;
+                catContainer.appendChild(item);
+            });
+        }
+    }
 }
 
 function updatePublicVolumeChart(period = 'day') {
