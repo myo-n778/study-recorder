@@ -2916,7 +2916,8 @@ document.getElementById('ctx-delete').addEventListener('click', async () => {
     if (!contextMenuTargetId) return;
     if (confirm('本当にこの記録を削除しますか？')) {
         contextMenu.classList.add('hidden');
-        await sendRecord({ id: contextMenuTargetId }, null, 'delete');
+        const userName = localStorage.getItem(USER_KEY);
+        await sendRecord({ id: contextMenuTargetId, userName: userName }, null, 'delete');
     }
 });
 
