@@ -1621,10 +1621,10 @@ h3 {
     overflow: hidden !important;
 }
 
-/* PC版：スタンプを「1行改行した位置」に置く（余白を広げる） */
-@media (min-width: 768px) {
+/* PC・タブレット版：スタンプを「3つ目の円」の下に逃がすための大きな余白を確保 */
+@media (min-width: 601px) {
     #achievement-stamps-area {
-        margin-top: 0.5rem !important;
+        margin-top: 4.5rem !important;
     }
 }
 
